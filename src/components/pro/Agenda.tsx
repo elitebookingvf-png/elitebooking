@@ -4,8 +4,8 @@ import { toISO, tMin, dayKeyForISO, formatPrice } from '@/lib/utils'
 
 type View = 'day' | 'staff' | 'week' | 'month'
 
-function AddRdvModal({ staff, services, onClose, onSaved, defaultDate, defaultTime, defaultStaffId }: {
-  staff: any[]; services: any[]; onClose: () => void; onSaved: () => void
+function AddRdvModal({ staff, services, salonId, onClose, onSaved, defaultDate, defaultTime, defaultStaffId }: {
+  staff: any[]; services: any[]; salonId: string; onClose: () => void; onSaved: () => void
   defaultDate?: string; defaultTime?: string; defaultStaffId?: string
 }) {
   const today = toISO(new Date())
@@ -24,12 +24,14 @@ function AddRdvModal({ staff, services, onClose, onSaved, defaultDate, defaultTi
 
   useEffect(() => {
     if (!form.service_id || !form.date) { setSlots([]); return }
+    const resolvedStaffId = form.staff_id === 'any' ? (eligibleStaff[0]?.id || '') : form.staff_id
+    if (!resolvedStaffId) { setSlots([]); return }
     const sp = new URLSearchParams({
-      salonId: '', staffId: form.staff_id === 'any' ? (eligibleStaff[0]?.id || '') : form.staff_id,
+      salonId, staffId: resolvedStaffId,
       serviceId: form.service_id, date: form.date,
     })
     fetch('/api/availability?' + sp).then(r => r.json()).then(d => setSlots(Array.isArray(d.slots) ? d.slots : []))
-  }, [form.service_id, form.staff_id, form.date])
+  }, [form.service_id, form.staff_id, form.date, salonId])
 
   async function save() {
     if (!form.client_name.trim()) { setErr('Nom du client requis'); return }
@@ -209,6 +211,7 @@ export function ProAgenda({ salon }: { salon: any }) {
       {showAddRdv && (
         <AddRdvModal
           staff={staff} services={services}
+          salonId={salon.id}
           defaultDate={addRdvDate}
           defaultTime={addRdvTime}
           defaultStaffId={addRdvStaffId}

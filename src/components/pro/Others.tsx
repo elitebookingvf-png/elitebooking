@@ -23,7 +23,8 @@ function RdvAddModal({ staff, services, onClose, onSaved, defaultDate }: {
   useEffect(() => {
     if (!form.service_id || !form.date) { setSlots([]); return }
     const sid = form.staff_id === 'any' ? (eligibleStaff[0]?.id || '') : form.staff_id
-    fetch(`/api/availability?salonId=&staffId=${sid}&serviceId=${form.service_id}&date=${form.date}`)
+    if (!sid) { setSlots([]); return }
+    fetch(`/api/availability?staffId=${sid}&serviceId=${form.service_id}&date=${form.date}`)
       .then(r => r.json()).then(d => setSlots(Array.isArray(d.slots) ? d.slots : []))
   }, [form.service_id, form.staff_id, form.date])
 
@@ -304,8 +305,9 @@ export function ProServices() {
   const save = async () => {
     setSaving(true)
     const method = editing?.id ? 'PUT' : 'POST'
-    const body = { ...form, price: +form.price, duration: +form.duration, id: editing?.id }
-    await fetch('/api/services', { method, headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) })
+    const payload: any = { ...form, price: +form.price, duration: +form.duration }
+    if (editing?.id) payload.id = editing.id
+    await fetch('/api/services', { method, headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) })
     setSaving(false); setEditing(null); load()
   }
 
