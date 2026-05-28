@@ -13,11 +13,12 @@ function AuthForm() {
   const [form, setForm] = useState({
     firstname:'', lastname:'', email:'', password:'', phone:'',
     salonName:'', salonCategory:'coiffure', salonCity:'Casablanca',
+    salonAddress:'', salonDescription:'',
   })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement|HTMLSelectElement>) =>
+  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement|HTMLSelectElement|HTMLTextAreaElement>) =>
     setForm(f => ({ ...f, [k]: e.target.value }))
 
   async function handleLogin(e: React.FormEvent) {
@@ -138,6 +139,14 @@ function AuthForm() {
                           {CITIES.map(c => <option key={c} value={c}>{c}</option>)}
                         </select>
                       </div>
+                    </div>
+                    <div className="form-group" style={{marginBottom:0}}>
+                      <label>Adresse</label>
+                      <input className="form-control" value={form.salonAddress} onChange={set('salonAddress')} placeholder="123 Boulevard Mohamed V" />
+                    </div>
+                    <div className="form-group" style={{marginBottom:0}}>
+                      <label>Description</label>
+                      <textarea className="form-control" value={form.salonDescription} onChange={set('salonDescription')} placeholder="Décrivez votre établissement en quelques mots…" style={{minHeight:72}} />
                     </div>
                   </div>
                 )}

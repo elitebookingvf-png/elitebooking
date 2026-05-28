@@ -4,7 +4,7 @@ import { createClient, createAdminClient } from '@/lib/supabase/server';
 
 export async function POST(req: NextRequest) {
   try {
-    const { firstname, lastname, email, password, type, phone, salonName, salonCity, salonCategory, city, category } = await req.json();
+    const { firstname, lastname, email, password, type, phone, salonName, salonCity, salonCategory, salonAddress, salonDescription, city, category } = await req.json();
     if (!firstname || !lastname || !email || !password) {
       return NextResponse.json({ error: 'Champs obligatoires manquants' }, { status: 400 });
     }
@@ -41,13 +41,15 @@ export async function POST(req: NextRequest) {
       const resolvedCategory      = salonCategory || category      || 'coiffure';
 
       const { data: salon, error: salonError } = await (adminSupabase.from('salons') as any).insert({
-        owner_id: userId,
-        name:     resolvedSalonName,
-        city:     resolvedCity,
-        category: resolvedCategory,
-        rating:   4.5,
-        active:   true,
-        pin:      '0000',
+        owner_id:    userId,
+        name:        resolvedSalonName,
+        city:        resolvedCity,
+        category:    resolvedCategory,
+        address:     salonAddress     || null,
+        description: salonDescription || null,
+        rating:      4.5,
+        active:      true,
+        pin:         '0000',
       }).select().single();
 
       if (salonError) return NextResponse.json({ error: salonError.message }, { status: 500 });
