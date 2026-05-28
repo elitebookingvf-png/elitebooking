@@ -4,13 +4,14 @@ import { toISO, tMin, dayKeyForISO, formatPrice } from '@/lib/utils'
 
 type View = 'day' | 'staff' | 'week' | 'month'
 
-function AddRdvModal({ staff, services, onClose, onSaved, defaultDate }: {
-  staff: any[]; services: any[]; onClose: () => void; onSaved: () => void; defaultDate?: string
+function AddRdvModal({ staff, services, onClose, onSaved, defaultDate, defaultTime, defaultStaffId }: {
+  staff: any[]; services: any[]; onClose: () => void; onSaved: () => void
+  defaultDate?: string; defaultTime?: string; defaultStaffId?: string
 }) {
   const today = toISO(new Date())
   const [form, setForm] = useState({
-    client_name: '', client_phone: '', service_id: '', staff_id: 'any',
-    date: defaultDate || today, start_time: '', notes: '', status: 'confirmed'
+    client_name: '', client_phone: '', service_id: '', staff_id: defaultStaffId || 'any',
+    date: defaultDate || today, start_time: defaultTime || '', notes: '', status: 'confirmed'
   })
   const [slots, setSlots] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
@@ -135,6 +136,8 @@ export function ProAgenda({ salon }: { salon: any }) {
   const [services, setServices] = useState<any[]>([])
   const [showAddRdv, setShowAddRdv] = useState(false)
   const [addRdvDate, setAddRdvDate] = useState<string | undefined>()
+  const [addRdvTime, setAddRdvTime] = useState<string | undefined>()
+  const [addRdvStaffId, setAddRdvStaffId] = useState<string | undefined>()
 
   const loadRdvs = () =>
     fetch('/api/rdv/pro').then(r => r.json()).then(d => setRdvs(Array.isArray(d) ? d : []))
@@ -207,6 +210,8 @@ export function ProAgenda({ salon }: { salon: any }) {
         <AddRdvModal
           staff={staff} services={services}
           defaultDate={addRdvDate}
+          defaultTime={addRdvTime}
+          defaultStaffId={addRdvStaffId}
           onClose={() => setShowAddRdv(false)}
           onSaved={loadRdvs}
         />
@@ -231,7 +236,7 @@ export function ProAgenda({ salon }: { salon: any }) {
           <span style={{fontSize:'0.85rem',fontWeight:500,minWidth:200,textAlign:'center',textTransform:'capitalize'}}>{periodLabel()}</span>
           <button onClick={() => navigate(1)} className="btn btn-secondary" style={{padding:'6px 12px'}}>›</button>
           <button onClick={() => setDate(new Date())} className="btn btn-secondary" style={{fontSize:'0.82rem'}}>Aujourd'hui</button>
-          <button onClick={() => { setAddRdvDate(iso); setShowAddRdv(true) }} className="btn btn-primary" style={{fontSize:'0.82rem'}}>+ Ajouter un RDV</button>
+          <button onClick={() => { setAddRdvDate(iso); setAddRdvTime(undefined); setAddRdvStaffId(undefined); setShowAddRdv(true) }} className="btn btn-primary" style={{fontSize:'0.82rem'}}>+ Ajouter un RDV</button>
         </div>
       </div>
 
@@ -274,9 +279,13 @@ export function ProAgenda({ salon }: { salon: any }) {
                         r.staff_id === st.id && r.date === iso &&
                         r.start_time.startsWith(`${String(h).padStart(2,'0')}:`)
                       )
+                      const clickable = works && !blkd
                       return (
-                        <td key={st.id} style={{border:'1px solid #eee',padding:6,verticalAlign:'top',minHeight:56,
-                          background: !works?'#f7f7f7':blkd?'#fffbeb':'#fff'}}>
+                        <td key={st.id}
+                          onClick={() => { if(clickable && !cellRdvs.length) { setAddRdvDate(iso); setAddRdvTime(`${String(h).padStart(2,'0')}:00`); setAddRdvStaffId(st.id); setShowAddRdv(true) } }}
+                          style={{border:'1px solid #eee',padding:6,verticalAlign:'top',minHeight:56,
+                            background: !works?'#f7f7f7':blkd?'#fffbeb':'#fff',
+                            cursor: clickable && !cellRdvs.length ? 'pointer' : 'default'}}>
                           {cellRdvs.map(r => (
                             <div key={r.id} style={{background:'#27AE60',color:'#fff',borderRadius:8,padding:'6px 8px',fontSize:'0.75rem',marginBottom:4}}>
                               <div style={{fontWeight:700}}>{r.start_time} {r.service_name?.substring(0,12)}</div>
@@ -285,6 +294,7 @@ export function ProAgenda({ salon }: { salon: any }) {
                           ))}
                           {blkd && !cellRdvs.length && <div style={{fontSize:'0.72rem',color:'#f59e0b',padding:4}}>🔒 Bloqué</div>}
                           {!works && <div style={{fontSize:'0.72rem',color:'#ccc',padding:4}}>{isOpen?'Repos':'Fermé'}</div>}
+                          {clickable && !cellRdvs.length && <div style={{fontSize:'0.65rem',color:'#ccc',textAlign:'center',marginTop:4}}>+ RDV</div>}
                         </td>
                       )
                     })}
@@ -312,7 +322,8 @@ export function ProAgenda({ salon }: { salon: any }) {
                   borderRight:'1px solid #f3f3f3',background:'#f7f7f7'}}>
                   {hStr}:00
                 </div>
-                <div style={{flex:1,padding:8,display:'flex',flexWrap:'wrap',gap:8}}>
+                <div style={{flex:1,padding:8,display:'flex',flexWrap:'wrap',gap:8,cursor:!blkd&&!dayRdvs.length?'pointer':'default'}}
+                  onClick={() => { if(!blkd && !dayRdvs.length) { setAddRdvDate(iso); setAddRdvTime(`${hStr}:00`); setAddRdvStaffId(undefined); setShowAddRdv(true) } }}>
                   {dayRdvs.map(r => (
                     <div key={r.id} style={{background:'#27AE60',color:'#fff',borderRadius:8,padding:'6px 12px',fontSize:'0.78rem'}}>
                       <div style={{fontWeight:700}}>{r.start_time} — {r.service_name}</div>
@@ -320,6 +331,7 @@ export function ProAgenda({ salon }: { salon: any }) {
                     </div>
                   ))}
                   {blkd && <div style={{fontSize:'0.75rem',color:'#f59e0b',padding:4}}>🔒 Créneau bloqué</div>}
+                  {!blkd && !dayRdvs.length && <div style={{fontSize:'0.72rem',color:'#ddd',padding:4,alignSelf:'center'}}>+ RDV</div>}
                 </div>
               </div>
             )

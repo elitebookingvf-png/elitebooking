@@ -121,6 +121,53 @@ function RdvAddModal({ staff, services, onClose, onSaved, defaultDate }: {
   )
 }
 
+// ─── PIN Modal ──────────────────────────────────────────────
+function PinModal({ action, pin, onSuccess, onClose }: {
+  action: string; pin: string; onSuccess: () => void; onClose: () => void
+}) {
+  const [entry, setEntry] = useState('')
+  const [err, setErr]     = useState('')
+
+  function press(k: string) {
+    if (k === '⌫') { setEntry(e => e.slice(0,-1)); return }
+    if (entry.length >= 4) return
+    const next = entry + k
+    setEntry(next)
+    if (next.length === 4) {
+      if (next === pin) { onClose(); onSuccess() }
+      else { setErr('Code incorrect. Réessayez.'); setTimeout(() => { setEntry(''); setErr('') }, 900) }
+    }
+  }
+
+  return (
+    <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.55)',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center'}}>
+      <div style={{background:'#fff',borderRadius:20,padding:'32px 28px',width:320,boxShadow:'0 20px 60px rgba(0,0,0,0.2)',textAlign:'center'}}>
+        <div style={{fontSize:'2rem',marginBottom:8}}>🔒</div>
+        <div className="serif" style={{fontSize:'1.3rem',marginBottom:4}}>Code PIN requis</div>
+        <div style={{fontSize:'0.82rem',color:'#aaa',marginBottom:20}}>{action}</div>
+        <div style={{display:'flex',gap:10,justifyContent:'center',marginBottom:20}}>
+          {[0,1,2,3].map(i => (
+            <div key={i} style={{width:14,height:14,borderRadius:'50%',border:'2px solid #ccc',
+              background: i < entry.length ? '#111' : '#fff'}} />
+          ))}
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8,marginBottom:12}}>
+          {[1,2,3,4,5,6,7,8,9,'','0','⌫'].map((k,i) => (
+            k === '' ? <div key={i} /> :
+            <button key={i} onClick={() => press(String(k))}
+              style={{height:52,border:'1.5px solid #eee',borderRadius:12,fontSize:k==='⌫'?'1.2rem':'1.1rem',
+                fontWeight:600,background:'#fff',cursor:'pointer'}}>
+              {k}
+            </button>
+          ))}
+        </div>
+        {err && <div style={{color:'#e53e3e',fontSize:'0.8rem',marginBottom:8}}>{err}</div>}
+        <button onClick={onClose} style={{color:'#aaa',fontSize:'0.82rem',background:'none',border:'none',cursor:'pointer',textDecoration:'underline'}}>Annuler</button>
+      </div>
+    </div>
+  )
+}
+
 // ─── RDV List ────────────────────────────────────────────────
 export function ProRdvList() {
   const [rdvs, setRdvs]         = useState<any[]>([])
@@ -128,6 +175,8 @@ export function ProRdvList() {
   const [showAdd, setShowAdd]   = useState(false)
   const [services, setServices] = useState<any[]>([])
   const [staff, setStaff2]      = useState<any[]>([])
+  const [pin, setPin]           = useState('0000')
+  const [pinAction, setPinAction] = useState<{label:string; cb:()=>void} | null>(null)
 
   const loadRdvs = () => fetch('/api/rdv/pro').then(r => r.json()).then(d => setRdvs(Array.isArray(d) ? d : []))
 
@@ -135,6 +184,7 @@ export function ProRdvList() {
     loadRdvs()
     fetch('/api/services').then(r => r.json()).then(d => setServices(Array.isArray(d.services) ? d.services : []))
     fetch('/api/staff').then(r => r.json()).then(d => setStaff2(Array.isArray(d) ? d : []))
+    fetch('/api/users/me').then(r => r.json()).then(d => { if (d?.salon?.pin) setPin(d.salon.pin) })
   }, [])
 
   async function changeStatus(id: string, status: string) {
@@ -145,6 +195,8 @@ export function ProRdvList() {
     })
     setRdvs(prev => prev.map(r => r.id === id ? { ...r, status } : r))
   }
+
+  function requirePin(label: string, cb: () => void) { setPinAction({ label, cb }) }
 
   const filtered = rdvs
     .filter(r => filter === 'all' || r.status === filter)
@@ -157,6 +209,14 @@ export function ProRdvList() {
           staff={staff} services={services}
           onClose={() => setShowAdd(false)}
           onSaved={loadRdvs}
+        />
+      )}
+      {pinAction && (
+        <PinModal
+          action={pinAction.label}
+          pin={pin}
+          onSuccess={pinAction.cb}
+          onClose={() => setPinAction(null)}
         />
       )}
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:24}}>
@@ -200,9 +260,9 @@ export function ProRdvList() {
                 <td style={{padding:'12px 16px'}}>
                   {r.status === 'confirmed' && (
                     <div style={{display:'flex',gap:6}}>
-                      <button onClick={() => changeStatus(r.id,'completed')}
+                      <button onClick={() => requirePin('Marquer comme terminé', () => changeStatus(r.id,'completed'))}
                         style={{fontSize:'0.72rem',color:'#27AE60',background:'none',border:'none',cursor:'pointer'}}>✓ Terminé</button>
-                      <button onClick={() => changeStatus(r.id,'cancelled')}
+                      <button onClick={() => requirePin('Annuler ce rendez-vous', () => changeStatus(r.id,'cancelled'))}
                         style={{fontSize:'0.72rem',color:'#EB5757',background:'none',border:'none',cursor:'pointer'}}>✗ Annuler</button>
                     </div>
                   )}
