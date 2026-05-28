@@ -1,14 +1,140 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { formatPrice, CATEGORIES, CITIES } from '@/lib/utils'
+import { formatPrice, CATEGORIES, CITIES, toISO } from '@/lib/utils'
+
+// ─── Shared Add-RDV modal ────────────────────────────────────
+function RdvAddModal({ staff, services, onClose, onSaved, defaultDate }: {
+  staff: any[]; services: any[]; onClose: () => void; onSaved: () => void; defaultDate?: string
+}) {
+  const today = toISO(new Date())
+  const [form, setForm] = useState({
+    client_name: '', client_phone: '', service_id: '', staff_id: 'any',
+    date: defaultDate || today, start_time: '', notes: '',
+  })
+  const [slots, setSlots]   = useState<string[]>([])
+  const [saving, setSaving] = useState(false)
+  const [err, setErr]       = useState('')
+
+  const selectedSvc    = services.find(s => s.id === form.service_id)
+  const eligibleStaff  = selectedSvc?.staff_ids?.length
+    ? staff.filter(s => selectedSvc.staff_ids.includes(s.id))
+    : staff
+
+  useEffect(() => {
+    if (!form.service_id || !form.date) { setSlots([]); return }
+    const sid = form.staff_id === 'any' ? (eligibleStaff[0]?.id || '') : form.staff_id
+    fetch(`/api/availability?salonId=&staffId=${sid}&serviceId=${form.service_id}&date=${form.date}`)
+      .then(r => r.json()).then(d => setSlots(Array.isArray(d.slots) ? d.slots : []))
+  }, [form.service_id, form.staff_id, form.date])
+
+  async function save() {
+    if (!form.client_name.trim()) { setErr('Nom du client requis'); return }
+    if (!form.service_id)         { setErr('Prestation requise');   return }
+    if (!form.start_time)         { setErr('Heure requise');        return }
+    setSaving(true); setErr('')
+    const staffId = form.staff_id === 'any' ? (eligibleStaff[0]?.id || null) : form.staff_id
+    const res = await fetch('/api/rdv/pro', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        client_name: form.client_name, client_phone: form.client_phone || null,
+        service_id: form.service_id, staff_id: staffId,
+        date: form.date, start_time: form.start_time, notes: form.notes || null,
+      }),
+    })
+    setSaving(false)
+    if (res.ok) { onSaved(); onClose() }
+    else { const d = await res.json(); setErr(d.error || 'Erreur') }
+  }
+
+  return (
+    <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.55)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
+      <div style={{background:'#fff',borderRadius:20,padding:32,width:'100%',maxWidth:540,maxHeight:'90vh',overflowY:'auto',boxShadow:'0 20px 60px rgba(0,0,0,0.2)'}}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:24}}>
+          <h2 className="serif" style={{fontSize:'1.5rem'}}>Ajouter un rendez-vous</h2>
+          <button onClick={onClose} style={{background:'none',border:'none',fontSize:'1.4rem',cursor:'pointer',color:'#aaa',lineHeight:1}}>✕</button>
+        </div>
+        {err && <div style={{background:'#fef2f2',color:'#e53e3e',padding:'10px 14px',borderRadius:8,marginBottom:16,fontSize:'0.83rem'}}>{err}</div>}
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+          <div className="form-group" style={{marginBottom:0}}>
+            <label>Nom du client *</label>
+            <input className="form-control" placeholder="Fatima Benali" value={form.client_name}
+              onChange={e=>setForm(f=>({...f,client_name:e.target.value}))} />
+          </div>
+          <div className="form-group" style={{marginBottom:0}}>
+            <label>Téléphone client</label>
+            <input className="form-control" type="tel" placeholder="+212 6XX XXX XXX" value={form.client_phone}
+              onChange={e=>setForm(f=>({...f,client_phone:e.target.value}))} />
+          </div>
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginTop:16}}>
+          <div className="form-group" style={{marginBottom:0}}>
+            <label>Prestation *</label>
+            <select className="form-control" value={form.service_id}
+              onChange={e=>setForm(f=>({...f,service_id:e.target.value,start_time:''}))}>
+              <option value="">— Choisir —</option>
+              {services.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+          </div>
+          <div className="form-group" style={{marginBottom:0}}>
+            <label>Employé</label>
+            <select className="form-control" value={form.staff_id}
+              onChange={e=>setForm(f=>({...f,staff_id:e.target.value,start_time:''}))}>
+              <option value="any">N'importe qui</option>
+              {eligibleStaff.map(s=><option key={s.id} value={s.id}>{s.firstname} {s.lastname}</option>)}
+            </select>
+          </div>
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginTop:16}}>
+          <div className="form-group" style={{marginBottom:0}}>
+            <label>Date *</label>
+            <input type="date" className="form-control" min={today} value={form.date}
+              onChange={e=>setForm(f=>({...f,date:e.target.value,start_time:''}))} />
+          </div>
+          <div className="form-group" style={{marginBottom:0}}>
+            <label>Heure *</label>
+            <select className="form-control" value={form.start_time}
+              onChange={e=>setForm(f=>({...f,start_time:e.target.value}))}>
+              <option value="">— Choisir —</option>
+              {slots.map(t=><option key={t} value={t}>{t}</option>)}
+            </select>
+          </div>
+        </div>
+        {selectedSvc && form.start_time && (
+          <div style={{background:'#f7f7f7',borderRadius:12,padding:'12px 16px',marginTop:16,fontSize:'0.85rem',color:'#555'}}>
+            {selectedSvc.name} · {selectedSvc.duration} min · <strong style={{color:'#C17B4E'}}>{formatPrice(selectedSvc.price, selectedSvc.price_type)}</strong>
+          </div>
+        )}
+        <div className="form-group" style={{marginTop:16}}>
+          <label>Notes internes (optionnel)</label>
+          <textarea className="form-control" placeholder="Préférences, allergies, rappels…" value={form.notes}
+            onChange={e=>setForm(f=>({...f,notes:e.target.value}))} style={{minHeight:64}} />
+        </div>
+        <div style={{display:'flex',gap:12,marginTop:8}}>
+          <button onClick={onClose} className="btn btn-secondary" style={{flex:1}}>Annuler</button>
+          <button onClick={save} disabled={saving} className="btn btn-primary" style={{flex:1,opacity:saving?0.6:1}}>
+            {saving ? 'Enregistrement…' : 'Enregistrer le RDV'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 // ─── RDV List ────────────────────────────────────────────────
 export function ProRdvList() {
-  const [rdvs, setRdvs]     = useState<any[]>([])
-  const [filter, setFilter] = useState('confirmed')
+  const [rdvs, setRdvs]         = useState<any[]>([])
+  const [filter, setFilter]     = useState('confirmed')
+  const [showAdd, setShowAdd]   = useState(false)
+  const [services, setServices] = useState<any[]>([])
+  const [staff, setStaff2]      = useState<any[]>([])
+
+  const loadRdvs = () => fetch('/api/rdv/pro').then(r => r.json()).then(d => setRdvs(Array.isArray(d) ? d : []))
 
   useEffect(() => {
-    fetch('/api/rdv/pro').then(r => r.json()).then(d => setRdvs(Array.isArray(d) ? d : []))
+    loadRdvs()
+    fetch('/api/services').then(r => r.json()).then(d => setServices(Array.isArray(d.services) ? d.services : []))
+    fetch('/api/staff').then(r => r.json()).then(d => setStaff2(Array.isArray(d) ? d : []))
   }, [])
 
   async function changeStatus(id: string, status: string) {
@@ -26,7 +152,17 @@ export function ProRdvList() {
 
   return (
     <div>
-      <h1 className="serif" style={{fontSize:'2rem',marginBottom:24}}>Rendez-vous</h1>
+      {showAdd && (
+        <RdvAddModal
+          staff={staff} services={services}
+          onClose={() => setShowAdd(false)}
+          onSaved={loadRdvs}
+        />
+      )}
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:24}}>
+        <h1 className="serif" style={{fontSize:'2rem'}}>Rendez-vous</h1>
+        <button onClick={() => setShowAdd(true)} className="btn btn-primary btn-sm">+ Ajouter un RDV</button>
+      </div>
       <div style={{display:'flex',gap:8,marginBottom:24}}>
         {['all','confirmed','cancelled','completed'].map(f => (
           <button key={f} onClick={() => setFilter(f)}
@@ -468,7 +604,7 @@ export function ProSchedule() {
   const saveBlock = async () => {
     if (!bForm.date) return
     await fetch('/api/blocks', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(bForm) })
-    setBForm(f => ({...f, label:'', staff_id:''}))
+    setBForm(f => ({...f, label:'', date:'', staff_id:''}))
     load()
   }
 
@@ -579,9 +715,10 @@ export function ProSchedule() {
 // ─── Mon Salon (settings) ────────────────────────────────────
 export function ProSalonSettings({ salon, setSalon }: { salon: any; setSalon: (s:any)=>void }) {
   const [form, setForm] = useState({
-    name: salon.name||'', city: salon.city||'', address: salon.address||'',
-    phone: salon.phone||'', email: salon.email||'', description: salon.description||'',
-    whatsapp: salon.whatsapp||'', instagram: salon.instagram||'', pin: salon.pin||'',
+    name: salon.name||'', city: salon.city||'', category: salon.category||'',
+    address: salon.address||'', phone: salon.phone||'', email: salon.email||'',
+    description: salon.description||'', whatsapp: salon.whatsapp||'',
+    instagram: salon.instagram||'', pin: salon.pin||'',
   })
   const [saving, setSaving] = useState(false)
   const [ok, setOk]         = useState(false)
@@ -598,9 +735,9 @@ export function ProSalonSettings({ salon, setSalon }: { salon: any; setSalon: (s
     setForm(f=>({...f,[k]:e.target.value}))
 
   return (
-    <div>
+    <div style={{maxWidth:640,margin:'0 auto'}}>
       <h1 className="serif" style={{fontSize:'2rem',marginBottom:32}}>Mon salon</h1>
-      <div className="card" style={{maxWidth:640}}>
+      <div className="card">
         <div className="space-y-4">
           <div className="form-group"><label>Nom du salon</label><input className="form-control" value={form.name} onChange={set('name')} /></div>
           <div className="form-row">
@@ -610,8 +747,8 @@ export function ProSalonSettings({ salon, setSalon }: { salon: any; setSalon: (s
               </select>
             </div>
             <div className="form-group" style={{marginBottom:0}}><label>Catégorie</label>
-              <select className="form-control" value={salon.category} disabled>
-                {CATEGORIES.map(c=><option key={c.id} value={c.id}>{c.label}</option>)}
+              <select className="form-control" value={form.category} onChange={set('category')}>
+                {CATEGORIES.map(c=><option key={c.id} value={c.id}>{c.emoji} {c.label}</option>)}
               </select>
             </div>
           </div>
@@ -661,9 +798,9 @@ export function ProProfile({ salon, setSalon }: { salon: any; setSalon: (s:any)=
   }
 
   return (
-    <div>
+    <div style={{maxWidth:480,margin:'0 auto'}}>
       <h1 className="serif" style={{fontSize:'2rem',marginBottom:32}}>Mon profil</h1>
-      <div className="card" style={{maxWidth:480}}>
+      <div className="card">
         <div className="space-y-4">
           <div className="form-row">
             <div className="form-group" style={{marginBottom:0}}><label>Prénom</label><input className="form-control" value={form.firstname} onChange={e=>setForm(f=>({...f,firstname:e.target.value}))} /></div>

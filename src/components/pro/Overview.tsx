@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { toISO, formatPrice } from '@/lib/utils'
 
 export function ProOverview({ salon }: { salon: any }) {
@@ -18,22 +19,28 @@ export function ProOverview({ salon }: { salon: any }) {
     .sort((a, b) => a.date.localeCompare(b.date) || a.start_time.localeCompare(b.start_time))
     .slice(0, 5)
 
+  const rating = Number(salon.rating) || 5.0
+
   const kpis = [
     { label: 'Total RDV',       value: rdvs.length,                   sub: 'Tous statuts' },
     { label: 'Revenus MAD',     value: revenue.toLocaleString('fr-FR'), sub: 'Confirmés uniquement' },
     { label: "RDV aujourd'hui", value: todayRdvs.length,               sub: new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'short'}) },
+    { label: 'Note moyenne',    value: `${rating.toFixed(1)}★`,        sub: `${salon.category} · ${salon.city}` },
   ]
 
   return (
     <div>
-      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:32}}>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:32,flexWrap:'wrap',gap:12}}>
         <div>
           <h1 className="serif" style={{fontSize:'2rem'}}>{salon.name}</h1>
           <p style={{color:'#aaa',fontSize:'0.85rem',marginTop:4}}>{salon.category} · {salon.city}</p>
         </div>
+        <Link href={`/salon/${salon.id}`} className="btn btn-secondary btn-sm" style={{textDecoration:'none'}}>
+          Voir ma page publique →
+        </Link>
       </div>
 
-      <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:20,marginBottom:32}}>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:20,marginBottom:32}}>
         {kpis.map(k => (
           <div key={k.label} className="card">
             <div style={{fontSize:'2rem',fontWeight:700}}>{k.value}</div>

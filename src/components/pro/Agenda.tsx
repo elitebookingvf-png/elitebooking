@@ -4,6 +4,127 @@ import { toISO, tMin, dayKeyForISO, formatPrice } from '@/lib/utils'
 
 type View = 'day' | 'staff' | 'week' | 'month'
 
+function AddRdvModal({ staff, services, onClose, onSaved, defaultDate }: {
+  staff: any[]; services: any[]; onClose: () => void; onSaved: () => void; defaultDate?: string
+}) {
+  const today = toISO(new Date())
+  const [form, setForm] = useState({
+    client_name: '', client_phone: '', service_id: '', staff_id: 'any',
+    date: defaultDate || today, start_time: '', notes: '', status: 'confirmed'
+  })
+  const [slots, setSlots] = useState<string[]>([])
+  const [saving, setSaving] = useState(false)
+  const [err, setErr] = useState('')
+
+  const selectedSvc = services.find(s => s.id === form.service_id)
+  const eligibleStaff = selectedSvc?.staff_ids?.length
+    ? staff.filter(s => selectedSvc.staff_ids.includes(s.id))
+    : staff
+
+  useEffect(() => {
+    if (!form.service_id || !form.date) { setSlots([]); return }
+    const sp = new URLSearchParams({
+      salonId: '', staffId: form.staff_id === 'any' ? (eligibleStaff[0]?.id || '') : form.staff_id,
+      serviceId: form.service_id, date: form.date,
+    })
+    fetch('/api/availability?' + sp).then(r => r.json()).then(d => setSlots(Array.isArray(d.slots) ? d.slots : []))
+  }, [form.service_id, form.staff_id, form.date])
+
+  async function save() {
+    if (!form.client_name.trim()) { setErr('Nom du client requis'); return }
+    if (!form.service_id) { setErr('Prestation requise'); return }
+    if (!form.start_time) { setErr('Heure requise'); return }
+    setSaving(true); setErr('')
+    const staffId = form.staff_id === 'any' ? (eligibleStaff[0]?.id || null) : form.staff_id
+    const res = await fetch('/api/rdv/pro', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        client_name: form.client_name, client_phone: form.client_phone || null,
+        service_id: form.service_id, staff_id: staffId,
+        date: form.date, start_time: form.start_time,
+        notes: form.notes || null, status: form.status,
+      }),
+    })
+    setSaving(false)
+    if (res.ok) { onSaved(); onClose() }
+    else { const d = await res.json(); setErr(d.error || 'Erreur') }
+  }
+
+  return (
+    <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.55)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
+      <div style={{background:'#fff',borderRadius:20,padding:32,width:'100%',maxWidth:540,maxHeight:'90vh',overflowY:'auto',boxShadow:'0 20px 60px rgba(0,0,0,0.2)'}}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:24}}>
+          <h2 className="serif" style={{fontSize:'1.5rem'}}>Ajouter un rendez-vous</h2>
+          <button onClick={onClose} style={{background:'none',border:'none',fontSize:'1.4rem',cursor:'pointer',color:'#aaa',lineHeight:1}}>✕</button>
+        </div>
+        {err && <div style={{background:'#fef2f2',color:'#e53e3e',padding:'10px 14px',borderRadius:8,marginBottom:16,fontSize:'0.83rem'}}>{err}</div>}
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+          <div className="form-group" style={{marginBottom:0}}>
+            <label>Nom du client *</label>
+            <input className="form-control" placeholder="Fatima Benali" value={form.client_name}
+              onChange={e=>setForm(f=>({...f,client_name:e.target.value}))} />
+          </div>
+          <div className="form-group" style={{marginBottom:0}}>
+            <label>Téléphone client</label>
+            <input className="form-control" type="tel" placeholder="+212 6XX XXX XXX" value={form.client_phone}
+              onChange={e=>setForm(f=>({...f,client_phone:e.target.value}))} />
+          </div>
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginTop:16}}>
+          <div className="form-group" style={{marginBottom:0}}>
+            <label>Prestation *</label>
+            <select className="form-control" value={form.service_id}
+              onChange={e=>setForm(f=>({...f,service_id:e.target.value,start_time:''}))}>
+              <option value="">— Choisir —</option>
+              {services.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+          </div>
+          <div className="form-group" style={{marginBottom:0}}>
+            <label>Employé</label>
+            <select className="form-control" value={form.staff_id}
+              onChange={e=>setForm(f=>({...f,staff_id:e.target.value,start_time:''}))}>
+              <option value="any">N'importe qui</option>
+              {eligibleStaff.map(s=><option key={s.id} value={s.id}>{s.firstname} {s.lastname}</option>)}
+            </select>
+          </div>
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginTop:16}}>
+          <div className="form-group" style={{marginBottom:0}}>
+            <label>Date *</label>
+            <input type="date" className="form-control" min={today} value={form.date}
+              onChange={e=>setForm(f=>({...f,date:e.target.value,start_time:''}))} />
+          </div>
+          <div className="form-group" style={{marginBottom:0}}>
+            <label>Heure *</label>
+            <select className="form-control" value={form.start_time}
+              onChange={e=>setForm(f=>({...f,start_time:e.target.value}))}>
+              <option value="">— Choisir —</option>
+              {slots.map(t=><option key={t} value={t}>{t}</option>)}
+            </select>
+          </div>
+        </div>
+        {selectedSvc && form.start_time && (
+          <div style={{background:'#f7f7f7',borderRadius:12,padding:'12px 16px',marginTop:16,fontSize:'0.85rem',color:'#555'}}>
+            {selectedSvc.name} · {selectedSvc.duration} min · <strong style={{color:'#C17B4E'}}>{formatPrice(selectedSvc.price, selectedSvc.price_type)}</strong>
+          </div>
+        )}
+        <div className="form-group" style={{marginTop:16}}>
+          <label>Notes internes (optionnel)</label>
+          <textarea className="form-control" placeholder="Préférences, allergies, rappels…" value={form.notes}
+            onChange={e=>setForm(f=>({...f,notes:e.target.value}))} style={{minHeight:64}} />
+        </div>
+        <div style={{display:'flex',gap:12,marginTop:8}}>
+          <button onClick={onClose} className="btn btn-secondary" style={{flex:1}}>Annuler</button>
+          <button onClick={save} disabled={saving} className="btn btn-primary" style={{flex:1,opacity:saving?0.6:1}}>
+            {saving ? 'Enregistrement…' : 'Enregistrer le RDV'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function ProAgenda({ salon }: { salon: any }) {
   const [view, setView]         = useState<View>('staff')
   const [date, setDate]         = useState(new Date())
@@ -11,6 +132,12 @@ export function ProAgenda({ salon }: { salon: any }) {
   const [staff, setStaff]       = useState<any[]>([])
   const [schedule, setSchedule] = useState<any>(null)
   const [blocks, setBlocks]     = useState<any[]>([])
+  const [services, setServices] = useState<any[]>([])
+  const [showAddRdv, setShowAddRdv] = useState(false)
+  const [addRdvDate, setAddRdvDate] = useState<string | undefined>()
+
+  const loadRdvs = () =>
+    fetch('/api/rdv/pro').then(r => r.json()).then(d => setRdvs(Array.isArray(d) ? d : []))
 
   useEffect(() => {
     Promise.all([
@@ -18,11 +145,13 @@ export function ProAgenda({ salon }: { salon: any }) {
       fetch('/api/staff').then(r => r.json()),
       fetch('/api/schedule').then(r => r.json()),
       fetch('/api/blocks').then(r => r.json()),
-    ]).then(([r, s, sc, b]) => {
+      fetch('/api/services').then(r => r.json()),
+    ]).then(([r, s, sc, b, sv]) => {
       setRdvs(Array.isArray(r) ? r : [])
       setStaff(Array.isArray(s) ? s : [])
       setSchedule(sc && !sc.error ? sc : null)
       setBlocks(Array.isArray(b) ? b : [])
+      setServices(Array.isArray(sv.services) ? sv.services : [])
     })
   }, [])
 
@@ -74,6 +203,15 @@ export function ProAgenda({ salon }: { salon: any }) {
 
   return (
     <div>
+      {showAddRdv && (
+        <AddRdvModal
+          staff={staff} services={services}
+          defaultDate={addRdvDate}
+          onClose={() => setShowAddRdv(false)}
+          onSaved={loadRdvs}
+        />
+      )}
+
       {/* Header */}
       <div style={{display:'flex',flexWrap:'wrap',alignItems:'center',justifyContent:'space-between',gap:12,marginBottom:24}}>
         <h1 className="serif" style={{fontSize:'2rem'}}>Agenda</h1>
@@ -93,6 +231,7 @@ export function ProAgenda({ salon }: { salon: any }) {
           <span style={{fontSize:'0.85rem',fontWeight:500,minWidth:200,textAlign:'center',textTransform:'capitalize'}}>{periodLabel()}</span>
           <button onClick={() => navigate(1)} className="btn btn-secondary" style={{padding:'6px 12px'}}>›</button>
           <button onClick={() => setDate(new Date())} className="btn btn-secondary" style={{fontSize:'0.82rem'}}>Aujourd'hui</button>
+          <button onClick={() => { setAddRdvDate(iso); setShowAddRdv(true) }} className="btn btn-primary" style={{fontSize:'0.82rem'}}>+ Ajouter un RDV</button>
         </div>
       </div>
 
@@ -187,6 +326,62 @@ export function ProAgenda({ salon }: { salon: any }) {
           })}
         </div>
       )}
+
+      {/* Week view */}
+      {view === 'week' && (() => {
+        const mon = new Date(date)
+        const dd = mon.getDay(); mon.setDate(mon.getDate() + (dd===0?-6:1-dd)); mon.setHours(0,0,0,0)
+        const cols = Array.from({length:7}, (_,i) => { const d = new Date(mon); d.setDate(mon.getDate()+i); return d })
+        const DAY_LABELS = ['Lu','Ma','Me','Je','Ve','Sa','Di']
+        const todayISO = toISO(new Date())
+        return (
+          <div style={{overflowX:'auto'}}>
+            <table style={{width:'100%',borderCollapse:'collapse',minWidth:56+cols.length*120}}>
+              <thead>
+                <tr style={{background:'#f7f7f7'}}>
+                  <th style={{width:56,border:'1px solid #eee',padding:8,fontSize:'0.72rem',color:'#aaa'}}></th>
+                  {cols.map((d,i) => {
+                    const di = toISO(d)
+                    const isT = di === todayISO
+                    return (
+                      <th key={di} style={{border:'1px solid #eee',padding:'8px 4px',minWidth:120}}>
+                        <div style={{fontSize:'0.75rem',fontWeight:600,color:isT?'#C17B4E':'#555'}}>{DAY_LABELS[i]}</div>
+                        <div style={{fontSize:'0.8rem',fontWeight:isT?700:400,color:isT?'#C17B4E':'#333'}}>{d.getDate()}</div>
+                      </th>
+                    )
+                  })}
+                </tr>
+              </thead>
+              <tbody>
+                {HOURS.map(h => (
+                  <tr key={h}>
+                    <td style={{border:'1px solid #eee',padding:8,fontSize:'0.72rem',color:'#aaa',textAlign:'center',background:'#f7f7f7',fontWeight:500}}>
+                      {String(h).padStart(2,'0')}:00
+                    </td>
+                    {cols.map(d => {
+                      const di = toISO(d)
+                      const hStr = String(h).padStart(2,'0')
+                      const dayRdvs = rdvs.filter(r => r.date===di && r.start_time.startsWith(hStr+':') && r.status!=='cancelled')
+                      const blkd = blocks.some(b => b.date===di && tMin(b.start_time)<=h*60 && tMin(b.end_time)>h*60)
+                      return (
+                        <td key={di} style={{border:'1px solid #eee',padding:4,verticalAlign:'top',minHeight:48,background:blkd?'#fffbeb':'#fff'}}>
+                          {dayRdvs.map(r => (
+                            <div key={r.id} style={{background:'#27AE60',color:'#fff',borderRadius:6,padding:'3px 6px',fontSize:'0.68rem',marginBottom:2}}>
+                              <div style={{fontWeight:700}}>{r.start_time} {r.service_name?.substring(0,10)}</div>
+                              <div style={{opacity:0.85}}>{r.client_name}</div>
+                            </div>
+                          ))}
+                          {blkd && !dayRdvs.length && <div style={{fontSize:'0.65rem',color:'#f59e0b',padding:2}}>🔒</div>}
+                        </td>
+                      )
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )
+      })()}
 
       {/* Month view */}
       {view === 'month' && (

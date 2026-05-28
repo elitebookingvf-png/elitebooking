@@ -31,7 +31,7 @@ export async function PUT(req: NextRequest) {
   }
   if (!salonId) return NextResponse.json({ error: '403' }, { status: 403 });
   const body = await req.json();
-  const allowed = ['name','city','address','phone','email','description','whatsapp','instagram','cover_image','pin'];
+  const allowed = ['name','city','category','address','phone','email','description','whatsapp','instagram','cover_image','pin'];
   const update: Record<string, unknown> = {};
   allowed.forEach(k => { if (body[k] !== undefined) update[k] = body[k]; });
   const { data, error } = await supabase.from('salons').update(update).eq('id', salonId).select().single();

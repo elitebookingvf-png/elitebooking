@@ -6,11 +6,17 @@ import { tMin, generateSlots, dayKeyForISO, DAY_KEYS } from '@/lib/utils';
 export async function GET(req: NextRequest) {
   const supabase = createClient();
   const { searchParams } = new URL(req.url);
-  const salonId   = searchParams.get('salonId')!;
+  let salonId     = searchParams.get('salonId') || '';
   const staffId   = searchParams.get('staffId')!;
   const serviceId = searchParams.get('serviceId')!;
   const date      = searchParams.get('date')!;
-  if (!salonId || !staffId || !serviceId || !date) return NextResponse.json({ error: 'Paramètres manquants' }, { status: 400 });
+  if (!staffId || !serviceId || !date) return NextResponse.json({ error: 'Paramètres manquants' }, { status: 400 });
+  // If salonId not provided, resolve from staffId
+  if (!salonId && staffId) {
+    const { data: staffRow } = await supabase.from('staff').select('salon_id').eq('id', staffId).single();
+    salonId = staffRow?.salon_id || '';
+  }
+  if (!salonId) return NextResponse.json({ error: 'Salon introuvable' }, { status: 400 });
   const [{ data: service }, { data: staff }, { data: schedule }, { data: rdvs }, { data: blocks }] = await Promise.all([
     supabase.from('services').select('duration').eq('id', serviceId).single(),
     supabase.from('staff').select('days, start_time, end_time').eq('id', staffId).single(),

@@ -10,15 +10,14 @@ export function createClient() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll() { return cookieStore.getAll(); },
-        setAll(cookiesToSet: { name: string; value: string; options?: Record<string, unknown> }[]) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options as any)
-            );
-          } catch {
-            // setAll appelé depuis un Server Component — ignoré (middleware s'en charge)
-          }
+        get(name: string) {
+          return cookieStore.get(name)?.value;
+        },
+        set(name: string, value: string, options: Record<string, unknown>) {
+          try { cookieStore.set({ name, value, ...options } as any); } catch {}
+        },
+        remove(name: string, options: Record<string, unknown>) {
+          try { cookieStore.set({ name, value: '', ...options } as any); } catch {}
         },
       },
     }
