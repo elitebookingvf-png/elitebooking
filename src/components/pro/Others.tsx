@@ -290,12 +290,17 @@ export function ProServices() {
   const [form, setForm]     = useState({ name:'', price:'', price_type:'fixed', duration:'30', cat_id:'', staff_ids:[] as string[] })
   const [catForm, setCatForm] = useState({ name:'', color:'#C17B4E' })
   const [saving, setSaving] = useState(false)
+  const [pin, setPin]       = useState('0000')
+  const [pinAction, setPinAction] = useState<{label:string; cb:()=>void} | null>(null)
 
   const load = () => {
     fetch('/api/services').then(r => r.json()).then(d => { setCategories(Array.isArray(d.categories) ? d.categories : []); setServices(Array.isArray(d.services) ? d.services : []) })
     fetch('/api/staff').then(r => r.json()).then(d => setStaff(Array.isArray(d) ? d : []))
+    fetch('/api/users/me').then(r => r.json()).then(d => { if (d?.salon?.pin) setPin(d.salon.pin) })
   }
   useEffect(() => { load() }, [])
+
+  function requirePin(label: string, cb: () => void) { setPinAction({ label, cb }) }
 
   const openForm = (svc?: any) => {
     if (svc) { setEditing(svc); setForm({ name:svc.name, price:String(svc.price), price_type:svc.price_type||'fixed', duration:String(svc.duration), cat_id:svc.cat_id||'', staff_ids:svc.staff_ids||[] }) }
@@ -311,10 +316,11 @@ export function ProServices() {
     setSaving(false); setEditing(null); load()
   }
 
-  const remove = async (id: string) => {
-    if (!confirm('Supprimer ?')) return
-    await fetch('/api/services', { method:'DELETE', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id }) })
-    load()
+  const remove = (id: string) => {
+    requirePin('Supprimer cette prestation', async () => {
+      await fetch('/api/services', { method:'DELETE', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id }) })
+      load()
+    })
   }
 
   const saveCat = async () => {
@@ -325,14 +331,23 @@ export function ProServices() {
     setSaving(false); setEditingCat(null); load()
   }
 
-  const removeCat = async (id: string) => {
-    if (!confirm('Supprimer cette catégorie ? Les services seront décatégorisés.')) return
-    await fetch('/api/services', { method:'DELETE', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id, resourceType:'category' }) })
-    load()
+  const removeCat = (id: string) => {
+    requirePin('Supprimer cette catégorie', async () => {
+      await fetch('/api/services', { method:'DELETE', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id, resourceType:'category' }) })
+      load()
+    })
   }
 
   return (
     <div>
+      {pinAction && (
+        <PinModal
+          action={pinAction.label}
+          pin={pin}
+          onSuccess={pinAction.cb}
+          onClose={() => setPinAction(null)}
+        />
+      )}
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:24}}>
         <h1 className="serif" style={{fontSize:'2rem'}}>Prestations</h1>
         <div style={{display:'flex',gap:8}}>
