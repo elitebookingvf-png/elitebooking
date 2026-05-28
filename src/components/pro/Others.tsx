@@ -95,8 +95,8 @@ export function ProServices() {
   const [saving, setSaving] = useState(false)
 
   const load = () => {
-    fetch('/api/services').then(r => r.json()).then(d => { setCategories(d.categories||[]); setServices(d.services||[]) })
-    fetch('/api/staff').then(r => r.json()).then(setStaff)
+    fetch('/api/services').then(r => r.json()).then(d => { setCategories(Array.isArray(d.categories) ? d.categories : []); setServices(Array.isArray(d.services) ? d.services : []) })
+    fetch('/api/staff').then(r => r.json()).then(d => setStaff(Array.isArray(d) ? d : []))
   }
   useEffect(() => { load() }, [])
 
@@ -284,7 +284,7 @@ export function ProStaff() {
   const [form, setForm] = useState({ firstname:'', lastname:'', role:'', phone:'', days:['Lu','Ma','Me','Je','Ve'] as string[], start_time:'09:00', end_time:'19:00' })
   const [saving, setSaving] = useState(false)
 
-  const load = () => fetch('/api/staff').then(r => r.json()).then(setStaff)
+  const load = () => fetch('/api/staff').then(r => r.json()).then(d => setStaff(Array.isArray(d) ? d : []))
   useEffect(() => { load() }, [])
 
   const openForm = (st?: any) => {
@@ -453,9 +453,9 @@ export function ProSchedule() {
   const today = new Date().toISOString().split('T')[0]
 
   const load = () => {
-    fetch('/api/schedule').then(r => r.json()).then(setSchedule)
-    fetch('/api/blocks').then(r => r.json()).then(setBlocks)
-    fetch('/api/staff').then(r => r.json()).then(setStaffList)
+    fetch('/api/schedule').then(r => r.json()).then(d => setSchedule(d && !d.error ? d : {}))
+    fetch('/api/blocks').then(r => r.json()).then(d => setBlocks(Array.isArray(d) ? d : []))
+    fetch('/api/staff').then(r => r.json()).then(d => setStaffList(Array.isArray(d) ? d : []))
   }
   useEffect(() => { load() }, [])
 
