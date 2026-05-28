@@ -11,6 +11,7 @@ function SearchResults() {
   const [city, setCity]         = useState(params.get('city') || '')
   const [category, setCategory] = useState(params.get('category') || '')
   const [q, setQ]               = useState(params.get('q') || '')
+  const [sort, setSort]         = useState('rating')
 
   async function search() {
     setLoading(true)
@@ -25,6 +26,10 @@ function SearchResults() {
   }
 
   useEffect(() => { search() }, [city, category])
+
+  const displayed = [...salons].sort((a, b) =>
+    sort === 'name' ? a.name.localeCompare(b.name) : Number(b.rating) - Number(a.rating)
+  )
 
   return (
     <div className="min-h-screen" style={{background:'#f7f7f7'}}>
@@ -44,16 +49,20 @@ function SearchResults() {
             <option value="">Toutes catégories</option>
             {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.emoji} {c.label}</option>)}
           </select>
+          <select className="form-control" style={{maxWidth:140}} value={sort} onChange={e => setSort(e.target.value)}>
+            <option value="rating">Mieux notés</option>
+            <option value="name">A → Z</option>
+          </select>
           <button onClick={search} className="btn btn-primary">Chercher</button>
         </div>
       </nav>
 
       <div className="max-w-7xl mx-auto px-4 py-10">
         <p className="text-sm mb-6" style={{color:'#aaa'}}>
-          {loading ? 'Chargement…' : `${salons.length} salon${salons.length !== 1 ? 's' : ''} trouvé${salons.length !== 1 ? 's' : ''}`}
+          {loading ? 'Chargement…' : `${displayed.length} salon${displayed.length !== 1 ? 's' : ''} trouvé${displayed.length !== 1 ? 's' : ''}`}
         </p>
         <div className="grid gap-6" style={{gridTemplateColumns:'repeat(3,1fr)'}}>
-          {salons.map((s: any) => {
+          {displayed.map((s: any) => {
             const cat = CATEGORIES.find(c => c.id === s.category)
             return (
               <Link key={s.id} href={`/salon/${s.id}`}
@@ -75,7 +84,7 @@ function SearchResults() {
               </Link>
             )
           })}
-          {!loading && salons.length === 0 && (
+          {!loading && displayed.length === 0 && (
             <div className="text-center py-20" style={{gridColumn:'span 3',color:'#aaa'}}>
               <div style={{fontSize:'3rem',marginBottom:16}}>🔍</div>
               <p>Aucun salon trouvé pour ces critères</p>
