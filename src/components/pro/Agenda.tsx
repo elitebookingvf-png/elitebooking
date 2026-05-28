@@ -19,7 +19,10 @@ export function ProAgenda({ salon }: { salon: any }) {
       fetch('/api/schedule').then(r => r.json()),
       fetch('/api/blocks').then(r => r.json()),
     ]).then(([r, s, sc, b]) => {
-      setRdvs(r); setStaff(s); setSchedule(sc); setBlocks(b)
+      setRdvs(Array.isArray(r) ? r : [])
+      setStaff(Array.isArray(s) ? s : [])
+      setSchedule(sc && !sc.error ? sc : null)
+      setBlocks(Array.isArray(b) ? b : [])
     })
   }, [])
 

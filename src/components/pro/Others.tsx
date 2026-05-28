@@ -8,7 +8,7 @@ export function ProRdvList() {
   const [filter, setFilter] = useState('confirmed')
 
   useEffect(() => {
-    fetch('/api/rdv/pro').then(r => r.json()).then(setRdvs)
+    fetch('/api/rdv/pro').then(r => r.json()).then(d => setRdvs(Array.isArray(d) ? d : []))
   }, [])
 
   async function changeStatus(id: string, status: string) {
@@ -107,7 +107,7 @@ export function ProServices() {
 
   const save = async () => {
     setSaving(true)
-    const method = editing?._id || editing?.id ? 'PUT' : 'POST'
+    const method = editing?.id ? 'PUT' : 'POST'
     const body = { ...form, price: +form.price, duration: +form.duration, id: editing?.id }
     await fetch('/api/services', { method, headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) })
     setSaving(false); setEditing(null); load()
@@ -385,7 +385,7 @@ export function ProClients() {
   const [q, setQ]       = useState('')
 
   useEffect(() => {
-    fetch('/api/rdv/pro').then(r => r.json()).then(setRdvs)
+    fetch('/api/rdv/pro').then(r => r.json()).then(d => setRdvs(Array.isArray(d) ? d : []))
   }, [])
 
   const clientMap: Record<string, any> = {}

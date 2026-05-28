@@ -11,7 +11,8 @@ export async function GET(req: NextRequest) {
   if (city)     query = query.eq('city', city);
   if (category) query = query.eq('category', category);
   if (q)        query = query.ilike('name', `%${q}%`);
-  const { data, error } = await query.order('rating', { ascending: false }).limit(50);
+  const limit = parseInt(searchParams.get('limit') || '50', 10);
+  const { data, error } = await query.order('rating', { ascending: false }).limit(limit);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(data);
 }

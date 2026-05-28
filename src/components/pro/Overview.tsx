@@ -6,7 +6,7 @@ export function ProOverview({ salon }: { salon: any }) {
   const [rdvs, setRdvs] = useState<any[]>([])
 
   useEffect(() => {
-    fetch('/api/rdv/pro').then(r => r.json()).then(setRdvs)
+    fetch('/api/rdv/pro').then(r => r.json()).then(d => setRdvs(Array.isArray(d) ? d : []))
   }, [])
 
   const today = toISO(new Date())
