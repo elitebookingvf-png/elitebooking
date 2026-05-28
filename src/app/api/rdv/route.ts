@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { isSlotFree } from '@/lib/utils';
-import { v4 as uuidv4 } from 'crypto';
 
 function uuid() { return crypto.randomUUID(); }
 
@@ -28,7 +27,7 @@ export async function POST(req: NextRequest) {
   const groupId = items.length > 1 ? uuid() : null;
 
   // Charger les RDV existants pour vérifier les conflits
-  const allDates = [...new Set(items.map((i: any) => i.date))];
+  const allDates = Array.from(new Set(items.map((i: any) => i.date)));
   const { data: existingRdvs } = await supabase.from('rdvs').select('staff_id, date, start_time, duration, status').in('date', allDates).neq('status', 'cancelled');
 
   const toInsert: any[] = [];

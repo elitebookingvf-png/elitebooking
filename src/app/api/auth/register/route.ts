@@ -25,12 +25,12 @@ export async function POST(req: NextRequest) {
 
     // 2. Mettre à jour le profil (phone)
     if (phone) {
-      await supabase.from('profiles').update({ phone }).eq('id', authData.user.id);
+      await (supabase.from('profiles') as any).update({ phone }).eq('id', authData.user.id);
     }
 
     // 3. Si pro → créer salon + schedule
     if (type === 'pro' && salonName && city) {
-      const { data: salon, error: salonError } = await supabase.from('salons').insert({
+      const { data: salon, error: salonError } = await (supabase.from('salons') as any).insert({
         owner_id:    authData.user.id,
         name:        salonName,
         city,
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
       if (salonError) return NextResponse.json({ error: salonError.message }, { status: 500 });
 
       // Créer le schedule par défaut
-      await supabase.from('schedules').insert({
+      await (supabase.from('schedules') as any).insert({
         salon_id: salon.id,
         lu_open: true, lu_start: '09:00', lu_end: '19:00',
         ma_open: true, ma_start: '09:00', ma_end: '19:00',
@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
       });
 
       // Lier salon au profil
-      await supabase.from('profiles').update({ salon_id: salon.id }).eq('id', authData.user.id);
+      await (supabase.from('profiles') as any).update({ salon_id: salon.id }).eq('id', authData.user.id);
     }
 
     return NextResponse.json({ ok: true }, { status: 201 });

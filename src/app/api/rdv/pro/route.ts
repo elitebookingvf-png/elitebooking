@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const items: any[] = Array.isArray(body.items) ? body.items : [body];
   const groupId = items.length > 1 ? uuid() : null;
-  const allDates = [...new Set(items.map((i: any) => i.date))];
+  const allDates = Array.from(new Set(items.map((i: any) => i.date)));
   const { data: existingRdvs } = await supabase.from('rdvs').select('staff_id, date, start_time, duration, status').eq('salon_id', salonId).in('date', allDates).neq('status', 'cancelled');
   const { data: salon } = await supabase.from('salons').select('name').eq('id', salonId).single();
   const toInsert: any[] = [];
