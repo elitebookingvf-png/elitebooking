@@ -291,9 +291,8 @@ export function ProServices() {
   const [form, setForm]     = useState({ name:'', price:'', price_type:'fixed', duration:'30', cat_id:'', staff_ids:[] as string[] })
   const [catForm, setCatForm] = useState({ name:'', color:'#C17B4E' })
   const [saving, setSaving] = useState(false)
-  const [pin, setPin]           = useState('0000')
-  const [pinLabel, setPinLabel]  = useState<string | null>(null)
-  const pinCbRef                 = useRef<(() => void) | null>(null)
+  const [pin, setPin]             = useState('0000')
+  const [pendingDelete, setPendingDelete] = useState<{id:string; type:'service'|'category'} | null>(null)
 
   const load = () => {
     fetch('/api/services').then(r => r.json()).then(d => { setCategories(Array.isArray(d.categories) ? d.categories : []); setServices(Array.isArray(d.services) ? d.services : []) })
@@ -301,8 +300,6 @@ export function ProServices() {
     fetch('/api/users/me').then(r => r.json()).then(d => { if (d?.salon?.pin) setPin(d.salon.pin) })
   }
   useEffect(() => { load() }, [])
-
-  function requirePin(label: string, cb: () => void) { pinCbRef.current = cb; setPinLabel(label) }
 
   const openForm = (svc?: any) => {
     if (svc) { setEditing(svc); setForm({ name:svc.name, price:String(svc.price), price_type:svc.price_type||'fixed', duration:String(svc.duration), cat_id:svc.cat_id||'', staff_ids:svc.staff_ids||[] }) }
@@ -318,12 +315,7 @@ export function ProServices() {
     setSaving(false); setEditing(null); load()
   }
 
-  const remove = (id: string) => {
-    requirePin('Supprimer cette prestation', async () => {
-      await fetch('/api/services', { method:'DELETE', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id }) })
-      load()
-    })
-  }
+  const remove = (id: string) => { setPendingDelete({ id, type: 'service' }) }
 
   const saveCat = async () => {
     setSaving(true)
@@ -333,21 +325,22 @@ export function ProServices() {
     setSaving(false); setEditingCat(null); load()
   }
 
-  const removeCat = (id: string) => {
-    requirePin('Supprimer cette catégorie', async () => {
-      await fetch('/api/services', { method:'DELETE', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id, resourceType:'category' }) })
-      load()
-    })
-  }
+  const removeCat = (id: string) => { setPendingDelete({ id, type: 'category' }) }
 
   return (
     <div>
-      {pinLabel && (
+      {pendingDelete && (
         <PinModal
-          action={pinLabel}
+          action={pendingDelete.type === 'service' ? 'Supprimer cette prestation' : 'Supprimer cette catégorie'}
           pin={pin}
-          onSuccess={() => { pinCbRef.current?.(); pinCbRef.current = null }}
-          onClose={() => setPinLabel(null)}
+          onSuccess={async () => {
+            const { id, type } = pendingDelete
+            setPendingDelete(null)
+            await fetch('/api/services', { method:'DELETE', headers:{'Content-Type':'application/json'},
+              body: JSON.stringify(type === 'category' ? { id, resourceType:'category' } : { id }) })
+            load()
+          }}
+          onClose={() => setPendingDelete(null)}
         />
       )}
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:24}}>
