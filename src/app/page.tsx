@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { CATEGORIES, CITIES } from '@/lib/utils';
 import FeaturedSalons from '@/components/FeaturedSalons';
+import NavBar from '@/components/NavBar';
 
 async function getFeaturedSalons() {
   try {
@@ -34,20 +35,7 @@ export default async function HomePage() {
     <div className="min-h-screen" style={{fontFamily:"'DM Sans',system-ui,sans-serif"}}>
 
       {/* ── NAV ── */}
-      <nav style={{position:'sticky',top:0,zIndex:100,background:'rgba(255,255,255,0.95)',backdropFilter:'blur(12px)',borderBottom:'1px solid #efefef',padding:'0 40px',height:64,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-        <span className="serif" style={{fontSize:'1.45rem',fontWeight:700}}>
-          Elite<em style={{color:'#C17B4E',fontStyle:'italic'}}>Booking</em>
-        </span>
-        <div style={{display:'flex',alignItems:'center',gap:28}}>
-          <Link href="/search" style={{fontSize:'0.85rem',color:'#888',textDecoration:'none'}}>Trouver un salon</Link>
-          <Link href="/#how" style={{fontSize:'0.85rem',color:'#888',textDecoration:'none'}}>Comment ça marche</Link>
-          <Link href="/#pro-section" style={{fontSize:'0.85rem',color:'#888',textDecoration:'none'}}>Pour les pros</Link>
-        </div>
-        <div style={{display:'flex',gap:12}}>
-          <Link href="/auth?mode=login" className="btn btn-secondary btn-sm">Se connecter</Link>
-          <Link href="/auth?mode=register" className="btn btn-primary btn-sm">S'inscrire</Link>
-        </div>
-      </nav>
+      <NavBar />
 
       {/* ── HERO ── */}
       <div style={{minHeight:'calc(100vh - 64px)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',textAlign:'center',position:'relative',overflow:'hidden',background:'#fff'}}>
