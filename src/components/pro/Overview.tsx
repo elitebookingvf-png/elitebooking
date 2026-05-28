@@ -15,7 +15,7 @@ function PinModal({ action, pin, onSuccess, onClose }: {
     const next = entry + k
     setEntry(next)
     if (next.length === 4) {
-      if (next === pin) { onClose(); onSuccess() }
+      if (next === pin) { onSuccess(); onClose() }
       else { setErr('Code incorrect. Réessayez.'); setTimeout(() => { setEntry(''); setErr('') }, 900) }
     }
   }
