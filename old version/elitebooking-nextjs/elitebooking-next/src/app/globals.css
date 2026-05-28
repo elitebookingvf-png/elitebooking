@@ -1,0 +1,53 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --gold: #C17B4E;
+  --gold-light: #F5E6D3;
+  --green: #22c55e;
+  --red: #ef4444;
+}
+
+@layer base {
+  body { font-family: 'DM Sans', system-ui, sans-serif; }
+  h1,h2,h3 { font-family: 'DM Serif Display', Georgia, serif; }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-gray-900 text-white px-5 py-2.5 rounded-xl font-medium text-sm
+           hover:bg-gray-700 transition-all duration-200 cursor-pointer;
+  }
+  .btn-secondary {
+    @apply bg-gray-100 text-gray-900 px-5 py-2.5 rounded-xl font-medium text-sm
+           hover:bg-gray-200 transition-all duration-200 cursor-pointer border border-gray-200;
+  }
+  .btn-danger {
+    @apply bg-red-500 text-white px-5 py-2.5 rounded-xl font-medium text-sm
+           hover:bg-red-600 transition-all duration-200 cursor-pointer;
+  }
+  .card {
+    @apply bg-white border border-gray-100 rounded-2xl p-6 shadow-sm;
+  }
+  .input {
+    @apply w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm
+           focus:outline-none focus:ring-2 focus:ring-gray-900/20 focus:border-gray-400
+           transition-all;
+  }
+  .slot-btn {
+    @apply border border-gray-200 rounded-lg px-3 py-2 text-sm font-medium text-center
+           cursor-pointer hover:border-gray-900 hover:bg-gray-900 hover:text-white
+           transition-all duration-150;
+  }
+  .slot-btn.selected {
+    @apply border-gray-900 bg-gray-900 text-white;
+  }
+  .slot-btn.unavailable {
+    @apply opacity-40 cursor-not-allowed border-dashed;
+  }
+  .badge-green  { @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800; }
+  .badge-gold   { @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800; }
+  .badge-grey   { @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600; }
+  .badge-red    { @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700; }
+}

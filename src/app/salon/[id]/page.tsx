@@ -1,0 +1,301 @@
+'use client'
+import { useState, useEffect } from 'react'
+import { useRouter, useParams } from 'next/navigation'
+import Link from 'next/link'
+import { createClient } from '@/lib/supabase/client'
+import { toISO, formatPrice, CATEGORIES } from '@/lib/utils'
+
+export default function SalonPage() {
+  const { id } = useParams<{ id: string }>()
+  const router = useRouter()
+
+  const [data, setData]           = useState<any>(null)
+  const [user, setUser]           = useState<any>(null)
+  const [tab, setTab]             = useState<'book'|'team'>('book')
+
+  // Booking state
+  const [step, setStep]           = useState(1)
+  const [selectedSvc, setSvc]     = useState<any>(null)
+  const [selectedStaff, setSelectedStaff] = useState<any>(null)
+  const [selectedDate, setDate]   = useState('')
+  const [selectedTime, setTime]   = useState('')
+  const [slots, setSlots]         = useState<string[]>([])
+  const [dates, setDates]         = useState<string[]>([])
+  const [confirming, setConfirming] = useState(false)
+  const [success, setSuccess]     = useState(false)
+
+  useEffect(() => {
+    fetch(`/api/salons/${id}`).then(r => r.json()).then(setData)
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data: { user } }) => setUser(user))
+  }, [id])
+
+  // Generate available dates when staff + service selected
+  useEffect(() => {
+    if (!selectedStaff || !selectedSvc || !data?.schedule) return
+    const today = new Date()
+    const ds: string[] = []
+    for (let i = 0; i <= 28 && ds.length < 14; i++) {
+      const d = new Date(today); d.setDate(today.getDate() + i)
+      const iso = toISO(d)
+      const dayKeys = ['di','lu','ma','me','je','ve','sa']
+      const dk = dayKeys[d.getDay()]
+      const sched = data.schedule || {}
+      if (sched[`${dk}_open`] !== false) ds.push(iso)
+    }
+    setDates(ds); setDate(''); setTime(''); setSlots([])
+  }, [selectedStaff, selectedSvc, data])
+
+  // Fetch slots when date selected
+  useEffect(() => {
+    if (!selectedDate || !selectedStaff || !selectedSvc) return
+    fetch(`/api/availability?salonId=${id}&staffId=${selectedStaff.id}&serviceId=${selectedSvc.id}&date=${selectedDate}`)
+      .then(r => r.json()).then(d => setSlots(d.slots ?? []))
+  }, [selectedDate, selectedStaff, selectedSvc, id])
+
+  async function confirm() {
+    if (!user) { router.push('/auth'); return }
+    setConfirming(true)
+    const res = await fetch('/api/rdv', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        salon_id: id,
+        service_id: selectedSvc.id,
+        staff_id: selectedStaff.id,
+        date: selectedDate,
+        start_time: selectedTime,
+      }),
+    })
+    setConfirming(false)
+    if (res.ok) { setSuccess(true); setTimeout(() => router.push('/client'), 2000) }
+    else { const d = await res.json(); alert(d.error || 'Erreur lors de la réservation') }
+  }
+
+  const eligibleStaff = selectedSvc?.staff_ids?.length
+    ? (data?.staff || []).filter((s: any) => selectedSvc.staff_ids.includes(s.id))
+    : (data?.staff || [])
+
+  if (!data) return (
+    <div className="min-h-screen flex items-center justify-center" style={{color:'#aaa'}}>Chargement…</div>
+  )
+
+  if (success) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-center">
+        <div style={{fontSize:'4rem',marginBottom:16}}>🎉</div>
+        <h2 className="serif" style={{fontSize:'2rem',marginBottom:8}}>Réservation confirmée !</h2>
+        <p style={{color:'#aaa'}}>Redirection vers votre espace…</p>
+      </div>
+    </div>
+  )
+
+  const { salon, categories, services, staff } = data
+  const catInfo = CATEGORIES.find(c => c.id === salon.category)
+
+  // Group services by category
+  const grouped: { cat: any; svcs: any[] }[] = []
+  const uncategorized = services.filter((s: any) => !s.cat_id)
+  categories.forEach((cat: any) => {
+    const svcs = services.filter((s: any) => s.cat_id === cat.id)
+    if (svcs.length) grouped.push({ cat, svcs })
+  })
+  if (uncategorized.length) grouped.push({ cat: null, svcs: uncategorized })
+
+  return (
+    <div className="min-h-screen" style={{background:'#f7f7f7'}}>
+      <nav className="bg-white border-b px-4 h-16 flex items-center gap-4" style={{borderColor:'#eee'}}>
+        <Link href="/" className="serif text-xl font-bold" style={{textDecoration:'none',color:'#111'}}>
+          Elite<em style={{color:'#C17B4E',fontStyle:'normal'}}>Booking</em>
+        </Link>
+        <Link href="/search" style={{fontSize:'0.85rem',color:'#aaa',textDecoration:'none'}}>← Retour</Link>
+        {user && (
+          <Link href="/client" className="btn btn-secondary btn-sm ml-auto">Mon espace</Link>
+        )}
+      </nav>
+
+      <div className="max-w-4xl mx-auto px-4 py-10">
+        {/* Salon header */}
+        <div className="bg-white rounded-3xl overflow-hidden border mb-8" style={{borderColor:'#eee'}}>
+          <div className="h-48 flex items-center justify-center text-7xl"
+            style={{background:'linear-gradient(135deg,#fef3e8,#fde8c8)'}}>
+            {catInfo?.emoji || '🏪'}
+          </div>
+          <div className="p-6">
+            <h1 className="serif" style={{fontSize:'2rem'}}>{salon.name}</h1>
+            <p style={{color:'#aaa',marginTop:4}}>
+              📍 {salon.city}{salon.address && ` · ${salon.address}`}
+              {salon.phone && ` · 📞 ${salon.phone}`}
+            </p>
+            <div className="flex gap-3 mt-3 flex-wrap">
+              {salon.whatsapp && (
+                <a href={`https://wa.me/${salon.whatsapp}`} target="_blank" rel="noopener noreferrer"
+                  className="btn btn-sm" style={{background:'#25D366',color:'#fff',border:'none'}}>
+                  💬 WhatsApp
+                </a>
+              )}
+              {salon.instagram && (
+                <a href={`https://instagram.com/${salon.instagram}`} target="_blank" rel="noopener noreferrer"
+                  className="btn btn-secondary btn-sm">📸 Instagram</a>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex gap-2 mb-6">
+          {(['book','team'] as const).map(t => (
+            <button key={t} onClick={() => setTab(t)}
+              className="btn"
+              style={{
+                background: tab===t?'#111':'#fff',
+                color: tab===t?'#fff':'#666',
+                border: tab===t?'none':'1px solid #eee',
+              }}>
+              {t === 'book' ? 'Réserver' : "L'équipe"}
+            </button>
+          ))}
+        </div>
+
+        {/* Booking flow */}
+        {tab === 'book' && (
+          <div style={{display:'flex',flexDirection:'column',gap:24}}>
+            {/* Step 1: Service */}
+            <div className="card">
+              <h2 style={{fontWeight:600,fontSize:'1.1rem',marginBottom:16}}>1. Choisissez une prestation</h2>
+              {grouped.length === 0 && <p style={{color:'#aaa',fontSize:'0.88rem'}}>Aucune prestation disponible.</p>}
+              {grouped.map(({ cat, svcs }) => (
+                <div key={cat?.id || 'uncat'} style={{marginBottom:16}}>
+                  {cat && (
+                    <div style={{fontSize:'0.75rem',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.05em',color:cat.color||'#888',marginBottom:8}}>
+                      {cat.name}
+                    </div>
+                  )}
+                  <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                    {svcs.map((s: any) => (
+                      <div key={s.id}
+                        onClick={() => { setSvc(s); setStep(2); setSelectedStaff(null); setDate(''); setTime('') }}
+                        className="service-item"
+                        style={{
+                          borderColor: selectedSvc?.id === s.id ? '#C17B4E' : undefined,
+                          background: selectedSvc?.id === s.id ? '#fdf0e6' : undefined,
+                        }}>
+                        <div style={{flex:1}}>
+                          <div className="service-name">{s.name}</div>
+                          <div style={{fontSize:'0.78rem',color:'#aaa',marginTop:2}}>⏱ {s.duration} min</div>
+                        </div>
+                        <div className="service-price">{formatPrice(s.price, s.price_type)}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Step 2: Staff */}
+            {step >= 2 && selectedSvc && (
+              <div className="card">
+                <h2 style={{fontWeight:600,fontSize:'1.1rem',marginBottom:16}}>2. Choisissez un employé</h2>
+                <div style={{display:'flex',flexWrap:'wrap',gap:12}}>
+                  {eligibleStaff.map((st: any) => (
+                    <div key={st.id}
+                      onClick={() => { setSelectedStaff(st); setStep(3) }}
+                      style={{
+                        display:'flex',flexDirection:'column',alignItems:'center',gap:8,padding:'16px',
+                        borderRadius:12,border: selectedStaff?.id===st.id ? '2px solid #111' : '2px solid #eee',
+                        background: selectedStaff?.id===st.id ? '#f7f7f7' : '#fff',
+                        cursor:'pointer',width:112,transition:'all 0.15s',
+                      }}>
+                      <div style={{width:48,height:48,borderRadius:'50%',background:'#C17B4E',color:'#fff',
+                        display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700,fontSize:'1rem'}}>
+                        {st.firstname[0]}{st.lastname[0]}
+                      </div>
+                      <div style={{fontSize:'0.85rem',fontWeight:600,textAlign:'center'}}>{st.firstname}</div>
+                      <div style={{fontSize:'0.75rem',color:'#aaa',textAlign:'center'}}>{st.role}</div>
+                    </div>
+                  ))}
+                  {eligibleStaff.length === 0 && <p style={{color:'#aaa',fontSize:'0.88rem'}}>Aucun employé disponible.</p>}
+                </div>
+              </div>
+            )}
+
+            {/* Step 3: Date */}
+            {step >= 3 && selectedStaff && (
+              <div className="card">
+                <h2 style={{fontWeight:600,fontSize:'1.1rem',marginBottom:16}}>3. Choisissez une date</h2>
+                <div className="slots-grid">
+                  {dates.map(iso => {
+                    const d = new Date(iso + 'T12:00')
+                    const isToday = iso === toISO(new Date())
+                    const lbl = isToday ? "Auj." : d.toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'})
+                    return (
+                      <div key={iso}
+                        onClick={() => { setDate(iso); setStep(4); setTime('') }}
+                        className={`slot-btn${selectedDate===iso?' selected':''}${isToday?' '+(selectedDate!==iso?'':''):''}`}
+                        style={isToday && selectedDate!==iso ? {borderColor:'#C17B4E',color:'#C17B4E'} : {}}>
+                        {lbl}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Step 4: Time */}
+            {step >= 4 && selectedDate && (
+              <div className="card">
+                <h2 style={{fontWeight:600,fontSize:'1.1rem',marginBottom:16}}>4. Choisissez un horaire</h2>
+                <div className="slots-grid">
+                  {slots.map((t: string) => (
+                    <div key={t}
+                      onClick={() => setTime(t)}
+                      className={`slot-btn${selectedTime===t?' selected':''}`}>
+                      {t}
+                    </div>
+                  ))}
+                  {slots.length === 0 && <p style={{color:'#aaa',fontSize:'0.88rem',gridColumn:'span 4'}}>Aucun créneau disponible ce jour.</p>}
+                </div>
+
+                {selectedTime && (
+                  <div className="rounded-xl p-4 mt-6" style={{background:'#f7f7f7',border:'1px solid #eee'}}>
+                    <p style={{fontWeight:600,fontSize:'0.88rem',marginBottom:8}}>Récapitulatif</p>
+                    <div style={{fontSize:'0.85rem',color:'#555',display:'flex',flexDirection:'column',gap:4}}>
+                      <div>✅ {selectedSvc.name} — {formatPrice(selectedSvc.price, selectedSvc.price_type)}</div>
+                      <div>👤 {selectedStaff.firstname} {selectedStaff.lastname}</div>
+                      <div>📅 {new Date(selectedDate+'T12:00').toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'})}</div>
+                      <div>🕐 {selectedTime} ({selectedSvc.duration} min)</div>
+                    </div>
+                    <button onClick={confirm} disabled={confirming} className="btn btn-primary btn-block"
+                      style={{marginTop:16,opacity:confirming?0.6:1}}>
+                      {confirming ? 'Confirmation…' : 'Confirmer la réservation →'}
+                    </button>
+                    {!user && <p style={{fontSize:'0.75rem',textAlign:'center',color:'#aaa',marginTop:8}}>Vous devrez vous connecter</p>}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Team tab */}
+        {tab === 'team' && (
+          <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:16}}>
+            {staff.map((st: any) => (
+              <div key={st.id} className="card text-center">
+                <div style={{width:64,height:64,borderRadius:'50%',background:'#C17B4E',color:'#fff',
+                  display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700,fontSize:'1.2rem',
+                  margin:'0 auto 12px'}}>
+                  {st.firstname[0]}{st.lastname[0]}
+                </div>
+                <div style={{fontWeight:600}}>{st.firstname} {st.lastname}</div>
+                <div style={{fontSize:'0.85rem',color:'#aaa',marginTop:2}}>{st.role}</div>
+                <div style={{fontSize:'0.75rem',color:'#ccc',marginTop:4}}>{st.days?.join(', ')}</div>
+              </div>
+            ))}
+            {staff.length === 0 && <p style={{color:'#aaa',gridColumn:'span 4'}}>Aucun employé.</p>}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
