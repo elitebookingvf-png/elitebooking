@@ -27,10 +27,13 @@ export function createClient() {
 
 // Client avec service_role_key : bypass RLS (admin uniquement, JAMAIS exposé côté client)
 export function createAdminClient() {
-  const { createClient: createSupabaseClient } = require('@supabase/supabase-js');
-  return createSupabaseClient(
+  // Use createServerClient with service role key — bypasses RLS
+  return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { autoRefreshToken: false, persistSession: false } }
+    {
+      auth: { autoRefreshToken: false, persistSession: false },
+      cookies: { getAll() { return []; }, setAll() {} },
+    }
   );
 }

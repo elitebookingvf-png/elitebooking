@@ -25,20 +25,20 @@ export async function POST(req: NextRequest) {
 
     const userId = authData.user.id;
 
-    // 2. Upsert profile with correct fields (admin bypasses RLS — no session yet)
-    await (adminSupabase.from('profiles') as any).upsert({
-      id:        userId,
-      firstname,
-      lastname,
-      phone:     phone || null,
-      type:      type || 'client',
-    });
+    // 2. Update profile — trigger already created the row, just patch phone & type
+    const { error: profileErr } = await (adminSupabase.from('profiles') as any)
+      .update({ firstname, lastname, phone: phone || null, type: type || 'client' })
+      .eq('id', userId);
+    if (profileErr) {
+      console.error('[register] profile update error:', profileErr);
+      // Non-fatal: trigger created basic profile, continue
+    }
 
     // 3. Si pro → créer salon + schedule + lier profil
     if (type === 'pro') {
-      const resolvedSalonName     = salonName     || 'Mon Salon';
-      const resolvedCity          = salonCity     || city          || 'Casablanca';
-      const resolvedCategory      = salonCategory || category      || 'coiffure';
+      const resolvedSalonName = salonName || 'Mon Salon';
+      const resolvedCity      = salonCity || city || 'Casablanca';
+      const resolvedCategory  = salonCategory || category || 'coiffure';
 
       const { data: salon, error: salonError } = await (adminSupabase.from('salons') as any).insert({
         owner_id:    userId,
@@ -52,10 +52,13 @@ export async function POST(req: NextRequest) {
         pin:         '0000',
       }).select().single();
 
-      if (salonError) return NextResponse.json({ error: salonError.message }, { status: 500 });
+      if (salonError) {
+        console.error('[register] salon insert error:', salonError);
+        return NextResponse.json({ error: `Salon creation failed: ${salonError.message}` }, { status: 500 });
+      }
 
       // Créer le schedule par défaut
-      await (adminSupabase.from('schedules') as any).insert({
+      const { error: schedErr } = await (adminSupabase.from('schedules') as any).insert({
         salon_id: salon.id,
         lu_open: true, lu_start: '09:00', lu_end: '19:00',
         ma_open: true, ma_start: '09:00', ma_end: '19:00',
@@ -65,11 +68,16 @@ export async function POST(req: NextRequest) {
         sa_open: true, sa_start: '09:00', sa_end: '18:00',
         di_open: false, di_start: '09:00', di_end: '18:00',
       });
+      if (schedErr) console.error('[register] schedule insert error:', schedErr);
 
       // Lier salon_id au profil
-      await (adminSupabase.from('profiles') as any)
+      const { error: linkErr } = await (adminSupabase.from('profiles') as any)
         .update({ salon_id: salon.id })
         .eq('id', userId);
+      if (linkErr) {
+        console.error('[register] profile link error:', linkErr);
+        return NextResponse.json({ error: `Profile link failed: ${linkErr.message}` }, { status: 500 });
+      }
     }
 
     return NextResponse.json({ ok: true }, { status: 201 });
