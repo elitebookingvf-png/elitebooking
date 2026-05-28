@@ -5,6 +5,71 @@ import { createClient } from '@/lib/supabase/client'
 import { ProOverview } from '@/components/pro/Overview'
 import { ProAgenda }   from '@/components/pro/Agenda'
 import { ProRdvList, ProServices, ProStaff, ProClients, ProSchedule, ProProfile } from '@/components/pro/Others'
+import { CITIES, CATEGORIES } from '@/lib/utils'
+
+function CreateSalonScreen({ onCreated, onSignOut }: { onCreated: (s: any) => void; onSignOut: () => void }) {
+  const [name, setName]     = useState('')
+  const [city, setCity]     = useState('Casablanca')
+  const [cat, setCat]       = useState('coiffure')
+  const [addr, setAddr]     = useState('')
+  const [desc, setDesc]     = useState('')
+  const [saving, setSaving] = useState(false)
+  const [err, setErr]       = useState('')
+
+  async function create() {
+    if (!name.trim()) { setErr('Le nom du salon est requis'); return }
+    setSaving(true); setErr('')
+    const res = await fetch('/api/pro/create-salon', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, city, category: cat, address: addr, description: desc }),
+    })
+    const data = await res.json()
+    if (!res.ok) { setErr(data.error || 'Erreur'); setSaving(false); return }
+    onCreated(data.salon)
+  }
+
+  return (
+    <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'#f7f7f7',padding:24}}>
+      <div style={{background:'#fff',borderRadius:20,padding:36,width:'100%',maxWidth:460,boxShadow:'0 8px 40px rgba(0,0,0,0.08)'}}>
+        <div style={{fontFamily:'DM Serif Display,serif',fontSize:'1.6rem',marginBottom:6}}>Créez votre salon</div>
+        <p style={{color:'#aaa',fontSize:'0.85rem',marginBottom:24}}>Configurez votre établissement pour accéder à votre espace pro.</p>
+        {err && <div style={{background:'#fef2f2',color:'#e53e3e',padding:'10px 14px',borderRadius:8,marginBottom:16,fontSize:'0.83rem'}}>{err}</div>}
+        <div className="form-group">
+          <label>Nom du salon *</label>
+          <input className="form-control" value={name} onChange={e=>setName(e.target.value)} placeholder="Mon Super Salon" />
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+          <div className="form-group">
+            <label>Catégorie</label>
+            <select className="form-control" value={cat} onChange={e=>setCat(e.target.value)}>
+              {CATEGORIES.map(c=><option key={c.id} value={c.id}>{c.emoji} {c.label}</option>)}
+            </select>
+          </div>
+          <div className="form-group">
+            <label>Ville</label>
+            <select className="form-control" value={city} onChange={e=>setCity(e.target.value)}>
+              {CITIES.map(c=><option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+        </div>
+        <div className="form-group">
+          <label>Adresse</label>
+          <input className="form-control" value={addr} onChange={e=>setAddr(e.target.value)} placeholder="123 Boulevard Mohamed V" />
+        </div>
+        <div className="form-group">
+          <label>Description</label>
+          <textarea className="form-control" value={desc} onChange={e=>setDesc(e.target.value)} placeholder="Décrivez votre établissement…" style={{minHeight:72}} />
+        </div>
+        <button onClick={create} disabled={saving}
+          style={{width:'100%',padding:'13px',background:'#111',color:'#fff',border:'none',borderRadius:10,fontSize:'0.92rem',fontWeight:600,cursor:'pointer',marginTop:8}}>
+          {saving ? 'Création…' : 'Créer mon salon →'}
+        </button>
+        <button onClick={onSignOut} style={{width:'100%',marginTop:10,background:'none',border:'none',color:'#aaa',fontSize:'0.82rem',cursor:'pointer'}}>Se déconnecter</button>
+      </div>
+    </div>
+  )
+}
 
 const SECTIONS = [
   {
@@ -84,22 +149,7 @@ export default function ProPage() {
     <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',color:'#aaa'}}>Chargement…</div>
   )
 
-  if (!salon) return (
-    <div style={{minHeight:'100vh',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:16,color:'#aaa',padding:24}}>
-      <div style={{fontSize:'3rem'}}>🏪</div>
-      <h2 style={{fontFamily:'DM Serif Display,serif',fontSize:'1.4rem',color:'#111'}}>Aucun salon trouvé</h2>
-      <p style={{fontSize:'0.88rem',maxWidth:340,textAlign:'center'}}>Votre salon n'a pas encore été créé ou n'est pas encore visible. Réessayez dans quelques secondes.</p>
-      <div style={{display:'flex',gap:10,flexWrap:'wrap',justifyContent:'center'}}>
-        <button onClick={() => window.location.reload()} style={{padding:'10px 22px',background:'#111',color:'#fff',border:'none',borderRadius:9,cursor:'pointer',fontSize:'0.88rem'}}>
-          🔄 Réessayer
-        </button>
-        <button onClick={async () => { const supabase = createClient(); await supabase.auth.signOut(); window.location.href = '/auth'; }}
-          style={{padding:'10px 22px',background:'transparent',color:'#aaa',border:'1px solid #e5e5e5',borderRadius:9,cursor:'pointer',fontSize:'0.88rem'}}>
-          Se déconnecter
-        </button>
-      </div>
-    </div>
-  )
+  if (!salon) return <CreateSalonScreen onCreated={setSalon} onSignOut={signOut} />
 
   const renderTab = () => {
     switch(tab) {
