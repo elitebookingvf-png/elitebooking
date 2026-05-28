@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { formatPrice, CATEGORIES, CITIES, toISO } from '@/lib/utils'
 
 // ─── Shared Add-RDV modal ────────────────────────────────────
@@ -176,8 +176,9 @@ export function ProRdvList() {
   const [showAdd, setShowAdd]   = useState(false)
   const [services, setServices] = useState<any[]>([])
   const [staff, setStaff2]      = useState<any[]>([])
-  const [pin, setPin]           = useState('0000')
-  const [pinAction, setPinAction] = useState<{label:string; cb:()=>void} | null>(null)
+  const [pin, setPin]          = useState('0000')
+  const [pinLabel2, setPinLabel2] = useState<string | null>(null)
+  const pinCbRef2               = useRef<(() => void) | null>(null)
 
   const loadRdvs = () => fetch('/api/rdv/pro').then(r => r.json()).then(d => setRdvs(Array.isArray(d) ? d : []))
 
@@ -197,7 +198,7 @@ export function ProRdvList() {
     setRdvs(prev => prev.map(r => r.id === id ? { ...r, status } : r))
   }
 
-  function requirePin(label: string, cb: () => void) { setPinAction({ label, cb }) }
+  function requirePin(label: string, cb: () => void) { pinCbRef2.current = cb; setPinLabel2(label) }
 
   const filtered = rdvs
     .filter(r => filter === 'all' || r.status === filter)
@@ -212,12 +213,12 @@ export function ProRdvList() {
           onSaved={loadRdvs}
         />
       )}
-      {pinAction && (
+      {pinLabel2 && (
         <PinModal
-          action={pinAction.label}
+          action={pinLabel2}
           pin={pin}
-          onSuccess={pinAction.cb}
-          onClose={() => setPinAction(null)}
+          onSuccess={() => { pinCbRef2.current?.(); pinCbRef2.current = null }}
+          onClose={() => setPinLabel2(null)}
         />
       )}
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:24}}>
@@ -290,8 +291,9 @@ export function ProServices() {
   const [form, setForm]     = useState({ name:'', price:'', price_type:'fixed', duration:'30', cat_id:'', staff_ids:[] as string[] })
   const [catForm, setCatForm] = useState({ name:'', color:'#C17B4E' })
   const [saving, setSaving] = useState(false)
-  const [pin, setPin]       = useState('0000')
-  const [pinAction, setPinAction] = useState<{label:string; cb:()=>void} | null>(null)
+  const [pin, setPin]           = useState('0000')
+  const [pinLabel, setPinLabel]  = useState<string | null>(null)
+  const pinCbRef                 = useRef<(() => void) | null>(null)
 
   const load = () => {
     fetch('/api/services').then(r => r.json()).then(d => { setCategories(Array.isArray(d.categories) ? d.categories : []); setServices(Array.isArray(d.services) ? d.services : []) })
@@ -300,7 +302,7 @@ export function ProServices() {
   }
   useEffect(() => { load() }, [])
 
-  function requirePin(label: string, cb: () => void) { setPinAction({ label, cb }) }
+  function requirePin(label: string, cb: () => void) { pinCbRef.current = cb; setPinLabel(label) }
 
   const openForm = (svc?: any) => {
     if (svc) { setEditing(svc); setForm({ name:svc.name, price:String(svc.price), price_type:svc.price_type||'fixed', duration:String(svc.duration), cat_id:svc.cat_id||'', staff_ids:svc.staff_ids||[] }) }
@@ -340,12 +342,12 @@ export function ProServices() {
 
   return (
     <div>
-      {pinAction && (
+      {pinLabel && (
         <PinModal
-          action={pinAction.label}
+          action={pinLabel}
           pin={pin}
-          onSuccess={pinAction.cb}
-          onClose={() => setPinAction(null)}
+          onSuccess={() => { pinCbRef.current?.(); pinCbRef.current = null }}
+          onClose={() => setPinLabel(null)}
         />
       )}
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:24}}>
