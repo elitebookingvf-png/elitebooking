@@ -19,9 +19,14 @@ function CreateSalonScreen({ onCreated, onSignOut }: { onCreated: (s: any) => vo
   async function create() {
     if (!name.trim()) { setErr('Le nom du salon est requis'); return }
     setSaving(true); setErr('')
+    const supabase = createClient()
+    const { data: { session } } = await supabase.auth.getSession()
     const res = await fetch('/api/pro/create-salon', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {}),
+      },
       body: JSON.stringify({ name, city, category: cat, address: addr, description: desc }),
     })
     const data = await res.json()

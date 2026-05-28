@@ -3,11 +3,24 @@ import { createClient, createAdminClient } from '@/lib/supabase/server';
 
 export async function POST(req: NextRequest) {
   try {
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: '401' }, { status: 401 });
-
     const admin = createAdminClient();
+
+    // Try cookie-based session first, fall back to Bearer token
+    let user: any = null;
+    const supabase = createClient();
+    const { data: { user: cookieUser } } = await supabase.auth.getUser();
+    if (cookieUser) {
+      user = cookieUser;
+    } else {
+      // Bearer token sent by browser client
+      const authHeader = req.headers.get('authorization') || '';
+      const token = authHeader.replace('Bearer ', '').trim();
+      if (token) {
+        const { data: { user: tokenUser } } = await (admin as any).auth.getUser(token);
+        user = tokenUser;
+      }
+    }
+    if (!user) return NextResponse.json({ error: '401' }, { status: 401 });
 
     // Ensure profile type is pro
     await (admin.from('profiles') as any).update({ type: 'pro' }).eq('id', user.id);
