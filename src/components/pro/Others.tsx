@@ -254,7 +254,7 @@ export function ProServices() {
                       <label key={st.id} style={{display:'flex',alignItems:'center',gap:12,padding:12,border:'1px solid #eee',borderRadius:12,cursor:'pointer'}}>
                         <input type="checkbox" checked={form.staff_ids.includes(st.id)}
                           onChange={e => setForm(f => ({...f,staff_ids: e.target.checked ? [...f.staff_ids,st.id] : f.staff_ids.filter(id=>id!==st.id)}))} />
-                        <div style={{width:28,height:28,borderRadius:'50%',background:'#C17B4E',color:'#fff',fontSize:'0.72rem',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700}}>{st.firstname[0]}{st.lastname[0]}</div>
+                        <div style={{width:28,height:28,borderRadius:'50%',background:'#C17B4E',color:'#fff',fontSize:'0.72rem',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700}}>{(st.firstname||'?')[0]}{(st.lastname||'?')[0]}</div>
                         <div><div style={{fontSize:'0.85rem',fontWeight:500}}>{st.firstname} {st.lastname}</div><div style={{fontSize:'0.75rem',color:'#aaa'}}>{st.role}</div></div>
                       </label>
                     ))}
@@ -315,7 +315,7 @@ export function ProStaff() {
         {staff.map(st => (
           <div key={st.id} className="card text-center">
             <div style={{width:56,height:56,borderRadius:'50%',background:'#C17B4E',color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700,fontSize:'1.1rem',margin:'0 auto 12px'}}>
-              {st.firstname[0]}{st.lastname[0]}
+              {(st.firstname||'?')[0]}{(st.lastname||'?')[0]}
             </div>
             <div style={{fontWeight:600}}>{st.firstname} {st.lastname}</div>
             <div style={{fontSize:'0.85rem',color:'#aaa',marginTop:2}}>{st.role}</div>
@@ -437,8 +437,9 @@ export function ProClients() {
 }
 
 // ─── Schedule ────────────────────────────────────────────────
-const FULL_DAYS = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi']
-const SCHED_KEYS = ['di','lu','ma','me','je','ve','sa']
+// SCHED_KEYS order matches DB columns: di=0,lu=1,ma=2,me=3,je=4,ve=5,sa=6
+const SCHED_KEYS  = ['di','lu','ma','me','je','ve','sa']
+const SCHED_LABELS = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi']
 const BLOCK_TIMES: string[] = []
 for(let h=6;h<=22;h++) for(let m=0;m<60;m+=30) BLOCK_TIMES.push(`${String(h).padStart(2,'0')}:${m===0?'00':'30'}`)
 
@@ -496,7 +497,7 @@ export function ProSchedule() {
             const end    = schedule[`${k}_end`]   || '19:00'
             return (
               <div key={k} style={{display:'flex',alignItems:'center',gap:16,padding:'12px 0',borderBottom:'1px solid #f3f3f3'}}>
-                <div style={{width:96,fontSize:'0.85rem',fontWeight:500}}>{FULL_DAYS[i === 0 ? 0 : i]}</div>
+                <div style={{width:96,fontSize:'0.85rem',fontWeight:500}}>{SCHED_LABELS[i]}</div>
                 <label style={{display:'flex',alignItems:'center',gap:8,cursor:'pointer'}}>
                   <input type="checkbox" checked={isOpen}
                     onChange={e => setSchedule((s: any) => ({...s, [`${k}_open`]: e.target.checked}))} />
@@ -575,80 +576,104 @@ export function ProSchedule() {
   )
 }
 
-// ─── Profile ─────────────────────────────────────────────────
-export function ProProfile({ salon, setSalon }: { salon: any; setSalon: (s:any)=>void }) {
-  const [form, setForm]         = useState({ firstname:'', lastname:'', phone:'', password:'' })
-  const [salonForm, setSalonForm] = useState({
-    name: salon.name, city: salon.city, address: salon.address||'',
+// ─── Mon Salon (settings) ────────────────────────────────────
+export function ProSalonSettings({ salon, setSalon }: { salon: any; setSalon: (s:any)=>void }) {
+  const [form, setForm] = useState({
+    name: salon.name||'', city: salon.city||'', address: salon.address||'',
     phone: salon.phone||'', email: salon.email||'', description: salon.description||'',
     whatsapp: salon.whatsapp||'', instagram: salon.instagram||'', pin: salon.pin||'',
   })
-  const [saving, setSaving]   = useState(false)
-  const [savingS, setSavingS] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [ok, setOk]         = useState(false)
 
-  useEffect(() => {
-    fetch('/api/users/me').then(r => r.json()).then((u: any) => {
-      setForm({ firstname:u.firstname||'', lastname:u.lastname||'', phone:u.phone||'', password:'' })
-    })
-  }, [])
-
-  const saveProfile = async () => {
-    setSaving(true)
-    const body: any = { firstname:form.firstname, lastname:form.lastname, phone:form.phone }
-    if (form.password) body.password = form.password
-    await fetch('/api/users/me', { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) })
+  const save = async () => {
+    setSaving(true); setOk(false)
+    const res = await fetch('/api/salons', { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(form) })
+    const updated = await res.json()
+    if (res.ok) { setSalon(updated); setOk(true); setTimeout(()=>setOk(false),2000) }
     setSaving(false)
   }
 
-  const saveSalon = async () => {
-    setSavingS(true)
-    const res = await fetch('/api/salons', { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(salonForm) })
-    const updated = await res.json()
-    setSalon(updated)
-    setSavingS(false)
+  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement|HTMLSelectElement|HTMLTextAreaElement>) =>
+    setForm(f=>({...f,[k]:e.target.value}))
+
+  return (
+    <div>
+      <h1 className="serif" style={{fontSize:'2rem',marginBottom:32}}>Mon salon</h1>
+      <div className="card" style={{maxWidth:640}}>
+        <div className="space-y-4">
+          <div className="form-group"><label>Nom du salon</label><input className="form-control" value={form.name} onChange={set('name')} /></div>
+          <div className="form-row">
+            <div className="form-group" style={{marginBottom:0}}><label>Ville</label>
+              <select className="form-control" value={form.city} onChange={set('city')}>
+                {CITIES.map(c=><option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            <div className="form-group" style={{marginBottom:0}}><label>Catégorie</label>
+              <select className="form-control" value={salon.category} disabled>
+                {CATEGORIES.map(c=><option key={c.id} value={c.id}>{c.label}</option>)}
+              </select>
+            </div>
+          </div>
+          <div className="form-group"><label>Adresse</label><input className="form-control" value={form.address} onChange={set('address')} /></div>
+          <div className="form-group"><label>Description</label><textarea className="form-control" value={form.description} onChange={set('description')} style={{minHeight:80}} /></div>
+          <div className="form-row">
+            <div className="form-group" style={{marginBottom:0}}><label>Téléphone</label><input className="form-control" value={form.phone} onChange={set('phone')} /></div>
+            <div className="form-group" style={{marginBottom:0}}><label>Email</label><input className="form-control" type="email" value={form.email} onChange={set('email')} /></div>
+          </div>
+          <div className="form-row">
+            <div className="form-group" style={{marginBottom:0}}><label>WhatsApp</label><input className="form-control" value={form.whatsapp} onChange={set('whatsapp')} /></div>
+            <div className="form-group" style={{marginBottom:0}}><label>Instagram</label><input className="form-control" placeholder="@monsalon" value={form.instagram} onChange={set('instagram')} /></div>
+          </div>
+          <div className="form-group"><label>Code PIN (4 chiffres)</label><input className="form-control" maxLength={4} placeholder="0000" value={form.pin} onChange={set('pin')} /></div>
+          <button onClick={save} disabled={saving} className="btn btn-primary btn-block" style={{opacity:saving?0.6:1}}>
+            {ok ? '✓ Sauvegardé !' : saving ? 'Sauvegarde…' : 'Sauvegarder les modifications'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Profile (personal info only) ────────────────────────────
+export function ProProfile({ salon, setSalon }: { salon: any; setSalon: (s:any)=>void }) {
+  const [form, setForm] = useState({ firstname:'', lastname:'', phone:'', password:'' })
+  const [saving, setSaving] = useState(false)
+  const [ok, setOk]         = useState(false)
+
+  useEffect(() => {
+    import('@/lib/supabase/client').then(({ createClient }) => {
+      const sb = createClient()
+      sb.auth.getUser().then(async ({ data: { user } }) => {
+        if (!user) return
+        const { data: p } = await sb.from('profiles').select('firstname,lastname,phone').eq('id', user.id).single()
+        if (p) setForm(f => ({ ...f, firstname:p.firstname||'', lastname:p.lastname||'', phone:p.phone||'' }))
+      })
+    })
+  }, [])
+
+  const save = async () => {
+    setSaving(true); setOk(false)
+    const body: any = { firstname:form.firstname, lastname:form.lastname, phone:form.phone }
+    if (form.password) body.password = form.password
+    await fetch('/api/users/me', { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) })
+    setSaving(false); setOk(true); setTimeout(()=>setOk(false),2000)
   }
 
   return (
     <div>
       <h1 className="serif" style={{fontSize:'2rem',marginBottom:32}}>Mon profil</h1>
-      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:24}}>
-        <div className="card">
-          <h2 style={{fontWeight:600,fontSize:'1.1rem',marginBottom:16}}>Informations personnelles</h2>
-          <div className="space-y-4">
-            <div className="form-row">
-              <div className="form-group" style={{marginBottom:0}}><label>Prénom</label><input className="form-control" value={form.firstname} onChange={e=>setForm(f=>({...f,firstname:e.target.value}))} /></div>
-              <div className="form-group" style={{marginBottom:0}}><label>Nom</label><input className="form-control" value={form.lastname} onChange={e=>setForm(f=>({...f,lastname:e.target.value}))} /></div>
-            </div>
-            <div className="form-group"><label>Téléphone</label><input className="form-control" value={form.phone} onChange={e=>setForm(f=>({...f,phone:e.target.value}))} /></div>
-            <div className="form-group"><label>Nouveau mot de passe</label><input className="form-control" type="password" placeholder="Laisser vide pour ne pas changer" value={form.password} onChange={e=>setForm(f=>({...f,password:e.target.value}))} /></div>
-            <button onClick={saveProfile} disabled={saving} className="btn btn-primary btn-block" style={{opacity:saving?0.6:1}}>{saving?'Sauvegarde…':'Sauvegarder'}</button>
+      <div className="card" style={{maxWidth:480}}>
+        <div className="space-y-4">
+          <div className="form-row">
+            <div className="form-group" style={{marginBottom:0}}><label>Prénom</label><input className="form-control" value={form.firstname} onChange={e=>setForm(f=>({...f,firstname:e.target.value}))} /></div>
+            <div className="form-group" style={{marginBottom:0}}><label>Nom</label><input className="form-control" value={form.lastname} onChange={e=>setForm(f=>({...f,lastname:e.target.value}))} /></div>
           </div>
-        </div>
-        <div className="card">
-          <h2 style={{fontWeight:600,fontSize:'1.1rem',marginBottom:16}}>Mon salon</h2>
-          <div className="space-y-4">
-            <div className="form-group"><label>Nom du salon</label><input className="form-control" value={salonForm.name} onChange={e=>setSalonForm(f=>({...f,name:e.target.value}))} /></div>
-            <div className="form-row">
-              <div className="form-group" style={{marginBottom:0}}><label>Ville</label>
-                <select className="form-control" value={salonForm.city} onChange={e=>setSalonForm(f=>({...f,city:e.target.value}))}>
-                  {CITIES.map(c=><option key={c} value={c}>{c}</option>)}
-                </select>
-              </div>
-              <div className="form-group" style={{marginBottom:0}}><label>Catégorie</label>
-                <select className="form-control" value={salon.category} disabled>
-                  {CATEGORIES.map(c=><option key={c.id} value={c.id}>{c.label}</option>)}
-                </select>
-              </div>
-            </div>
-            <div className="form-group"><label>Adresse</label><input className="form-control" value={salonForm.address} onChange={e=>setSalonForm(f=>({...f,address:e.target.value}))} /></div>
-            <div className="form-row">
-              <div className="form-group" style={{marginBottom:0}}><label>Téléphone</label><input className="form-control" value={salonForm.phone} onChange={e=>setSalonForm(f=>({...f,phone:e.target.value}))} /></div>
-              <div className="form-group" style={{marginBottom:0}}><label>WhatsApp</label><input className="form-control" value={salonForm.whatsapp} onChange={e=>setSalonForm(f=>({...f,whatsapp:e.target.value}))} /></div>
-            </div>
-            <div className="form-group"><label>Instagram</label><input className="form-control" placeholder="@monsalon" value={salonForm.instagram} onChange={e=>setSalonForm(f=>({...f,instagram:e.target.value}))} /></div>
-            <div className="form-group"><label>Code PIN (4 chiffres)</label><input className="form-control" maxLength={4} placeholder="1234" value={salonForm.pin} onChange={e=>setSalonForm(f=>({...f,pin:e.target.value}))} /></div>
-            <button onClick={saveSalon} disabled={savingS} className="btn btn-primary btn-block" style={{opacity:savingS?0.6:1}}>{savingS?'Sauvegarde…':'Sauvegarder'}</button>
-          </div>
+          <div className="form-group"><label>Téléphone</label><input className="form-control" value={form.phone} onChange={e=>setForm(f=>({...f,phone:e.target.value}))} /></div>
+          <div className="form-group"><label>Nouveau mot de passe</label><input className="form-control" type="password" placeholder="Laisser vide pour ne pas changer" value={form.password} onChange={e=>setForm(f=>({...f,password:e.target.value}))} /></div>
+          <button onClick={save} disabled={saving} className="btn btn-primary btn-block" style={{opacity:saving?0.6:1}}>
+            {ok ? '✓ Sauvegardé !' : saving ? 'Sauvegarde…' : 'Sauvegarder'}
+          </button>
         </div>
       </div>
     </div>

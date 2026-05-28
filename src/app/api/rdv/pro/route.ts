@@ -6,7 +6,12 @@ function uuid() { return crypto.randomUUID(); }
 
 async function getProSalonId(supabase: any, userId: string) {
   const { data } = await supabase.from('profiles').select('type, salon_id').eq('id', userId).single();
-  return data?.type === 'pro' ? data.salon_id : null;
+  if (data?.type === 'pro' && data.salon_id) return data.salon_id;
+  if (data?.type === 'pro') {
+    const { data: s } = await supabase.from('salons').select('id').eq('owner_id', userId).maybeSingle();
+    return s?.id || null;
+  }
+  return null;
 }
 
 // GET /api/rdv/pro — tous les RDV du salon pro

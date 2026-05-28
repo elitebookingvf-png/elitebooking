@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { ProOverview } from '@/components/pro/Overview'
 import { ProAgenda }   from '@/components/pro/Agenda'
-import { ProRdvList, ProServices, ProStaff, ProClients, ProSchedule, ProProfile } from '@/components/pro/Others'
+import { ProRdvList, ProServices, ProStaff, ProClients, ProSchedule, ProSalonSettings, ProProfile } from '@/components/pro/Others'
 import { CITIES, CATEGORIES } from '@/lib/utils'
 
 function CreateSalonScreen({ onCreated, onSignOut }: { onCreated: (s: any) => void; onSignOut: () => void }) {
@@ -165,7 +165,7 @@ export default function ProPage() {
       case 'staff':     return <ProStaff />
       case 'clients':   return <ProClients />
       case 'schedule':  return <ProSchedule />
-      case 'salon':     return <ProProfile salon={salon} setSalon={setSalon} />
+      case 'salon':     return <ProSalonSettings salon={salon} setSalon={setSalon} />
       case 'profile':   return <ProProfile salon={salon} setSalon={setSalon} />
       default:          return null
     }
