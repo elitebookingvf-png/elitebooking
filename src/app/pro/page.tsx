@@ -6,15 +6,31 @@ import { ProOverview } from '@/components/pro/Overview'
 import { ProAgenda }   from '@/components/pro/Agenda'
 import { ProRdvList, ProServices, ProStaff, ProClients, ProSchedule, ProProfile } from '@/components/pro/Others'
 
-const TABS = [
-  { id:'overview',  label:"Vue d'ensemble", icon:'📊' },
-  { id:'agenda',    label:'Agenda',         icon:'📅' },
-  { id:'rdv',       label:'Rendez-vous',    icon:'🗓' },
-  { id:'services',  label:'Prestations',    icon:'✂️' },
-  { id:'staff',     label:'Employés',       icon:'👥' },
-  { id:'clients',   label:'Clients',        icon:'👤' },
-  { id:'schedule',  label:'Horaires',       icon:'🕐' },
-  { id:'profile',   label:'Profil',         icon:'⚙️' },
+const SECTIONS = [
+  {
+    label: 'Principal',
+    tabs: [
+      { id:'overview', label:"Vue d'ensemble", icon:'📊' },
+      { id:'agenda',   label:'Agenda',         icon:'📅' },
+      { id:'rdv',      label:'Rendez-vous',    icon:'�️' },
+    ]
+  },
+  {
+    label: 'Gestion',
+    tabs: [
+      { id:'services', label:'Prestations', icon:'✂️' },
+      { id:'staff',    label:'Employés',    icon:'👥' },
+      { id:'clients',  label:'Clients',     icon:'👤' },
+      { id:'schedule', label:'Horaires',    icon:'🕐' },
+    ]
+  },
+  {
+    label: 'Compte',
+    tabs: [
+      { id:'salon',   label:'Mon salon', icon:'🏪' },
+      { id:'profile', label:'Profil',    icon:'👤' },
+    ]
+  },
 ]
 
 export default function ProPage() {
@@ -27,29 +43,33 @@ export default function ProPage() {
     const supabase = createClient()
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (!user) { router.push('/auth'); return }
-      const { data: profile } = await supabase.from('profiles').select('type, salon_id').eq('id', user.id).single()
+
+      // All queries via browser client — session is already in memory, no cookie race
+      const { data: profile } = await supabase
+        .from('profiles').select('type, salon_id').eq('id', user.id).single()
+
       if ((profile as any)?.type !== 'pro') { router.push('/client'); return }
 
-      // Try /api/users/me first
-      const res = await fetch('/api/users/me')
-      const me = await res.json()
+      // Try to load salon via salon_id first (fast path)
+      let salonRow: any = null
+      if ((profile as any)?.salon_id) {
+        const { data } = await supabase
+          .from('salons').select('*').eq('id', (profile as any).salon_id).single()
+        salonRow = data
+      }
 
-      if (me.salon) {
-        setSalon(me.salon)
-      } else {
-        // Fallback: query salon by owner_id (handles race after fresh register)
-        const { data: salonRow } = await supabase
-          .from('salons')
-          .select('*')
-          .eq('owner_id', user.id)
-          .eq('active', true)
-          .maybeSingle()
+      // Fallback: find by owner_id (handles first login after register race)
+      if (!salonRow) {
+        const { data } = await supabase
+          .from('salons').select('*').eq('owner_id', user.id).maybeSingle()
+        salonRow = data
+        // Patch the profile so next load is instant
         if (salonRow) {
-          // Also patch profile.salon_id so future loads work
           await supabase.from('profiles').update({ salon_id: salonRow.id }).eq('id', user.id)
-          setSalon(salonRow)
         }
       }
+
+      setSalon(salonRow)
       setLoading(false)
     })
   }, [])
@@ -90,6 +110,7 @@ export default function ProPage() {
       case 'staff':     return <ProStaff />
       case 'clients':   return <ProClients />
       case 'schedule':  return <ProSchedule />
+      case 'salon':     return <ProProfile salon={salon} setSalon={setSalon} />
       case 'profile':   return <ProProfile salon={salon} setSalon={setSalon} />
       default:          return null
     }
@@ -97,45 +118,38 @@ export default function ProPage() {
 
   return (
     <div style={{minHeight:'100vh',display:'flex',background:'#f7f7f7'}}>
-      {/* Sidebar */}
-      <aside style={{width:240,background:'#111',color:'#fff',display:'flex',flexDirection:'column',
+      {/* Sidebar — white bg + gold active border (matches HTML exactly) */}
+      <aside style={{width:240,background:'#fff',borderRight:'1px solid #efefef',display:'flex',flexDirection:'column',
         position:'fixed',height:'100%',zIndex:10}}>
-        <div style={{padding:'20px 24px',borderBottom:'1px solid rgba(255,255,255,0.1)'}}>
-          <div className="serif" style={{fontSize:'1.1rem',fontWeight:700}}>
-            Elite<em style={{color:'#C17B4E',fontStyle:'normal'}}>Booking</em>
+        <div style={{padding:'20px 24px',borderBottom:'1px solid #efefef'}}>
+          <div className="serif" style={{fontSize:'1.1rem',fontWeight:700,color:'#111'}}>
+            Elite<em style={{color:'#C17B4E',fontStyle:'italic'}}>Booking</em>
           </div>
-          <div style={{fontSize:'0.72rem',color:'rgba(255,255,255,0.4)',marginTop:2}}>Espace Pro</div>
+          <div style={{fontSize:'0.72rem',color:'#aaa',marginTop:2}}>Espace Pro</div>
         </div>
 
-        <div style={{padding:'20px 0',flex:1,overflowY:'auto'}}>
-          <div style={{fontSize:'0.65rem',fontWeight:700,color:'rgba(255,255,255,0.3)',textTransform:'uppercase',letterSpacing:'0.08em',padding:'0 24px',marginBottom:8}}>Principal</div>
-          {TABS.slice(0,6).map(t => (
-            <button key={t.id} onClick={() => setTab(t.id)}
-              style={{display:'flex',alignItems:'center',gap:10,padding:'10px 16px',
-                fontSize:'0.85rem',fontWeight:500,textAlign:'left',border:'none',cursor:'pointer',
-                borderRadius:8,margin:'2px 8px',width:'calc(100% - 16px)',transition:'all 0.15s',
-                background: tab===t.id?'rgba(255,255,255,0.12)':'transparent',
-                color: tab===t.id?'#fff':'rgba(255,255,255,0.55)'}}>
-              <span style={{width:18,textAlign:'center'}}>{t.icon}</span>{t.label}
-            </button>
-          ))}
-
-          <div style={{fontSize:'0.65rem',fontWeight:700,color:'rgba(255,255,255,0.3)',textTransform:'uppercase',letterSpacing:'0.08em',padding:'16px 24px 8px'}}>Compte</div>
-          {TABS.slice(6).map(t => (
-            <button key={t.id} onClick={() => setTab(t.id)}
-              style={{display:'flex',alignItems:'center',gap:10,padding:'10px 16px',
-                fontSize:'0.85rem',fontWeight:500,textAlign:'left',border:'none',cursor:'pointer',
-                borderRadius:8,margin:'2px 8px',width:'calc(100% - 16px)',transition:'all 0.15s',
-                background: tab===t.id?'rgba(255,255,255,0.12)':'transparent',
-                color: tab===t.id?'#fff':'rgba(255,255,255,0.55)'}}>
-              <span style={{width:18,textAlign:'center'}}>{t.icon}</span>{t.label}
-            </button>
+        <div style={{flex:1,overflowY:'auto',padding:'16px 0'}}>
+          {SECTIONS.map(section => (
+            <div key={section.label} style={{marginBottom:20}}>
+              <div style={{fontSize:'0.65rem',fontWeight:700,color:'#bbb',textTransform:'uppercase',letterSpacing:'0.1em',padding:'0 20px',marginBottom:6}}>{section.label}</div>
+              {section.tabs.map(t => (
+                <button key={t.id} onClick={() => setTab(t.id)}
+                  style={{display:'flex',alignItems:'center',gap:10,
+                    padding:'10px 20px',width:'100%',border:'none',
+                    borderRight: tab===t.id ? '2px solid #C17B4E' : '2px solid transparent',
+                    background: tab===t.id ? '#fdf3ec' : 'transparent',
+                    color: tab===t.id ? '#C17B4E' : '#555',
+                    fontSize:'0.85rem',fontWeight:500,textAlign:'left',cursor:'pointer',transition:'all 0.15s'}}>
+                  <span style={{width:18,textAlign:'center',fontSize:'0.95rem'}}>{t.icon}</span>{t.label}
+                </button>
+              ))}
+            </div>
           ))}
         </div>
 
-        <div style={{padding:16,borderTop:'1px solid rgba(255,255,255,0.1)'}}>
-          <div style={{fontSize:'0.85rem',fontWeight:600,color:'#fff'}}>{salon.name}</div>
-          <div style={{fontSize:'0.72rem',color:'rgba(255,255,255,0.4)',marginTop:2}}>{salon.category} · {salon.city}</div>
+        <div style={{padding:16,borderTop:'1px solid #efefef'}}>
+          <div style={{fontSize:'0.85rem',fontWeight:600,color:'#111'}}>{salon.name}</div>
+          <div style={{fontSize:'0.72rem',color:'#aaa',marginTop:2}}>{salon.category} · {salon.city}</div>
           <button onClick={signOut}
             style={{fontSize:'0.75rem',color:'#EB5757',background:'none',border:'none',cursor:'pointer',marginTop:8,padding:0}}>
             Déconnexion
