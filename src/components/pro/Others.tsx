@@ -277,6 +277,71 @@ export function ProRdvList() {
           </tbody>
         </table>
       </div>
+
+      {/* ── Client History ── */}
+      {rdvs.length > 0 && (() => {
+        const clientMap: Record<string, any[]> = {}
+        rdvs.forEach(r => {
+          const key = r.client_name || 'Client'
+          if (!clientMap[key]) clientMap[key] = []
+          clientMap[key].push(r)
+        })
+        const clients = Object.entries(clientMap).sort((a,b) => a[0].localeCompare(b[0]))
+        return (
+          <div style={{marginTop:40}}>
+            <h2 className="serif" style={{fontSize:'1.5rem',marginBottom:16}}>Historique clients</h2>
+            <div style={{display:'flex',flexDirection:'column',gap:12}}>
+              {clients.map(([name, clientRdvs]) => {
+                const phone = clientRdvs.find(r => r.client_phone)?.client_phone || ''
+                const waPhone = phone.replace(/\D/g,'')
+                const lastRdv = [...clientRdvs].sort((a,b) => b.date.localeCompare(a.date) || b.start_time.localeCompare(a.start_time))[0]
+                const total = clientRdvs.filter(r => r.status !== 'cancelled').reduce((s,r) => s + (Number(r.price)||0), 0)
+                return (
+                  <details key={name} style={{background:'#fff',border:'1px solid #eee',borderRadius:16,overflow:'hidden'}}>
+                    <summary style={{padding:'14px 20px',cursor:'pointer',display:'flex',alignItems:'center',gap:12,listStyle:'none'}}>
+                      <div style={{width:40,height:40,borderRadius:'50%',background:'#C17B4E',color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700,fontSize:'0.95rem',flexShrink:0}}>
+                        {name[0]?.toUpperCase()}
+                      </div>
+                      <div style={{flex:1}}>
+                        <div style={{fontWeight:700,fontSize:'0.92rem'}}>{name}</div>
+                        <div style={{fontSize:'0.78rem',color:'#aaa',marginTop:2}}>
+                          {phone && `📞 ${phone} · `}{clientRdvs.length} RDV · dernier : {lastRdv.date}
+                        </div>
+                      </div>
+                      <div style={{textAlign:'right'}}>
+                        <div style={{fontWeight:700,color:'#C17B4E',fontSize:'0.88rem'}}>{total > 0 ? `${total} MAD` : '—'}</div>
+                        {waPhone && (
+                          <a href={`https://wa.me/${waPhone}`} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
+                            style={{fontSize:'0.72rem',background:'#25D366',color:'#fff',padding:'2px 8px',borderRadius:20,textDecoration:'none',display:'inline-block',marginTop:4}}>
+                            💬 WA
+                          </a>
+                        )}
+                      </div>
+                    </summary>
+                    <div style={{borderTop:'1px solid #f3f3f3',padding:'0 20px 12px'}}>
+                      {[...clientRdvs].sort((a,b) => b.date.localeCompare(a.date)).map(r => (
+                        <div key={r.id} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 0',borderBottom:'1px solid #f7f7f7',fontSize:'0.82rem'}}>
+                          <div>
+                            <div style={{fontWeight:600}}>{r.service_name}</div>
+                            <div style={{color:'#aaa',marginTop:2}}>{r.date} à {r.start_time} · {r.staff_name}</div>
+                          </div>
+                          <div style={{textAlign:'right'}}>
+                            <div style={{fontWeight:600,color:'#C17B4E'}}>{formatPrice(r.price, r.price_type)}</div>
+                            <span style={{fontSize:'0.72rem',padding:'2px 6px',borderRadius:8,background: r.status==='completed'?'#EFF6FF':r.status==='cancelled'?'#FEF2F2':r.status==='no-show'?'#FFFBEB':'#F0FDF4',
+                              color: r.status==='completed'?'#3B82F6':r.status==='cancelled'?'#EB5757':r.status==='no-show'?'#F59E0B':'#27AE60'}}>
+                              {r.status==='completed'?'Terminé':r.status==='cancelled'?'Annulé':r.status==='no-show'?'Pas venu':'Confirmé'}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                )
+              })}
+            </div>
+          </div>
+        )
+      })()}
     </div>
   )
 }

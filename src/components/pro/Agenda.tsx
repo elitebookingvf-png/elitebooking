@@ -4,6 +4,91 @@ import { toISO, tMin, dayKeyForISO, formatPrice } from '@/lib/utils'
 
 type View = 'day' | 'staff' | 'week' | 'month'
 
+function RdvDetailModal({ rdv, onClose, onStatusChange }: {
+  rdv: any; onClose: () => void; onStatusChange: (id: string, status: string) => void
+}) {
+  const [saving, setSaving] = useState(false)
+  async function setStatus(status: string) {
+    setSaving(true)
+    await fetch(`/api/rdv/${rdv.id}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ status }) })
+    onStatusChange(rdv.id, status)
+    setSaving(false); onClose()
+  }
+  const waPhone = (rdv.client_phone || '').replace(/\D/g,'')
+  const waMsg = encodeURIComponent(`Bonjour ${rdv.client_name}, votre RDV du ${rdv.date} à ${rdv.start_time} pour ${rdv.service_name}.`)
+  const statusColor: Record<string,string> = { confirmed:'#27AE60', completed:'#3B82F6', cancelled:'#EB5757', 'no-show':'#F59E0B' }
+  const statusLabel: Record<string,string> = { confirmed:'Confirmé', completed:'Terminé', cancelled:'Annulé', 'no-show':'Pas venu' }
+  return (
+    <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.55)',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
+      <div style={{background:'#fff',borderRadius:20,padding:32,width:'100%',maxWidth:440,boxShadow:'0 20px 60px rgba(0,0,0,0.2)'}}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20}}>
+          <h2 className="serif" style={{fontSize:'1.3rem'}}>Détail du RDV</h2>
+          <button onClick={onClose} style={{background:'none',border:'none',fontSize:'1.4rem',cursor:'pointer',color:'#aaa'}}>✕</button>
+        </div>
+        {/* Status badge */}
+        <div style={{display:'inline-block',background:statusColor[rdv.status]||'#ccc',color:'#fff',borderRadius:20,padding:'4px 12px',fontSize:'0.75rem',fontWeight:700,marginBottom:16}}>
+          {statusLabel[rdv.status]||rdv.status}
+        </div>
+        {/* Info rows */}
+        <div style={{display:'flex',flexDirection:'column',gap:10,marginBottom:20}}>
+          <div style={{display:'flex',gap:8}}>
+            <span style={{fontSize:'1.1rem'}}>🗓</span>
+            <div><div style={{fontWeight:600}}>{rdv.date} à {rdv.start_time}</div><div style={{fontSize:'0.78rem',color:'#aaa'}}>{rdv.duration} min</div></div>
+          </div>
+          <div style={{display:'flex',gap:8}}>
+            <span style={{fontSize:'1.1rem'}}>✂️</span>
+            <div><div style={{fontWeight:600}}>{rdv.service_name}</div><div style={{fontSize:'0.78rem',color:'#C17B4E',fontWeight:700}}>{formatPrice(rdv.price, rdv.price_type)}</div></div>
+          </div>
+          <div style={{display:'flex',gap:8}}>
+            <span style={{fontSize:'1.1rem'}}>👤</span>
+            <div>
+              <div style={{fontWeight:600}}>{rdv.client_name || 'Client'}</div>
+              {rdv.client_phone && <div style={{fontSize:'0.82rem',color:'#666',marginTop:2}}>📞 {rdv.client_phone}</div>}
+              {rdv.staff_name && <div style={{fontSize:'0.78rem',color:'#aaa',marginTop:2}}>Employé : {rdv.staff_name}</div>}
+            </div>
+          </div>
+          {rdv.notes && (
+            <div style={{background:'#f7f7f7',borderRadius:10,padding:'10px 14px',fontSize:'0.82rem',color:'#555'}}>
+              📝 {rdv.notes}
+            </div>
+          )}
+        </div>
+        {/* WhatsApp shortcut */}
+        {waPhone && (
+          <a href={`https://wa.me/${waPhone}?text=${waMsg}`} target="_blank" rel="noopener noreferrer"
+            style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,background:'#25D366',color:'#fff',
+              borderRadius:12,padding:'10px 16px',marginBottom:16,textDecoration:'none',fontSize:'0.88rem',fontWeight:600}}>
+            💬 WhatsApp
+          </a>
+        )}
+        {/* Action buttons */}
+        {rdv.status === 'confirmed' && (
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+            <button disabled={saving} onClick={() => setStatus('completed')}
+              style={{padding:'10px',borderRadius:12,border:'2px solid #3B82F6',background:'#EFF6FF',color:'#3B82F6',fontWeight:700,cursor:'pointer',fontSize:'0.85rem'}}>
+              ✅ Venu
+            </button>
+            <button disabled={saving} onClick={() => setStatus('no-show')}
+              style={{padding:'10px',borderRadius:12,border:'2px solid #F59E0B',background:'#FFFBEB',color:'#F59E0B',fontWeight:700,cursor:'pointer',fontSize:'0.85rem'}}>
+              ❌ Pas venu
+            </button>
+            <button disabled={saving} onClick={() => setStatus('cancelled')}
+              style={{padding:'10px',borderRadius:12,border:'2px solid #EB5757',background:'#FEF2F2',color:'#EB5757',fontWeight:700,cursor:'pointer',fontSize:'0.85rem',gridColumn:'span 2'}}>
+              🚫 Annuler le RDV
+            </button>
+          </div>
+        )}
+        {rdv.status !== 'confirmed' && (
+          <button disabled={saving} onClick={() => setStatus('confirmed')}
+            style={{width:'100%',padding:'10px',borderRadius:12,border:'2px solid #27AE60',background:'#F0FDF4',color:'#27AE60',fontWeight:700,cursor:'pointer',fontSize:'0.85rem'}}>
+            ↩ Remettre en confirmé
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function AddRdvModal({ staff, services, salonId, onClose, onSaved, defaultDate, defaultTime, defaultStaffId }: {
   staff: any[]; services: any[]; salonId: string; onClose: () => void; onSaved: () => void
   defaultDate?: string; defaultTime?: string; defaultStaffId?: string
@@ -140,6 +225,7 @@ export function ProAgenda({ salon }: { salon: any }) {
   const [addRdvDate, setAddRdvDate] = useState<string | undefined>()
   const [addRdvTime, setAddRdvTime] = useState<string | undefined>()
   const [addRdvStaffId, setAddRdvStaffId] = useState<string | undefined>()
+  const [selectedRdv, setSelectedRdv] = useState<any>(null)
 
   const loadRdvs = () =>
     fetch('/api/rdv/pro').then(r => r.json()).then(d => setRdvs(Array.isArray(d) ? d : []))
@@ -208,6 +294,16 @@ export function ProAgenda({ salon }: { salon: any }) {
 
   return (
     <div>
+      {selectedRdv && (
+        <RdvDetailModal
+          rdv={selectedRdv}
+          onClose={() => setSelectedRdv(null)}
+          onStatusChange={(id, status) => {
+            setRdvs(prev => prev.map(r => r.id === id ? { ...r, status } : r))
+            setSelectedRdv(null)
+          }}
+        />
+      )}
       {showAddRdv && (
         <AddRdvModal
           staff={staff} services={services}
@@ -290,7 +386,9 @@ export function ProAgenda({ salon }: { salon: any }) {
                             background: !works?'#f7f7f7':blkd?'#fffbeb':'#fff',
                             cursor: clickable && !cellRdvs.length ? 'pointer' : 'default'}}>
                           {cellRdvs.map(r => (
-                            <div key={r.id} style={{background:'#27AE60',color:'#fff',borderRadius:8,padding:'6px 8px',fontSize:'0.75rem',marginBottom:4}}>
+                            <div key={r.id} onClick={e => { e.stopPropagation(); setSelectedRdv(r) }}
+                              style={{background: r.status==='completed'?'#3B82F6':r.status==='no-show'?'#F59E0B':r.status==='cancelled'?'#EB5757':'#27AE60',
+                                color:'#fff',borderRadius:8,padding:'6px 8px',fontSize:'0.75rem',marginBottom:4,cursor:'pointer'}}>
                               <div style={{fontWeight:700}}>{r.start_time} {r.service_name?.substring(0,12)}</div>
                               <div style={{opacity:0.85}}>{r.client_name} · {r.duration}min</div>
                             </div>
@@ -328,7 +426,9 @@ export function ProAgenda({ salon }: { salon: any }) {
                 <div style={{flex:1,padding:8,display:'flex',flexWrap:'wrap',gap:8,cursor:!blkd&&!dayRdvs.length?'pointer':'default'}}
                   onClick={() => { if(!blkd && !dayRdvs.length) { setAddRdvDate(iso); setAddRdvTime(`${hStr}:00`); setAddRdvStaffId(undefined); setShowAddRdv(true) } }}>
                   {dayRdvs.map(r => (
-                    <div key={r.id} style={{background:'#27AE60',color:'#fff',borderRadius:8,padding:'6px 12px',fontSize:'0.78rem'}}>
+                    <div key={r.id} onClick={e => { e.stopPropagation(); setSelectedRdv(r) }}
+                      style={{background: r.status==='completed'?'#3B82F6':r.status==='no-show'?'#F59E0B':r.status==='cancelled'?'#EB5757':'#27AE60',
+                        color:'#fff',borderRadius:8,padding:'6px 12px',fontSize:'0.78rem',cursor:'pointer'}}>
                       <div style={{fontWeight:700}}>{r.start_time} — {r.service_name}</div>
                       <div style={{opacity:0.85}}>{r.client_name} · {r.staff_name} · {formatPrice(r.price,r.price_type)}</div>
                     </div>
@@ -381,7 +481,9 @@ export function ProAgenda({ salon }: { salon: any }) {
                       return (
                         <td key={di} style={{border:'1px solid #eee',padding:4,verticalAlign:'top',minHeight:48,background:blkd?'#fffbeb':'#fff'}}>
                           {dayRdvs.map(r => (
-                            <div key={r.id} style={{background:'#27AE60',color:'#fff',borderRadius:6,padding:'3px 6px',fontSize:'0.68rem',marginBottom:2}}>
+                            <div key={r.id} onClick={() => setSelectedRdv(r)}
+                              style={{background: r.status==='completed'?'#3B82F6':r.status==='no-show'?'#F59E0B':r.status==='cancelled'?'#EB5757':'#27AE60',
+                                color:'#fff',borderRadius:6,padding:'3px 6px',fontSize:'0.68rem',marginBottom:2,cursor:'pointer'}}>
                               <div style={{fontWeight:700}}>{r.start_time} {r.service_name?.substring(0,10)}</div>
                               <div style={{opacity:0.85}}>{r.client_name}</div>
                             </div>

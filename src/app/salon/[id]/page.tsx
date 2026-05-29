@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { toISO, formatPrice, CATEGORIES } from '@/lib/utils'
+import { toISO, formatPrice, CATEGORIES, tMin } from '@/lib/utils'
 
 type CartItem = {
   serviceId: string; serviceName: string; servicePrice: number; servicePriceType: string
@@ -63,14 +63,22 @@ export default function SalonPage() {
 
   function addToCart() {
     if (!selectedSvc || !selectedStaff || !selectedDate || !selectedTime) return
-    setCart(prev => [...prev, {
+    // Check overlap with existing cart items for same staff+date
+    const newStart = tMin(selectedTime)
+    const newEnd   = newStart + selectedSvc.duration
+    const conflict = cart.some(item =>
+      item.staffId === selectedStaff.id && item.date === selectedDate &&
+      newStart < tMin(item.time) + item.serviceDuration && newEnd > tMin(item.time)
+    )
+    if (conflict) { alert('Ce créneau chevauche une prestation déjà dans votre panier pour cet employé.'); return }
+    const newItem: CartItem = {
       serviceId: selectedSvc.id, serviceName: selectedSvc.name,
       servicePrice: Number(selectedSvc.price) || 0, servicePriceType: selectedSvc.price_type,
       serviceDuration: selectedSvc.duration,
       staffId: selectedStaff.id, staffName: `${selectedStaff.firstname} ${selectedStaff.lastname}`,
       date: selectedDate, time: selectedTime,
-    }])
-    // Reset for next selection
+    }
+    setCart(prev => [...prev, newItem].sort((a,b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time)))
     setSvc(null); setSelectedStaff(null); setDate(''); setTime(''); setSlots([]); setDates([])
     setStep(1)
   }

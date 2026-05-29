@@ -13,7 +13,7 @@ function AuthForm() {
   const [form, setForm] = useState({
     firstname:'', lastname:'', email:'', password:'', phone:'',
     salonName:'', salonCategory:'coiffure', salonCity:'Casablanca',
-    salonAddress:'', salonDescription:'',
+    salonAddress:'', salonDescription:'', salonIce:'',
   })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -143,6 +143,10 @@ function AuthForm() {
                     <div className="form-group" style={{marginBottom:0}}>
                       <label>Adresse</label>
                       <input className="form-control" value={form.salonAddress} onChange={set('salonAddress')} placeholder="123 Boulevard Mohamed V" />
+                    </div>
+                    <div className="form-group" style={{marginBottom:0}}>
+                      <label>Numéro ICE</label>
+                      <input className="form-control" value={form.salonIce} onChange={set('salonIce')} placeholder="000000000000000" maxLength={15} />
                     </div>
                     <div className="form-group" style={{marginBottom:0}}>
                       <label>Description</label>
