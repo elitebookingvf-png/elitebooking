@@ -54,12 +54,21 @@ export default function SalonPage() {
     setDates(ds); setDate(''); setTime(''); setSlots([])
   }, [selectedStaff, selectedSvc, data])
 
-  // Fetch slots when date selected
+  // Fetch slots when date selected, filter out cart-occupied times
   useEffect(() => {
     if (!selectedDate || !selectedStaff || !selectedSvc) return
     fetch(`/api/availability?salonId=${id}&staffId=${selectedStaff.id}&serviceId=${selectedSvc.id}&date=${selectedDate}`)
-      .then(r => r.json()).then(d => setSlots(d.slots ?? []))
-  }, [selectedDate, selectedStaff, selectedSvc, id])
+      .then(r => r.json()).then(d => {
+        const raw: string[] = d.slots ?? []
+        const blocked = cart.filter(c => c.staffId === selectedStaff!.id && c.date === selectedDate)
+        const filtered = raw.filter(slot => {
+          const slotStart = tMin(slot)
+          const slotEnd = slotStart + selectedSvc!.duration
+          return !blocked.some(c => slotStart < tMin(c.time) + c.serviceDuration && slotEnd > tMin(c.time))
+        })
+        setSlots(filtered)
+      })
+  }, [selectedDate, selectedStaff, selectedSvc, id, cart])
 
   function addToCart() {
     if (!selectedSvc || !selectedStaff || !selectedDate || !selectedTime) return
@@ -92,19 +101,21 @@ export default function SalonPage() {
     if (cart.length === 0) return
     setConfirming(true)
     try {
-      for (const item of cart) {
-        await fetch('/api/rdv', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+      const res = await fetch('/api/rdv', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: cart.map(item => ({
             salon_id: id,
             service_id: item.serviceId,
             staff_id: item.staffId,
             date: item.date,
             start_time: item.time,
-          }),
-        })
-      }
+          }))
+        }),
+      })
+      const result = await res.json()
+      if (!res.ok) { alert(result.error || 'Erreur lors de la réservation'); setConfirming(false); return }
       setSuccess(true)
       setTimeout(() => router.push('/client'), 2000)
     } catch {

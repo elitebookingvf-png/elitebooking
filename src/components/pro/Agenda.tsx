@@ -4,87 +4,123 @@ import { toISO, tMin, dayKeyForISO, formatPrice } from '@/lib/utils'
 
 type View = 'day' | 'staff' | 'week' | 'month'
 
-function RdvDetailModal({ rdv, onClose, onStatusChange }: {
-  rdv: any; onClose: () => void; onStatusChange: (id: string, status: string) => void
+function RdvDetailModal({ rdv, onClose, onStatusChange, pin }: {
+  rdv: any; onClose: () => void; onStatusChange: (id: string, status: string) => void; pin: string
 }) {
-  const [saving, setSaving] = useState(false)
-  async function setStatus(status: string) {
+  const [saving, setSaving]             = useState(false)
+  const [pinPrompt, setPinPrompt]       = useState<string|null>(null)
+  const [pinEntry, setPinEntry]         = useState('')
+  const [pinError, setPinError]         = useState(false)
+  const [pendingStatus, setPendingStatus] = useState<string|null>(null)
+  const [waModal, setWaModal]           = useState(false)
+  const [waMsg, setWaMsg]               = useState(`Bonjour ${rdv.client_name}, votre RDV du ${rdv.date} a ${rdv.start_time} pour ${rdv.service_name}.`)
+  const waPhone = (rdv.client_phone || '').replace(/\D/g,'')
+  const statusColor: Record<string,string> = { confirmed:'#27AE60', completed:'#3B82F6', cancelled:'#EB5757', 'no-show':'#F59E0B' }
+  const statusLabel: Record<string,string> = { confirmed:'Confirme', completed:'Termine', cancelled:'Annule', 'no-show':'Pas venu' }
+  async function doSetStatus(status: string) {
     setSaving(true)
     await fetch(`/api/rdv/${rdv.id}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ status }) })
-    onStatusChange(rdv.id, status)
-    setSaving(false); onClose()
+    onStatusChange(rdv.id, status); setSaving(false); onClose()
   }
-  const waPhone = (rdv.client_phone || '').replace(/\D/g,'')
-  const waMsg = encodeURIComponent(`Bonjour ${rdv.client_name}, votre RDV du ${rdv.date} à ${rdv.start_time} pour ${rdv.service_name}.`)
-  const statusColor: Record<string,string> = { confirmed:'#27AE60', completed:'#3B82F6', cancelled:'#EB5757', 'no-show':'#F59E0B' }
-  const statusLabel: Record<string,string> = { confirmed:'Confirmé', completed:'Terminé', cancelled:'Annulé', 'no-show':'Pas venu' }
+  function requirePin(label: string, status: string) {
+    setPendingStatus(status); setPinPrompt(label); setPinEntry(''); setPinError(false)
+  }
+  function confirmPin() {
+    if (pinEntry === pin) { setPinPrompt(null); doSetStatus(pendingStatus!) }
+    else { setPinError(true); setPinEntry('') }
+  }
   return (
     <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.55)',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
-      <div style={{background:'#fff',borderRadius:20,padding:32,width:'100%',maxWidth:440,boxShadow:'0 20px 60px rgba(0,0,0,0.2)'}}>
-        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20}}>
-          <h2 className="serif" style={{fontSize:'1.3rem'}}>Détail du RDV</h2>
-          <button onClick={onClose} style={{background:'none',border:'none',fontSize:'1.4rem',cursor:'pointer',color:'#aaa'}}>✕</button>
-        </div>
-        {/* Status badge */}
-        <div style={{display:'inline-block',background:statusColor[rdv.status]||'#ccc',color:'#fff',borderRadius:20,padding:'4px 12px',fontSize:'0.75rem',fontWeight:700,marginBottom:16}}>
-          {statusLabel[rdv.status]||rdv.status}
-        </div>
-        {/* Info rows */}
-        <div style={{display:'flex',flexDirection:'column',gap:10,marginBottom:20}}>
-          <div style={{display:'flex',gap:8}}>
-            <span style={{fontSize:'1.1rem'}}>🗓</span>
-            <div><div style={{fontWeight:600}}>{rdv.date} à {rdv.start_time}</div><div style={{fontSize:'0.78rem',color:'#aaa'}}>{rdv.duration} min</div></div>
+      {waModal && (
+        <div style={{background:'#fff',borderRadius:20,padding:28,width:'100%',maxWidth:400,boxShadow:'0 20px 60px rgba(0,0,0,0.25)'}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+            <h3 style={{fontWeight:700,fontSize:'1rem'}}>Message WhatsApp</h3>
+            <button onClick={() => setWaModal(false)} style={{background:'none',border:'none',cursor:'pointer',color:'#aaa',fontSize:'1.2rem'}}>x</button>
           </div>
-          <div style={{display:'flex',gap:8}}>
-            <span style={{fontSize:'1.1rem'}}>✂️</span>
-            <div><div style={{fontWeight:600}}>{rdv.service_name}</div><div style={{fontSize:'0.78rem',color:'#C17B4E',fontWeight:700}}>{formatPrice(rdv.price, rdv.price_type)}</div></div>
+          <textarea value={waMsg} onChange={e => setWaMsg(e.target.value)}
+            style={{width:'100%',minHeight:100,borderRadius:10,border:'1px solid #eee',padding:10,fontSize:'0.85rem',resize:'vertical',fontFamily:'inherit',boxSizing:'border-box'}} />
+          <a href={`https://wa.me/${waPhone}?text=${encodeURIComponent(waMsg)}`} target="_blank" rel="noopener noreferrer"
+            onClick={() => setWaModal(false)}
+            style={{display:'block',textAlign:'center',marginTop:12,background:'#25D366',color:'#fff',borderRadius:12,padding:'10px',fontWeight:700,fontSize:'0.88rem',textDecoration:'none'}}>
+            Envoyer via WhatsApp
+          </a>
+        </div>
+      )}
+      {pinPrompt && !waModal && (
+        <div style={{background:'#fff',borderRadius:20,padding:28,width:'100%',maxWidth:340,boxShadow:'0 20px 60px rgba(0,0,0,0.25)',textAlign:'center'}}>
+          <div style={{fontSize:'1.8rem',marginBottom:8}}>🔐</div>
+          <div style={{fontWeight:700,marginBottom:4}}>{pinPrompt}</div>
+          <div style={{fontSize:'0.8rem',color:'#aaa',marginBottom:16}}>Entrez le code PIN pour confirmer</div>
+          <input type="password" maxLength={4} value={pinEntry} onChange={e => setPinEntry(e.target.value)}
+            onKeyDown={e => e.key==='Enter' && confirmPin()} autoFocus
+            style={{width:'100%',textAlign:'center',letterSpacing:'0.3em',fontSize:'1.5rem',padding:'10px',borderRadius:10,
+              border:`2px solid ${pinError?'#eb5757':'#eee'}`,outline:'none',marginBottom:8,boxSizing:'border-box'}} />
+          {pinError && <div style={{color:'#eb5757',fontSize:'0.8rem',marginBottom:8}}>Code incorrect</div>}
+          <div style={{display:'flex',gap:8,marginTop:8}}>
+            <button onClick={() => setPinPrompt(null)} style={{flex:1,padding:'10px',borderRadius:10,border:'1px solid #eee',background:'#f7f7f7',cursor:'pointer',fontWeight:600}}>Annuler</button>
+            <button onClick={confirmPin} style={{flex:1,padding:'10px',borderRadius:10,border:'none',background:'#111',color:'#fff',cursor:'pointer',fontWeight:700}}>Confirmer</button>
           </div>
-          <div style={{display:'flex',gap:8}}>
-            <span style={{fontSize:'1.1rem'}}>👤</span>
-            <div>
-              <div style={{fontWeight:600}}>{rdv.client_name || 'Client'}</div>
-              {rdv.client_phone && <div style={{fontSize:'0.82rem',color:'#666',marginTop:2}}>📞 {rdv.client_phone}</div>}
-              {rdv.staff_name && <div style={{fontSize:'0.78rem',color:'#aaa',marginTop:2}}>Employé : {rdv.staff_name}</div>}
+        </div>
+      )}
+      {!pinPrompt && !waModal && (
+        <div style={{background:'#fff',borderRadius:20,padding:32,width:'100%',maxWidth:440,boxShadow:'0 20px 60px rgba(0,0,0,0.2)'}}>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20}}>
+            <h2 className="serif" style={{fontSize:'1.3rem'}}>Detail du RDV</h2>
+            <button onClick={onClose} style={{background:'none',border:'none',fontSize:'1.4rem',cursor:'pointer',color:'#aaa'}}>x</button>
+          </div>
+          <div style={{display:'inline-block',background:statusColor[rdv.status]||'#ccc',color:'#fff',borderRadius:20,padding:'4px 12px',fontSize:'0.75rem',fontWeight:700,marginBottom:16}}>
+            {statusLabel[rdv.status]||rdv.status}
+          </div>
+          <div style={{display:'flex',flexDirection:'column',gap:10,marginBottom:20}}>
+            <div style={{display:'flex',gap:8}}>
+              <span style={{fontSize:'1.1rem'}}>�</span>
+              <div><div style={{fontWeight:600}}>{rdv.date} a {rdv.start_time}</div><div style={{fontSize:'0.78rem',color:'#aaa'}}>{rdv.duration} min</div></div>
             </div>
+            <div style={{display:'flex',gap:8}}>
+              <span style={{fontSize:'1.1rem'}}>✂</span>
+              <div><div style={{fontWeight:600}}>{rdv.service_name}</div><div style={{fontSize:'0.78rem',color:'#C17B4E',fontWeight:700}}>{formatPrice(rdv.price, rdv.price_type)}</div></div>
+            </div>
+            <div style={{display:'flex',gap:8}}>
+              <span style={{fontSize:'1.1rem'}}>👤</span>
+              <div>
+                <div style={{fontWeight:600}}>{rdv.client_name || 'Client'}</div>
+                {rdv.client_phone && <div style={{fontSize:'0.82rem',color:'#666',marginTop:2}}>📞 {rdv.client_phone}</div>}
+                {rdv.staff_name && <div style={{fontSize:'0.78rem',color:'#aaa',marginTop:2}}>Employe : {rdv.staff_name}</div>}
+              </div>
+            </div>
+            {rdv.notes && <div style={{background:'#f7f7f7',borderRadius:10,padding:'10px 14px',fontSize:'0.82rem',color:'#555'}}>📝 {rdv.notes}</div>}
           </div>
-          {rdv.notes && (
-            <div style={{background:'#f7f7f7',borderRadius:10,padding:'10px 14px',fontSize:'0.82rem',color:'#555'}}>
-              📝 {rdv.notes}
+          {waPhone && (
+            <button onClick={() => setWaModal(true)}
+              style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,background:'#25D366',color:'#fff',
+                borderRadius:12,padding:'10px 16px',marginBottom:16,fontSize:'0.88rem',fontWeight:600,border:'none',cursor:'pointer',width:'100%'}}>
+              💬 Envoyer un message WhatsApp
+            </button>
+          )}
+          {rdv.status === 'confirmed' && (
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+              <button disabled={saving} onClick={() => doSetStatus('completed')}
+                style={{padding:'10px',borderRadius:12,border:'2px solid #3B82F6',background:'#EFF6FF',color:'#3B82F6',fontWeight:700,cursor:'pointer',fontSize:'0.85rem'}}>
+                ✅ Venu
+              </button>
+              <button disabled={saving} onClick={() => requirePin('Marquer pas venu', 'no-show')}
+                style={{padding:'10px',borderRadius:12,border:'2px solid #F59E0B',background:'#FFFBEB',color:'#F59E0B',fontWeight:700,cursor:'pointer',fontSize:'0.85rem'}}>
+                ❌ Pas venu
+              </button>
+              <button disabled={saving} onClick={() => requirePin('Annuler ce rendez-vous', 'cancelled')}
+                style={{padding:'10px',borderRadius:12,border:'2px solid #EB5757',background:'#FEF2F2',color:'#EB5757',fontWeight:700,cursor:'pointer',fontSize:'0.85rem',gridColumn:'span 2'}}>
+                🚫 Annuler le RDV
+              </button>
             </div>
           )}
+          {rdv.status !== 'confirmed' && (
+            <button disabled={saving} onClick={() => doSetStatus('confirmed')}
+              style={{width:'100%',padding:'10px',borderRadius:12,border:'2px solid #27AE60',background:'#F0FDF4',color:'#27AE60',fontWeight:700,cursor:'pointer',fontSize:'0.85rem'}}>
+              Remettre en confirme
+            </button>
+          )}
         </div>
-        {/* WhatsApp shortcut */}
-        {waPhone && (
-          <a href={`https://wa.me/${waPhone}?text=${waMsg}`} target="_blank" rel="noopener noreferrer"
-            style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,background:'#25D366',color:'#fff',
-              borderRadius:12,padding:'10px 16px',marginBottom:16,textDecoration:'none',fontSize:'0.88rem',fontWeight:600}}>
-            💬 WhatsApp
-          </a>
-        )}
-        {/* Action buttons */}
-        {rdv.status === 'confirmed' && (
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
-            <button disabled={saving} onClick={() => setStatus('completed')}
-              style={{padding:'10px',borderRadius:12,border:'2px solid #3B82F6',background:'#EFF6FF',color:'#3B82F6',fontWeight:700,cursor:'pointer',fontSize:'0.85rem'}}>
-              ✅ Venu
-            </button>
-            <button disabled={saving} onClick={() => setStatus('no-show')}
-              style={{padding:'10px',borderRadius:12,border:'2px solid #F59E0B',background:'#FFFBEB',color:'#F59E0B',fontWeight:700,cursor:'pointer',fontSize:'0.85rem'}}>
-              ❌ Pas venu
-            </button>
-            <button disabled={saving} onClick={() => setStatus('cancelled')}
-              style={{padding:'10px',borderRadius:12,border:'2px solid #EB5757',background:'#FEF2F2',color:'#EB5757',fontWeight:700,cursor:'pointer',fontSize:'0.85rem',gridColumn:'span 2'}}>
-              🚫 Annuler le RDV
-            </button>
-          </div>
-        )}
-        {rdv.status !== 'confirmed' && (
-          <button disabled={saving} onClick={() => setStatus('confirmed')}
-            style={{width:'100%',padding:'10px',borderRadius:12,border:'2px solid #27AE60',background:'#F0FDF4',color:'#27AE60',fontWeight:700,cursor:'pointer',fontSize:'0.85rem'}}>
-            ↩ Remettre en confirmé
-          </button>
-        )}
-      </div>
+      )}
     </div>
   )
 }
@@ -226,6 +262,7 @@ export function ProAgenda({ salon }: { salon: any }) {
   const [addRdvTime, setAddRdvTime] = useState<string | undefined>()
   const [addRdvStaffId, setAddRdvStaffId] = useState<string | undefined>()
   const [selectedRdv, setSelectedRdv] = useState<any>(null)
+  const [pin, setPin] = useState('0000')
 
   const loadRdvs = () =>
     fetch('/api/rdv/pro').then(r => r.json()).then(d => setRdvs(Array.isArray(d) ? d : []))
@@ -237,13 +274,16 @@ export function ProAgenda({ salon }: { salon: any }) {
       fetch('/api/schedule').then(r => r.json()),
       fetch('/api/blocks').then(r => r.json()),
       fetch('/api/services').then(r => r.json()),
-    ]).then(([r, s, sc, b, sv]) => {
+      fetch('/api/users/me').then(r => r.json()),
+    ]).then(([r, s, sc, b, sv, me]) => {
+      if (me?.salon?.pin) setPin(me.salon.pin)
       setRdvs(Array.isArray(r) ? r : [])
       setStaff(Array.isArray(s) ? s : [])
       setSchedule(sc && !sc.error ? sc : null)
       setBlocks(Array.isArray(b) ? b : [])
       setServices(Array.isArray(sv.services) ? sv.services : [])
     })
+    // already handled above in the spread
   }, [])
 
   const iso    = toISO(date)
@@ -297,6 +337,7 @@ export function ProAgenda({ salon }: { salon: any }) {
       {selectedRdv && (
         <RdvDetailModal
           rdv={selectedRdv}
+          pin={pin}
           onClose={() => setSelectedRdv(null)}
           onStatusChange={(id, status) => {
             setRdvs(prev => prev.map(r => r.id === id ? { ...r, status } : r))

@@ -169,6 +169,195 @@ function PinModal({ action, pin, onSuccess, onClose }: {
   )
 }
 
+// ─── Client Fiche Modal ───────────────────────────────────────
+function ClientFicheModal({ clientKey, clientRdvs, isBlocked, onToggleBlock, onClose }: {
+  clientKey: string; clientRdvs: any[]; isBlocked: boolean
+  onToggleBlock: () => void; onClose: () => void
+}) {
+  const sample  = clientRdvs[0]
+  const name    = sample?.client_name || 'Client'
+  const phone   = clientRdvs.find((r: any) => r.client_phone)?.client_phone || ''
+  const waPhone = phone.replace(/\D/g,'')
+  const sorted  = [...clientRdvs].sort((a: any,b: any) => b.date.localeCompare(a.date) || b.start_time.localeCompare(a.start_time))
+  const total   = clientRdvs.filter((r: any) => r.status !== 'cancelled').reduce((s: number, r: any) => s + (Number(r.price)||0), 0)
+  const noShows = clientRdvs.filter((r: any) => r.status === 'no-show').length
+  const visits  = clientRdvs.filter((r: any) => r.status === 'completed').length
+  const statusBg: Record<string,string>  = { completed:'#EFF6FF', cancelled:'#FEF2F2', 'no-show':'#FFFBEB', confirmed:'#F0FDF4' }
+  const statusFg: Record<string,string>  = { completed:'#3B82F6', cancelled:'#EB5757', 'no-show':'#F59E0B', confirmed:'#27AE60' }
+  const statusLbl: Record<string,string> = { completed:'Terminé', cancelled:'Annulé', 'no-show':'Pas venu', confirmed:'Confirmé' }
+  return (
+    <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.55)',zIndex:300,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}
+      onClick={onClose}>
+      <div style={{background:'#fff',borderRadius:24,width:'100%',maxWidth:480,maxHeight:'90vh',overflow:'auto',boxShadow:'0 24px 64px rgba(0,0,0,0.22)'}}
+        onClick={e => e.stopPropagation()}>
+        {/* Header */}
+        <div style={{padding:'24px 24px 0',display:'flex',alignItems:'flex-start',justifyContent:'space-between'}}>
+          <div style={{display:'flex',gap:14,alignItems:'center'}}>
+            <div style={{width:56,height:56,borderRadius:'50%',background: isBlocked?'#EB5757':'#C17B4E',color:'#fff',
+              display:'flex',alignItems:'center',justifyContent:'center',fontWeight:800,fontSize:'1.3rem',flexShrink:0}}>
+              {name[0]?.toUpperCase()}
+            </div>
+            <div>
+              <div style={{fontWeight:800,fontSize:'1.15rem',display:'flex',alignItems:'center',gap:8}}>
+                {name}
+                {isBlocked && <span style={{fontSize:'0.68rem',background:'#EB5757',color:'#fff',padding:'2px 8px',borderRadius:8,fontWeight:600}}>Bloqué</span>}
+              </div>
+              {phone
+                ? <div style={{fontSize:'0.85rem',color:'#444',marginTop:3}}>📞 {phone}</div>
+                : <div style={{fontSize:'0.8rem',color:'#aaa',marginTop:3}}>Aucun numéro enregistré</div>
+              }
+            </div>
+          </div>
+          <button onClick={onClose} style={{background:'none',border:'none',fontSize:'1.4rem',cursor:'pointer',color:'#aaa',padding:4}}>✕</button>
+        </div>
+
+        {/* Stats */}
+        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12,padding:'20px 24px'}}>
+          {[
+            { label:'Visites', value: visits, color:'#3B82F6' },
+            { label:'No-shows', value: noShows, color:'#F59E0B' },
+            { label:'Total dépensé', value: total > 0 ? `${total} MAD` : '—', color:'#C17B4E' },
+          ].map(s => (
+            <div key={s.label} style={{background:'#f7f7f7',borderRadius:14,padding:'12px 10px',textAlign:'center'}}>
+              <div style={{fontWeight:800,fontSize:'1.15rem',color:s.color}}>{s.value}</div>
+              <div style={{fontSize:'0.72rem',color:'#aaa',marginTop:2}}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Actions */}
+        <div style={{padding:'0 24px 16px',display:'flex',gap:10}}>
+          {waPhone && (
+            <a href={`https://wa.me/${waPhone}`} target="_blank" rel="noopener noreferrer"
+              style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:6,background:'#25D366',color:'#fff',
+                borderRadius:12,padding:'10px',fontWeight:700,fontSize:'0.85rem',textDecoration:'none'}}>
+              💬 WhatsApp
+            </a>
+          )}
+          <button onClick={onToggleBlock}
+            style={{flex:1,padding:'10px',borderRadius:12,border:'none',cursor:'pointer',fontWeight:700,fontSize:'0.85rem',
+              background: isBlocked?'#F0FDF4':'#FEF2F2', color: isBlocked?'#27AE60':'#EB5757'}}>
+            {isBlocked ? '✓ Débloquer' : '🚫 Bloquer'}
+          </button>
+        </div>
+
+        {/* RDV History */}
+        <div style={{borderTop:'1px solid #f3f3f3',padding:'12px 24px 24px'}}>
+          <div style={{fontWeight:700,fontSize:'0.82rem',color:'#aaa',textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:10}}>
+            Historique ({clientRdvs.length} RDV)
+          </div>
+          <div style={{display:'flex',flexDirection:'column',gap:8}}>
+            {sorted.map((r: any) => (
+              <div key={r.id} style={{display:'flex',alignItems:'center',justifyContent:'space-between',
+                background:'#f9f9f9',borderRadius:12,padding:'10px 14px',fontSize:'0.83rem'}}>
+                <div>
+                  <div style={{fontWeight:700}}>{r.service_name}</div>
+                  <div style={{color:'#aaa',marginTop:2}}>📅 {r.date} à {r.start_time} · {r.staff_name}</div>
+                </div>
+                <div style={{textAlign:'right',flexShrink:0,marginLeft:12}}>
+                  <div style={{fontWeight:700,color:'#C17B4E'}}>{formatPrice(r.price, r.price_type)}</div>
+                  <span style={{display:'inline-block',marginTop:3,fontSize:'0.7rem',padding:'2px 7px',borderRadius:8,
+                    background: statusBg[r.status]||'#f3f3f3', color: statusFg[r.status]||'#888',fontWeight:600}}>
+                    {statusLbl[r.status]||r.status}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Client History Section ───────────────────────────────────
+function ClientHistorySection({ rdvs }: { rdvs: any[] }) {
+  const [blockedClients, setBlockedClients] = useState<string[]>([])
+  const [salonId, setSalonId]               = useState<string | null>(null)
+  const [selectedClient, setSelectedClient] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetch('/api/users/me').then(r => r.json()).then(d => {
+      if (d?.salon?.id) setSalonId(d.salon.id)
+      if (Array.isArray(d?.salon?.blocked_clients)) setBlockedClients(d.salon.blocked_clients)
+    })
+  }, [])
+
+  async function toggleBlock(key: string) {
+    const isBlocked = blockedClients.includes(key)
+    const next = isBlocked ? blockedClients.filter(c => c !== key) : [...blockedClients, key]
+    setBlockedClients(next)
+    if (salonId) {
+      await fetch('/api/salons/' + salonId, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ blocked_clients: next }),
+      })
+    }
+  }
+
+  if (rdvs.length === 0) return null
+
+  const clientMap: Record<string, any[]> = {}
+  rdvs.forEach(r => {
+    const key = r.client_id || r.client_name || 'Client'
+    if (!clientMap[key]) clientMap[key] = []
+    clientMap[key].push(r)
+  })
+  const clients = Object.entries(clientMap).sort((a, b) => {
+    return (a[1][0]?.client_name || '').localeCompare(b[1][0]?.client_name || '')
+  })
+
+  return (
+    <div style={{marginTop:40}}>
+      {selectedClient && clientMap[selectedClient] && (
+        <ClientFicheModal
+          clientKey={selectedClient}
+          clientRdvs={clientMap[selectedClient]}
+          isBlocked={blockedClients.includes(selectedClient)}
+          onToggleBlock={() => toggleBlock(selectedClient)}
+          onClose={() => setSelectedClient(null)}
+        />
+      )}
+      <h2 className="serif" style={{fontSize:'1.5rem',marginBottom:16}}>Historique clients</h2>
+      <div style={{display:'flex',flexDirection:'column',gap:8}}>
+        {clients.map(([key, clientRdvs]) => {
+          const name     = clientRdvs[0]?.client_name || 'Client'
+          const phone    = clientRdvs.find((r: any) => r.client_phone)?.client_phone || ''
+          const sorted   = [...clientRdvs].sort((a: any,b: any) => b.date.localeCompare(a.date))
+          const total    = clientRdvs.filter((r: any) => r.status !== 'cancelled').reduce((s: number,r: any) => s + (Number(r.price)||0), 0)
+          const noShows  = clientRdvs.filter((r: any) => r.status === 'no-show').length
+          const isBlocked = blockedClients.includes(key)
+          return (
+            <div key={key} onClick={() => setSelectedClient(key)}
+              style={{background: isBlocked?'#fff8f8':'#fff', border:`1px solid ${isBlocked?'#fcd4d4':'#eee'}`,
+                borderRadius:16,padding:'14px 20px',cursor:'pointer',display:'flex',alignItems:'center',gap:14,
+                transition:'box-shadow 0.15s',boxShadow:'0 1px 3px rgba(0,0,0,0.04)'}}>
+              <div style={{width:44,height:44,borderRadius:'50%',background: isBlocked?'#EB5757':'#C17B4E',color:'#fff',
+                display:'flex',alignItems:'center',justifyContent:'center',fontWeight:800,fontSize:'1rem',flexShrink:0}}>
+                {name[0]?.toUpperCase()}
+              </div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontWeight:700,fontSize:'0.92rem',display:'flex',alignItems:'center',gap:6}}>
+                  {name}
+                  {isBlocked && <span style={{fontSize:'0.65rem',background:'#EB5757',color:'#fff',padding:'1px 6px',borderRadius:6,fontWeight:600}}>Bloqué</span>}
+                </div>
+                {phone && <div style={{fontSize:'0.78rem',color:'#555',marginTop:2}}>📞 {phone}</div>}
+                <div style={{fontSize:'0.74rem',color:'#aaa',marginTop:2}}>
+                  {clientRdvs.length} RDV{noShows > 0 ? ` · ${noShows} no-show` : ''} · dernier : {sorted[0]?.date}
+                </div>
+              </div>
+              <div style={{textAlign:'right',flexShrink:0}}>
+                <div style={{fontWeight:700,color:'#C17B4E',fontSize:'0.88rem'}}>{total > 0 ? `${total} MAD` : '—'}</div>
+                <div style={{fontSize:'0.72rem',color:'#bbb',marginTop:4}}>Voir fiche →</div>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 // ─── RDV List ────────────────────────────────────────────────
 export function ProRdvList() {
   const [rdvs, setRdvs]         = useState<any[]>([])
@@ -279,69 +468,7 @@ export function ProRdvList() {
       </div>
 
       {/* ── Client History ── */}
-      {rdvs.length > 0 && (() => {
-        const clientMap: Record<string, any[]> = {}
-        rdvs.forEach(r => {
-          const key = r.client_name || 'Client'
-          if (!clientMap[key]) clientMap[key] = []
-          clientMap[key].push(r)
-        })
-        const clients = Object.entries(clientMap).sort((a,b) => a[0].localeCompare(b[0]))
-        return (
-          <div style={{marginTop:40}}>
-            <h2 className="serif" style={{fontSize:'1.5rem',marginBottom:16}}>Historique clients</h2>
-            <div style={{display:'flex',flexDirection:'column',gap:12}}>
-              {clients.map(([name, clientRdvs]) => {
-                const phone = clientRdvs.find(r => r.client_phone)?.client_phone || ''
-                const waPhone = phone.replace(/\D/g,'')
-                const lastRdv = [...clientRdvs].sort((a,b) => b.date.localeCompare(a.date) || b.start_time.localeCompare(a.start_time))[0]
-                const total = clientRdvs.filter(r => r.status !== 'cancelled').reduce((s,r) => s + (Number(r.price)||0), 0)
-                return (
-                  <details key={name} style={{background:'#fff',border:'1px solid #eee',borderRadius:16,overflow:'hidden'}}>
-                    <summary style={{padding:'14px 20px',cursor:'pointer',display:'flex',alignItems:'center',gap:12,listStyle:'none'}}>
-                      <div style={{width:40,height:40,borderRadius:'50%',background:'#C17B4E',color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700,fontSize:'0.95rem',flexShrink:0}}>
-                        {name[0]?.toUpperCase()}
-                      </div>
-                      <div style={{flex:1}}>
-                        <div style={{fontWeight:700,fontSize:'0.92rem'}}>{name}</div>
-                        <div style={{fontSize:'0.78rem',color:'#aaa',marginTop:2}}>
-                          {phone && `📞 ${phone} · `}{clientRdvs.length} RDV · dernier : {lastRdv.date}
-                        </div>
-                      </div>
-                      <div style={{textAlign:'right'}}>
-                        <div style={{fontWeight:700,color:'#C17B4E',fontSize:'0.88rem'}}>{total > 0 ? `${total} MAD` : '—'}</div>
-                        {waPhone && (
-                          <a href={`https://wa.me/${waPhone}`} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
-                            style={{fontSize:'0.72rem',background:'#25D366',color:'#fff',padding:'2px 8px',borderRadius:20,textDecoration:'none',display:'inline-block',marginTop:4}}>
-                            💬 WA
-                          </a>
-                        )}
-                      </div>
-                    </summary>
-                    <div style={{borderTop:'1px solid #f3f3f3',padding:'0 20px 12px'}}>
-                      {[...clientRdvs].sort((a,b) => b.date.localeCompare(a.date)).map(r => (
-                        <div key={r.id} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 0',borderBottom:'1px solid #f7f7f7',fontSize:'0.82rem'}}>
-                          <div>
-                            <div style={{fontWeight:600}}>{r.service_name}</div>
-                            <div style={{color:'#aaa',marginTop:2}}>{r.date} à {r.start_time} · {r.staff_name}</div>
-                          </div>
-                          <div style={{textAlign:'right'}}>
-                            <div style={{fontWeight:600,color:'#C17B4E'}}>{formatPrice(r.price, r.price_type)}</div>
-                            <span style={{fontSize:'0.72rem',padding:'2px 6px',borderRadius:8,background: r.status==='completed'?'#EFF6FF':r.status==='cancelled'?'#FEF2F2':r.status==='no-show'?'#FFFBEB':'#F0FDF4',
-                              color: r.status==='completed'?'#3B82F6':r.status==='cancelled'?'#EB5757':r.status==='no-show'?'#F59E0B':'#27AE60'}}>
-                              {r.status==='completed'?'Terminé':r.status==='cancelled'?'Annulé':r.status==='no-show'?'Pas venu':'Confirmé'}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </details>
-                )
-              })}
-            </div>
-          </div>
-        )
-      })()}
+      <ClientHistorySection rdvs={rdvs} />
     </div>
   )
 }
@@ -654,56 +781,144 @@ export function ProStaff() {
 
 // ─── Clients ─────────────────────────────────────────────────
 export function ProClients() {
-  const [rdvs, setRdvs] = useState<any[]>([])
-  const [q, setQ]       = useState('')
+  const [rdvs, setRdvs]                 = useState<any[]>([])
+  const [q, setQ]                       = useState('')
+  const [blockedClients, setBlockedClients] = useState<string[]>([])
+  const [salonId, setSalonId]           = useState<string | null>(null)
+  const [selectedClient, setSelectedClient] = useState<string | null>(null)
 
   useEffect(() => {
     fetch('/api/rdv/pro').then(r => r.json()).then(d => setRdvs(Array.isArray(d) ? d : []))
+    fetch('/api/users/me').then(r => r.json()).then(d => {
+      if (d?.salon?.id) setSalonId(d.salon.id)
+      if (Array.isArray(d?.salon?.blocked_clients)) setBlockedClients(d.salon.blocked_clients)
+    })
   }, [])
 
-  const clientMap: Record<string, any> = {}
-  rdvs.filter(r => r.status !== 'cancelled').forEach(r => {
-    const key = r.client_id || `anon_${r.client_name}`
-    if (!clientMap[key]) clientMap[key] = { name: r.client_name||'Client', rdvs:[], spent:0, last:'' }
-    clientMap[key].rdvs.push(r)
-    clientMap[key].spent += Number(r.price) || 0
-    if (r.date > clientMap[key].last) clientMap[key].last = r.date
+  async function toggleBlock(key: string) {
+    const isBlocked = blockedClients.includes(key)
+    const next = isBlocked ? blockedClients.filter(c => c !== key) : [...blockedClients, key]
+    setBlockedClients(next)
+    if (salonId) {
+      await fetch('/api/salons/' + salonId, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ blocked_clients: next }),
+      })
+    }
+  }
+
+  // Build clientMap from ALL rdvs (not just non-cancelled) so history is complete
+  const clientMap: Record<string, any[]> = {}
+  rdvs.forEach(r => {
+    const key = r.client_id || r.client_name || 'Client'
+    if (!clientMap[key]) clientMap[key] = []
+    clientMap[key].push(r)
   })
 
-  const clients = Object.values(clientMap)
+  const allClients = Object.entries(clientMap)
+    .map(([key, cRdvs]) => ({
+      key,
+      name:  cRdvs[0]?.client_name || 'Client',
+      phone: cRdvs.find((r: any) => r.client_phone)?.client_phone || '',
+      rdvs:  cRdvs,
+      spent: cRdvs.filter((r: any) => r.status !== 'cancelled').reduce((s: number, r: any) => s + (Number(r.price)||0), 0),
+      last:  [...cRdvs].sort((a: any, b: any) => b.date.localeCompare(a.date))[0]?.date || '',
+      noShows: cRdvs.filter((r: any) => r.status === 'no-show').length,
+    }))
     .filter(c => !q || c.name.toLowerCase().includes(q.toLowerCase()))
-    .sort((a,b) => b.last.localeCompare(a.last))
+    .sort((a, b) => b.last.localeCompare(a.last))
+
+  const totalRevenue = allClients.reduce((a, c) => a + c.spent, 0)
 
   return (
     <div>
+      {selectedClient && clientMap[selectedClient] && (
+        <ClientFicheModal
+          clientKey={selectedClient}
+          clientRdvs={clientMap[selectedClient]}
+          isBlocked={blockedClients.includes(selectedClient)}
+          onToggleBlock={() => toggleBlock(selectedClient)}
+          onClose={() => setSelectedClient(null)}
+        />
+      )}
+
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:24}}>
         <h1 className="serif" style={{fontSize:'2rem'}}>Clients</h1>
-        <input value={q} onChange={e=>setQ(e.target.value)} className="form-control" style={{maxWidth:220}} placeholder="🔍 Rechercher…" />
+        <input value={q} onChange={e => setQ(e.target.value)} className="form-control"
+          style={{maxWidth:220}} placeholder="🔍 Rechercher…" />
       </div>
+
+      {/* KPIs */}
       <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:16,marginBottom:24}}>
-        <div className="card"><div style={{fontSize:'2rem',fontWeight:700}}>{clients.length}</div><div style={{fontSize:'0.85rem',color:'#aaa',marginTop:4}}>Clients uniques</div></div>
-        <div className="card"><div style={{fontSize:'2rem',fontWeight:700}}>{rdvs.filter(r=>r.status!=='cancelled').length}</div><div style={{fontSize:'0.85rem',color:'#aaa',marginTop:4}}>Total RDV</div></div>
-        <div className="card"><div style={{fontSize:'2rem',fontWeight:700}}>{clients.reduce((a,c)=>a+c.spent,0).toLocaleString('fr-FR')}</div><div style={{fontSize:'0.85rem',color:'#aaa',marginTop:4}}>Revenus MAD</div></div>
+        <div className="card">
+          <div style={{fontSize:'2rem',fontWeight:700}}>{allClients.length}</div>
+          <div style={{fontSize:'0.85rem',color:'#aaa',marginTop:4}}>Clients uniques</div>
+        </div>
+        <div className="card">
+          <div style={{fontSize:'2rem',fontWeight:700}}>{rdvs.filter(r => r.status !== 'cancelled').length}</div>
+          <div style={{fontSize:'0.85rem',color:'#aaa',marginTop:4}}>Total RDV</div>
+        </div>
+        <div className="card">
+          <div style={{fontSize:'2rem',fontWeight:700}}>{totalRevenue.toLocaleString('fr-FR')}</div>
+          <div style={{fontSize:'0.85rem',color:'#aaa',marginTop:4}}>Revenus MAD</div>
+        </div>
       </div>
-      <div className="card" style={{padding:0,overflow:'hidden'}}>
-        <table style={{width:'100%'}}>
-          <thead style={{background:'#f7f7f7',borderBottom:'1px solid #eee'}}>
-            <tr>{['Client','RDV','Dépensé','Dernière visite'].map(h=>(
-              <th key={h} style={{padding:'12px 16px',textAlign:'left',fontSize:'0.72rem',fontWeight:700,color:'#aaa',textTransform:'uppercase',letterSpacing:'0.04em'}}>{h}</th>
-            ))}</tr>
-          </thead>
-          <tbody>
-            {clients.map((c,i) => (
-              <tr key={i} style={{borderBottom:'1px solid #f7f7f7'}}>
-                <td style={{padding:'12px 16px',fontWeight:500,fontSize:'0.85rem'}}>{c.name}</td>
-                <td style={{padding:'12px 16px',fontSize:'0.85rem',fontWeight:700}}>{c.rdvs.length}</td>
-                <td style={{padding:'12px 16px',fontSize:'0.85rem',fontWeight:700,color:'#C17B4E'}}>{c.spent.toLocaleString('fr-FR')} MAD</td>
-                <td style={{padding:'12px 16px',fontSize:'0.85rem',color:'#aaa'}}>{c.last}</td>
-              </tr>
-            ))}
-            {clients.length === 0 && <tr><td colSpan={4} style={{textAlign:'center',padding:'40px',color:'#aaa',fontSize:'0.85rem'}}>Aucun client</td></tr>}
-          </tbody>
-        </table>
+
+      {/* Client cards */}
+      <div style={{display:'flex',flexDirection:'column',gap:8}}>
+        {allClients.length === 0 && (
+          <div style={{textAlign:'center',padding:'40px',color:'#aaa',fontSize:'0.85rem',background:'#fff',borderRadius:16,border:'1px solid #eee'}}>
+            Aucun client
+          </div>
+        )}
+        {allClients.map(c => {
+          const isBlocked = blockedClients.includes(c.key)
+          const waPhone   = c.phone.replace(/\D/g,'')
+          return (
+            <div key={c.key} onClick={() => setSelectedClient(c.key)}
+              style={{background: isBlocked ? '#fff8f8' : '#fff',
+                border: `1px solid ${isBlocked ? '#fcd4d4' : '#eee'}`,
+                borderRadius:16, padding:'14px 20px', cursor:'pointer',
+                display:'flex', alignItems:'center', gap:14,
+                boxShadow:'0 1px 3px rgba(0,0,0,0.04)'}}>
+              <div style={{width:44,height:44,borderRadius:'50%',
+                background: isBlocked ? '#EB5757' : '#C17B4E',
+                color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',
+                fontWeight:800,fontSize:'1rem',flexShrink:0}}>
+                {c.name[0]?.toUpperCase()}
+              </div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontWeight:700,fontSize:'0.92rem',display:'flex',alignItems:'center',gap:6}}>
+                  {c.name}
+                  {isBlocked && <span style={{fontSize:'0.65rem',background:'#EB5757',color:'#fff',padding:'1px 6px',borderRadius:6,fontWeight:600}}>Bloqué</span>}
+                </div>
+                {c.phone
+                  ? <div style={{fontSize:'0.78rem',color:'#555',marginTop:2}}>📞 {c.phone}</div>
+                  : <div style={{fontSize:'0.75rem',color:'#ccc',marginTop:2}}>Aucun numéro</div>
+                }
+                <div style={{fontSize:'0.74rem',color:'#aaa',marginTop:2}}>
+                  {c.rdvs.length} RDV{c.noShows > 0 ? ` · ${c.noShows} no-show` : ''} · dernier : {c.last}
+                </div>
+              </div>
+              <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:6,flexShrink:0}}>
+                <div style={{fontWeight:700,color:'#C17B4E',fontSize:'0.88rem'}}>
+                  {c.spent > 0 ? `${c.spent.toLocaleString('fr-FR')} MAD` : '—'}
+                </div>
+                <div style={{display:'flex',gap:6,alignItems:'center'}}>
+                  {waPhone && (
+                    <a href={`https://wa.me/${waPhone}`} target="_blank" rel="noopener noreferrer"
+                      onClick={e => e.stopPropagation()}
+                      style={{fontSize:'0.72rem',background:'#25D366',color:'#fff',
+                        padding:'3px 8px',borderRadius:20,textDecoration:'none',fontWeight:600}}>
+                      💬 WA
+                    </a>
+                  )}
+                  <span style={{fontSize:'0.72rem',color:'#bbb'}}>Voir fiche →</span>
+                </div>
+              </div>
+            </div>
+          )
+        })}
       </div>
     </div>
   )
