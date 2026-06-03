@@ -2,14 +2,13 @@ import Link from 'next/link';
 import { CATEGORIES, CITIES } from '@/lib/utils';
 import FeaturedSalons from '@/components/FeaturedSalons';
 import NavBar from '@/components/NavBar';
+import { createClient } from '@/lib/supabase/server';
 
 async function getFeaturedSalons() {
   try {
-    const base = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    const res = await fetch(`${base}/api/salons?limit=12`, { cache: 'no-store' });
-    if (!res.ok) return [];
-    const data = await res.json();
-    return Array.isArray(data) ? data : [];
+    const supabase = createClient();
+    const { data } = await supabase.from('salons').select('*').eq('active', true).order('rating', { ascending: false }).limit(12);
+    return data ?? [];
   } catch {
     return [];
   }
@@ -17,11 +16,9 @@ async function getFeaturedSalons() {
 
 async function getStats() {
   try {
-    const base = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    const res = await fetch(`${base}/api/salons?limit=200`, { cache: 'no-store' });
-    if (!res.ok) return { salons: 0 };
-    const data = await res.json();
-    return { salons: Array.isArray(data) ? data.length : 0 };
+    const supabase = createClient();
+    const { count } = await supabase.from('salons').select('*', { count: 'exact', head: true }).eq('active', true);
+    return { salons: count ?? 0 };
   } catch {
     return { salons: 0 };
   }
