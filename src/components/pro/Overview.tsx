@@ -64,8 +64,33 @@ export function ProOverview({ salon }: { salon: any }) {
   const confirmed  = rdvs.filter(r => r.status === 'confirmed')
   const revenue    = confirmed.reduce((a, r) => a + (Number(r.price) || 0), 0)
   const todayRdvs  = confirmed.filter(r => r.date === today)
-  const upcoming   = confirmed
+
+  // Group multi-prestation bookings (shared group_id) into a single entry with a total price.
+  const upcomingRaw = confirmed
     .filter(r => r.date >= today)
+    .sort((a, b) => a.date.localeCompare(b.date) || a.start_time.localeCompare(b.start_time))
+  const groupsMap = new Map<string, any[]>()
+  for (const r of upcomingRaw) {
+    const key = r.group_id || `solo-${r.id}`
+    if (!groupsMap.has(key)) groupsMap.set(key, [])
+    groupsMap.get(key)!.push(r)
+  }
+  const upcoming = Array.from(groupsMap.values())
+    .map(items => {
+      const first = items[0]
+      return {
+        id: first.id,
+        client_name: first.client_name,
+        staff_name: first.staff_name,
+        date: first.date,
+        start_time: first.start_time,
+        count: items.length,
+        service_name: items.length > 1
+          ? `${items.length} prestations`
+          : first.service_name,
+        total: items.reduce((a, r) => a + (Number(r.price) || 0), 0),
+      }
+    })
     .sort((a, b) => a.date.localeCompare(b.date) || a.start_time.localeCompare(b.start_time))
     .slice(0, 5)
 
@@ -156,7 +181,7 @@ export function ProOverview({ salon }: { salon: any }) {
                   <div style={{fontSize:'0.88rem',fontWeight:500}}>{r.client_name}</div>
                   <div style={{fontSize:'0.78rem',color:'#aaa',marginTop:2}}>{r.service_name} · {r.staff_name} · {r.date} à {r.start_time}</div>
                 </div>
-                <span style={{fontWeight:700,color:'#C17B4E',fontSize:'0.88rem'}}>{formatPrice(r.price, r.price_type)}</span>
+                <span style={{fontWeight:700,color:'#C17B4E',fontSize:'0.88rem'}}>{formatPrice(r.total, 'fixe')}</span>
               </div>
             ))}
           </div>

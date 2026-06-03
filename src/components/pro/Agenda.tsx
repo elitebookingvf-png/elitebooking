@@ -4,9 +4,14 @@ import { toISO, tMin, dayKeyForISO, formatPrice } from '@/lib/utils'
 
 type View = 'day' | 'staff' | 'week' | 'month'
 
-function RdvDetailModal({ rdv, onClose, onStatusChange, pin }: {
-  rdv: any; onClose: () => void; onStatusChange: (id: string, status: string) => void; pin: string
+function RdvDetailModal({ rdv, allRdvs, onClose, onStatusChange, pin }: {
+  rdv: any; allRdvs: any[]; onClose: () => void; onStatusChange: (id: string, status: string) => void; pin: string
 }) {
+  // Group = all RDVs sharing the same group_id (multi-prestation booking). Falls back to just this RDV.
+  const groupRdvs = (rdv.group_id ? allRdvs.filter(r => r.group_id === rdv.group_id) : [rdv])
+    .sort((a, b) => (a.start_time || '').localeCompare(b.start_time || ''))
+  const isGroup = groupRdvs.length > 1
+  const groupTotal = groupRdvs.reduce((sum, r) => sum + (Number(r.price) || 0), 0)
   const [saving, setSaving]             = useState(false)
   const [pinPrompt, setPinPrompt]       = useState<string|null>(null)
   const [pinEntry, setPinEntry]         = useState('')
@@ -76,10 +81,29 @@ function RdvDetailModal({ rdv, onClose, onStatusChange, pin }: {
               <span style={{fontSize:'1.1rem'}}>�</span>
               <div><div style={{fontWeight:600}}>{rdv.date} a {rdv.start_time}</div><div style={{fontSize:'0.78rem',color:'#aaa'}}>{rdv.duration} min</div></div>
             </div>
-            <div style={{display:'flex',gap:8}}>
-              <span style={{fontSize:'1.1rem'}}>✂</span>
-              <div><div style={{fontWeight:600}}>{rdv.service_name}</div><div style={{fontSize:'0.78rem',color:'#C17B4E',fontWeight:700}}>{formatPrice(rdv.price, rdv.price_type)}</div></div>
-            </div>
+            {!isGroup ? (
+              <div style={{display:'flex',gap:8}}>
+                <span style={{fontSize:'1.1rem'}}>✂</span>
+                <div><div style={{fontWeight:600}}>{rdv.service_name}</div><div style={{fontSize:'0.78rem',color:'#C17B4E',fontWeight:700}}>{formatPrice(rdv.price, rdv.price_type)}</div></div>
+              </div>
+            ) : (
+              <div style={{display:'flex',gap:8}}>
+                <span style={{fontSize:'1.1rem'}}>✂</span>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:'0.72rem',color:'#aaa',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:6}}>{groupRdvs.length} prestations</div>
+                  {groupRdvs.map(g => (
+                    <div key={g.id} style={{display:'flex',justifyContent:'space-between',gap:10,padding:'4px 0',borderBottom:'1px solid #f0f0f0'}}>
+                      <span style={{fontWeight:600,fontSize:'0.85rem'}}>{g.start_time} · {g.service_name}</span>
+                      <span style={{fontSize:'0.82rem',color:'#666'}}>{formatPrice(g.price, g.price_type)}</span>
+                    </div>
+                  ))}
+                  <div style={{display:'flex',justifyContent:'space-between',marginTop:8,paddingTop:8,fontWeight:700}}>
+                    <span>Total</span>
+                    <span style={{color:'#C17B4E'}}>{formatPrice(groupTotal, 'fixe')}</span>
+                  </div>
+                </div>
+              </div>
+            )}
             <div style={{display:'flex',gap:8}}>
               <span style={{fontSize:'1.1rem'}}>👤</span>
               <div>
@@ -338,6 +362,7 @@ export function ProAgenda({ salon }: { salon: any }) {
       {selectedRdv && (
         <RdvDetailModal
           rdv={selectedRdv}
+          allRdvs={rdvs}
           pin={pin}
           onClose={() => setSelectedRdv(null)}
           onStatusChange={(id, status) => {
