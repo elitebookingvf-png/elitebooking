@@ -283,7 +283,8 @@ export function ProAgenda({ salon }: { salon: any }) {
       setBlocks(Array.isArray(b) ? b : [])
       setServices(Array.isArray(sv.services) ? sv.services : [])
     })
-    // already handled above in the spread
+    const interval = setInterval(loadRdvs, 30000)
+    return () => clearInterval(interval)
   }, [])
 
   const iso    = toISO(date)

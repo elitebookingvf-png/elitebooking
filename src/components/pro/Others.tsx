@@ -376,6 +376,8 @@ export function ProRdvList() {
     fetch('/api/services').then(r => r.json()).then(d => setServices(Array.isArray(d.services) ? d.services : []))
     fetch('/api/staff').then(r => r.json()).then(d => setStaff2(Array.isArray(d) ? d : []))
     fetch('/api/users/me').then(r => r.json()).then(d => { if (d?.salon?.pin) setPin(d.salon.pin) })
+    const interval = setInterval(loadRdvs, 30000)
+    return () => clearInterval(interval)
   }, [])
 
   async function changeStatus(id: string, status: string) {
