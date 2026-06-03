@@ -28,16 +28,14 @@ export async function POST(req: NextRequest) {
 
   // Charger les RDV existants pour vérifier les conflits staff + client
   const allDates = Array.from(new Set(items.map((i: any) => i.date)));
-  const { data: existingRdvs } = await supabase.from('rdvs').select('staff_id, client_id, date, start_time, duration, status').in('date', allDates).neq('status', 'cancelled');
+  const { data: existingRdvs } = await supabase.from('rdvs').select('staff_id, client_id, date, start_time, duration, status').in('date', allDates).neq('status', 'cancelled').neq('status', 'no_show');
 
-  // Check if client is blocked by this salon (gracefully skip if column missing)
+  // Check if client is blocked by this salon
   const salonId = items[0]?.salon_id;
   if (salonId) {
-    try {
-      const { data: salonCheck } = await supabase.from('salons').select('blocked_clients').eq('id', salonId).single();
-      const blocked: string[] = Array.isArray(salonCheck?.blocked_clients) ? salonCheck.blocked_clients : [];
-      if (blocked.includes(user.id)) return NextResponse.json({ error: 'Vous êtes bloqué par ce salon.' }, { status: 403 });
-    } catch { /* column may not exist yet */ }
+    const { data: salonCheck } = await supabase.from('salons').select('blocked_clients').eq('id', salonId).single();
+    const blocked: string[] = Array.isArray(salonCheck?.blocked_clients) ? salonCheck.blocked_clients : [];
+    if (blocked.includes(user.id)) return NextResponse.json({ error: 'Vous êtes bloqué par ce salon.' }, { status: 403 });
   }
 
   const toInsert: any[] = [];
@@ -64,10 +62,9 @@ export async function POST(req: NextRequest) {
     if (clientConflict) return NextResponse.json({ error: `Vous avez déjà un rendez-vous à ${item.start_time} le ${item.date}` }, { status: 409 });
     const rdv = { client_id: user.id, client_name: clientName, salon_id: item.salon_id, salon_name: salon.name, service_id: item.service_id, service_name: service.name, staff_id: item.staff_id, staff_name: `${staff.firstname} ${staff.lastname}`, date: item.date, start_time: item.start_time, duration: service.duration, price: service.price, price_type: service.price_type, status: 'confirmed', notes: item.notes ?? null, group_id: groupId, source: 'client' };
     toInsert.push(rdv);
-    tempCart.push({ staff_id: item.staff_id, date: item.date, start_time: item.start_time, duration: service.duration, status: 'confirmed' });
+    tempCart.push({ staff_id: item.staff_id, client_id: user.id, date: item.date, start_time: item.start_time, duration: service.duration, status: 'confirmed' });
   }
 
-  console.log('[rdv POST] inserting', toInsert.length, 'rdv(s), client_id:', user.id);
   const { data, error } = await supabase.from('rdvs').insert(toInsert).select();
   if (error) {
     console.error('[rdv POST] insert error:', JSON.stringify(error));

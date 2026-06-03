@@ -31,6 +31,7 @@ export default function SalonPage() {
   const [dates, setDates]         = useState<string[]>([])
   const [confirming, setConfirming] = useState(false)
   const [success, setSuccess]     = useState(false)
+  const [bookingError, setBookingError] = useState('')
 
   useEffect(() => {
     fetch(`/api/salons/${id}`).then(r => r.json()).then(setData)
@@ -79,7 +80,7 @@ export default function SalonPage() {
       item.staffId === selectedStaff.id && item.date === selectedDate &&
       newStart < tMin(item.time) + item.serviceDuration && newEnd > tMin(item.time)
     )
-    if (conflict) { alert('Ce créneau chevauche une prestation déjà dans votre panier pour cet employé.'); return }
+    if (conflict) { setBookingError('Ce créneau chevauche une prestation déjà dans votre panier pour cet employé.'); return }
     const newItem: CartItem = {
       serviceId: selectedSvc.id, serviceName: selectedSvc.name,
       servicePrice: Number(selectedSvc.price) || 0, servicePriceType: selectedSvc.price_type,
@@ -115,11 +116,12 @@ export default function SalonPage() {
         }),
       })
       const result = await res.json()
-      if (!res.ok) { alert(result.error || 'Erreur lors de la réservation'); setConfirming(false); return }
+      if (!res.ok) { setBookingError(result.error || 'Erreur lors de la réservation'); setConfirming(false); return }
+      setBookingError('')
       setSuccess(true)
       setTimeout(() => router.push('/client'), 2000)
     } catch {
-      alert('Erreur lors de la réservation')
+      setBookingError('Erreur réseau, veuillez réessayer.')
     }
     setConfirming(false)
   }
@@ -205,6 +207,14 @@ export default function SalonPage() {
 
         {tab === 'book' && (
           <div style={{display:'flex',flexDirection:'column',gap:24}}>
+
+            {/* ── Error banner ── */}
+            {bookingError && (
+              <div style={{background:'#fef2f2',border:'1.5px solid #fca5a5',borderRadius:12,padding:'14px 16px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:12}}>
+                <span style={{fontSize:'0.88rem',color:'#dc2626',fontWeight:500}}>⚠️ {bookingError}</span>
+                <button onClick={() => setBookingError('')} style={{background:'none',border:'none',cursor:'pointer',color:'#dc2626',fontSize:'1.1rem',lineHeight:1}}>✕</button>
+              </div>
+            )}
 
             {/* ── Cart summary ── */}
             {cart.length > 0 && (
@@ -372,7 +382,7 @@ export default function SalonPage() {
                           body: JSON.stringify({ items: finalCart.map(item => ({ salon_id: id, service_id: item.serviceId, staff_id: item.staffId, date: item.date, start_time: item.time })) })
                         })
                         const result = await res.json()
-                        if (!res.ok) { alert(result.error || 'Erreur lors de la réservation'); setConfirming(false); return }
+                        if (!res.ok) { setBookingError(result.error || 'Erreur lors de la réservation'); setConfirming(false); return }
                         setConfirming(false); setSuccess(true)
                         setTimeout(() => router.push('/client'), 2000)
                       }} disabled={confirming} className="btn btn-primary" style={{flex:1,opacity:confirming?0.6:1}}>
