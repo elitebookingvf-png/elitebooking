@@ -52,17 +52,16 @@ export async function POST(req: NextRequest) {
     if (!isSlotFree(allBlocking as any, item.staff_id, item.date, item.start_time, service.duration)) {
       return NextResponse.json({ error: `Créneau ${item.start_time} le ${item.date} déjà pris` }, { status: 409 });
     }
-    // Check client doesn't already have an overlapping RDV at this salon on this date
+    // Check client doesn't already have an overlapping RDV anywhere (can't be in 2 places at once)
     const newStart = tMinUtil(item.start_time);
     const newEnd   = newStart + service.duration;
     const clientConflict = allBlocking.some((r: any) =>
       r.client_id === user.id &&
-      r.salon_id === item.salon_id &&
       r.date === item.date &&
       tMinUtil(r.start_time) < newEnd &&
       tMinUtil(r.start_time) + r.duration > newStart
     );
-    if (clientConflict) return NextResponse.json({ error: `Vous avez déjà un rendez-vous à ce créneau dans ce salon` }, { status: 409 });
+    if (clientConflict) return NextResponse.json({ error: `Vous avez déjà un rendez-vous à ce créneau` }, { status: 409 });
     const rdv = { client_id: user.id, client_name: clientName, salon_id: item.salon_id, salon_name: salon.name, service_id: item.service_id, service_name: service.name, staff_id: item.staff_id, staff_name: `${staff.firstname} ${staff.lastname}`, date: item.date, start_time: item.start_time, duration: service.duration, price: service.price, price_type: service.price_type, status: 'confirmed', notes: item.notes ?? null, group_id: groupId, source: 'client' };
     toInsert.push(rdv);
     tempCart.push({ salon_id: item.salon_id, staff_id: item.staff_id, client_id: user.id, date: item.date, start_time: item.start_time, duration: service.duration, status: 'confirmed' });
