@@ -357,6 +357,7 @@ export default function SalonPage() {
                       </button>
                       <button onClick={async () => {
                         if (!user) { router.push('/auth'); return }
+                        if (!selectedSvc || !selectedStaff || !selectedDate || !selectedTime) return
                         const newItem: CartItem = {
                           serviceId: selectedSvc.id, serviceName: selectedSvc.name,
                           servicePrice: Number(selectedSvc.price)||0, servicePriceType: selectedSvc.price_type,
@@ -365,12 +366,13 @@ export default function SalonPage() {
                           date: selectedDate, time: selectedTime,
                         }
                         const finalCart = [...cart, newItem]
-                        setCart(finalCart); setConfirming(true)
-                        for (const item of finalCart) {
-                          await fetch('/api/rdv', { method:'POST', headers:{'Content-Type':'application/json'},
-                            body: JSON.stringify({ salon_id:id, service_id:item.serviceId,
-                              staff_id:item.staffId, date:item.date, start_time:item.time }) })
-                        }
+                        setConfirming(true)
+                        const res = await fetch('/api/rdv', {
+                          method: 'POST', headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ items: finalCart.map(item => ({ salon_id: id, service_id: item.serviceId, staff_id: item.staffId, date: item.date, start_time: item.time })) })
+                        })
+                        const result = await res.json()
+                        if (!res.ok) { alert(result.error || 'Erreur lors de la réservation'); setConfirming(false); return }
                         setConfirming(false); setSuccess(true)
                         setTimeout(() => router.push('/client'), 2000)
                       }} disabled={confirming} className="btn btn-primary" style={{flex:1,opacity:confirming?0.6:1}}>
