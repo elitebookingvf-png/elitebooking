@@ -1,16 +1,23 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
-import { formatPrice, CATEGORIES, CITIES, toISO } from '@/lib/utils'
+import { formatPrice, CATEGORIES, CITIES, toISO, tMin } from '@/lib/utils'
 
-// ─── Shared Add-RDV modal ────────────────────────────────────
+// ─── Shared Add-RDV modal (multi-prestations) ────────────────
+type ProCartItem = {
+  service_id: string; service_name: string; duration: number; price: number; price_type: string
+  staff_id: string; staff_name: string; date: string; start_time: string
+}
+
 function RdvAddModal({ staff, services, onClose, onSaved, defaultDate }: {
   staff: any[]; services: any[]; onClose: () => void; onSaved: () => void; defaultDate?: string
 }) {
   const today = toISO(new Date())
-  const [form, setForm] = useState({
-    client_name: '', client_phone: '', service_id: '', staff_id: 'any',
-    date: defaultDate || today, start_time: '', notes: '',
-  })
+  const [clientName, setClientName]   = useState('')
+  const [clientPhone, setClientPhone] = useState('')
+  const [notes, setNotes]             = useState('')
+  const [cart, setCart]               = useState<ProCartItem[]>([])
+  // Current line being configured
+  const [form, setForm] = useState({ service_id: '', staff_id: 'any', date: defaultDate || today, start_time: '' })
   const [slots, setSlots]   = useState<string[]>([])
   const [saving, setSaving] = useState(false)
   const [err, setErr]       = useState('')
@@ -25,28 +32,89 @@ function RdvAddModal({ staff, services, onClose, onSaved, defaultDate }: {
     const sid = form.staff_id === 'any' ? (eligibleStaff[0]?.id || '') : form.staff_id
     if (!sid) { setSlots([]); return }
     fetch(`/api/availability?staffId=${sid}&serviceId=${form.service_id}&date=${form.date}`)
-      .then(r => r.json()).then(d => setSlots(Array.isArray(d.slots) ? d.slots : []))
-  }, [form.service_id, form.staff_id, form.date])
+      .then(r => r.json()).then(d => {
+        const raw: string[] = Array.isArray(d.slots) ? d.slots : []
+        // Block times already in the cart on this date (client can't be in two services at once)
+        const blocked = cart.filter(c => c.date === form.date)
+        const svcDur = selectedSvc?.duration || 0
+        const filtered = raw.filter(slot => {
+          const s = tMin(slot), e = s + svcDur
+          return !blocked.some(c => s < tMin(c.start_time) + c.duration && e > tMin(c.start_time))
+        })
+        setSlots(filtered)
+        // Consecutive scheduling: pre-select first slot after last booked service
+        if (blocked.length) {
+          const lastEnd = Math.max(...blocked.map(c => tMin(c.start_time) + c.duration))
+          const next = filtered.find(slot => tMin(slot) >= lastEnd)
+          if (next) setForm(f => ({ ...f, start_time: next }))
+        }
+      })
+  }, [form.service_id, form.staff_id, form.date, cart])
+
+  function addLine() {
+    setErr('')
+    if (!form.service_id)  { setErr('Choisissez une prestation'); return }
+    if (!form.start_time)  { setErr('Choisissez une heure');      return }
+    const svc = services.find(s => s.id === form.service_id)
+    if (!svc) return
+    const staffId = form.staff_id === 'any' ? (eligibleStaff[0]?.id || '') : form.staff_id
+    const st = staff.find(s => s.id === staffId)
+    if (!staffId || !st) { setErr('Aucun employé disponible'); return }
+    // Conflict against existing cart (any employee, same date)
+    const s = tMin(form.start_time), e = s + svc.duration
+    const conflict = cart.some(c => c.date === form.date && s < tMin(c.start_time) + c.duration && e > tMin(c.start_time))
+    if (conflict) { setErr('Ce créneau chevauche une prestation déjà ajoutée'); return }
+    const item: ProCartItem = {
+      service_id: svc.id, service_name: svc.name, duration: svc.duration,
+      price: Number(svc.price) || 0, price_type: svc.price_type,
+      staff_id: staffId, staff_name: `${st.firstname} ${st.lastname}`,
+      date: form.date, start_time: form.start_time,
+    }
+    setCart(prev => [...prev, item].sort((a,b) => a.date.localeCompare(b.date) || a.start_time.localeCompare(b.start_time)))
+    // Reset service line but keep date for consecutive booking
+    setForm(f => ({ service_id: '', staff_id: 'any', date: f.date, start_time: '' }))
+    setSlots([])
+  }
+
+  function removeLine(idx: number) { setCart(prev => prev.filter((_, i) => i !== idx)) }
 
   async function save() {
-    if (!form.client_name.trim()) { setErr('Nom du client requis'); return }
-    if (!form.service_id)         { setErr('Prestation requise');   return }
-    if (!form.start_time)         { setErr('Heure requise');        return }
-    setSaving(true); setErr('')
-    const staffId = form.staff_id === 'any' ? (eligibleStaff[0]?.id || null) : form.staff_id
+    setErr('')
+    if (!clientName.trim()) { setErr('Nom du client requis'); return }
+    // Include any line currently being configured but not yet added
+    let finalCart = cart
+    if (form.service_id && form.start_time) {
+      const svc = services.find(s => s.id === form.service_id)
+      const staffId = form.staff_id === 'any' ? (eligibleStaff[0]?.id || '') : form.staff_id
+      const st = staff.find(s => s.id === staffId)
+      if (svc && st) {
+        finalCart = [...cart, {
+          service_id: svc.id, service_name: svc.name, duration: svc.duration,
+          price: Number(svc.price) || 0, price_type: svc.price_type,
+          staff_id: staffId, staff_name: `${st.firstname} ${st.lastname}`,
+          date: form.date, start_time: form.start_time,
+        }]
+      }
+    }
+    if (finalCart.length === 0) { setErr('Ajoutez au moins une prestation'); return }
+    setSaving(true)
     const res = await fetch('/api/rdv/pro', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        client_name: form.client_name, client_phone: form.client_phone || null,
-        service_id: form.service_id, staff_id: staffId,
-        date: form.date, start_time: form.start_time, notes: form.notes || null,
+        items: finalCart.map(c => ({
+          client_name: clientName, client_phone: clientPhone || null,
+          service_id: c.service_id, staff_id: c.staff_id,
+          date: c.date, start_time: c.start_time, notes: notes || null,
+        })),
       }),
     })
     setSaving(false)
     if (res.ok) { onSaved(); onClose() }
     else { const d = await res.json(); setErr(d.error || 'Erreur') }
   }
+
+  const cartTotal = cart.reduce((a, c) => a + c.price, 0)
 
   return (
     <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.55)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
@@ -59,57 +127,91 @@ function RdvAddModal({ staff, services, onClose, onSaved, defaultDate }: {
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
           <div className="form-group" style={{marginBottom:0}}>
             <label>Nom du client *</label>
-            <input className="form-control" placeholder="Fatima Benali" value={form.client_name}
-              onChange={e=>setForm(f=>({...f,client_name:e.target.value}))} />
+            <input className="form-control" placeholder="Fatima Benali" value={clientName}
+              onChange={e=>setClientName(e.target.value)} />
           </div>
           <div className="form-group" style={{marginBottom:0}}>
             <label>Téléphone client</label>
-            <input className="form-control" type="tel" placeholder="+212 6XX XXX XXX" value={form.client_phone}
-              onChange={e=>setForm(f=>({...f,client_phone:e.target.value}))} />
+            <input className="form-control" type="tel" placeholder="+212 6XX XXX XXX" value={clientPhone}
+              onChange={e=>setClientPhone(e.target.value)} />
           </div>
         </div>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginTop:16}}>
-          <div className="form-group" style={{marginBottom:0}}>
-            <label>Prestation *</label>
-            <select className="form-control" value={form.service_id}
-              onChange={e=>setForm(f=>({...f,service_id:e.target.value,start_time:''}))}>
-              <option value="">— Choisir —</option>
-              {services.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}
-            </select>
-          </div>
-          <div className="form-group" style={{marginBottom:0}}>
-            <label>Employé</label>
-            <select className="form-control" value={form.staff_id}
-              onChange={e=>setForm(f=>({...f,staff_id:e.target.value,start_time:''}))}>
-              <option value="any">N'importe qui</option>
-              {eligibleStaff.map(s=><option key={s.id} value={s.id}>{s.firstname} {s.lastname}</option>)}
-            </select>
-          </div>
-        </div>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginTop:16}}>
-          <div className="form-group" style={{marginBottom:0}}>
-            <label>Date *</label>
-            <input type="date" className="form-control" min={today} value={form.date}
-              onChange={e=>setForm(f=>({...f,date:e.target.value,start_time:''}))} />
-          </div>
-          <div className="form-group" style={{marginBottom:0}}>
-            <label>Heure *</label>
-            <select className="form-control" value={form.start_time}
-              onChange={e=>setForm(f=>({...f,start_time:e.target.value}))}>
-              <option value="">— Choisir —</option>
-              {slots.map(t=><option key={t} value={t}>{t}</option>)}
-            </select>
-          </div>
-        </div>
-        {selectedSvc && form.start_time && (
-          <div style={{background:'#f7f7f7',borderRadius:12,padding:'12px 16px',marginTop:16,fontSize:'0.85rem',color:'#555'}}>
-            {selectedSvc.name} · {selectedSvc.duration} min · <strong style={{color:'#C17B4E'}}>{formatPrice(selectedSvc.price, selectedSvc.price_type)}</strong>
+
+        {/* Cart of added prestations */}
+        {cart.length > 0 && (
+          <div style={{background:'#f7f7f7',border:'1px solid #e0e0e0',borderRadius:12,padding:14,marginTop:16}}>
+            <div style={{fontWeight:700,fontSize:'0.72rem',textTransform:'uppercase',letterSpacing:'0.06em',color:'#aaa',marginBottom:10}}>
+              Prestations ({cart.length})
+            </div>
+            {cart.map((c, idx) => (
+              <div key={idx} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 0',borderBottom:idx<cart.length-1?'1px solid #e8e8e8':'none'}}>
+                <div>
+                  <div style={{fontWeight:600,fontSize:'0.85rem'}}>{c.service_name}</div>
+                  <div style={{fontSize:'0.75rem',color:'#999',marginTop:2}}>
+                    👤 {c.staff_name} · {new Date(c.date+'T12:00').toLocaleDateString('fr-FR',{day:'numeric',month:'short'})} à {c.start_time} · {c.duration} min
+                  </div>
+                </div>
+                <div style={{display:'flex',alignItems:'center',gap:10}}>
+                  <span style={{fontSize:'0.8rem',fontWeight:600,color:'#C17B4E'}}>{formatPrice(c.price, c.price_type)}</span>
+                  <button onClick={()=>removeLine(idx)} style={{background:'none',border:'none',cursor:'pointer',color:'#eb5757',fontSize:'1rem'}}>✕</button>
+                </div>
+              </div>
+            ))}
+            <div style={{display:'flex',justifyContent:'space-between',marginTop:10,paddingTop:10,borderTop:'1px solid #ddd',fontWeight:700,fontSize:'0.85rem'}}>
+              <span>Total</span><span style={{color:'#C17B4E'}}>{formatPrice(cartTotal, 'fixe')}</span>
+            </div>
           </div>
         )}
+
+        {/* New prestation line */}
+        <div style={{border:'1px dashed #ddd',borderRadius:12,padding:16,marginTop:16}}>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+            <div className="form-group" style={{marginBottom:0}}>
+              <label>Prestation</label>
+              <select className="form-control" value={form.service_id}
+                onChange={e=>setForm(f=>({...f,service_id:e.target.value,start_time:''}))}>
+                <option value="">— Choisir —</option>
+                {services.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
+            </div>
+            <div className="form-group" style={{marginBottom:0}}>
+              <label>Employé</label>
+              <select className="form-control" value={form.staff_id}
+                onChange={e=>setForm(f=>({...f,staff_id:e.target.value,start_time:''}))}>
+                <option value="any">N'importe qui</option>
+                {eligibleStaff.map(s=><option key={s.id} value={s.id}>{s.firstname} {s.lastname}</option>)}
+              </select>
+            </div>
+          </div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginTop:16}}>
+            <div className="form-group" style={{marginBottom:0}}>
+              <label>Date</label>
+              <input type="date" className="form-control" min={today} value={form.date}
+                onChange={e=>setForm(f=>({...f,date:e.target.value,start_time:''}))} />
+            </div>
+            <div className="form-group" style={{marginBottom:0}}>
+              <label>Heure</label>
+              <select className="form-control" value={form.start_time}
+                onChange={e=>setForm(f=>({...f,start_time:e.target.value}))}>
+                <option value="">— Choisir —</option>
+                {slots.map(t=><option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
+          </div>
+          {selectedSvc && form.start_time && (
+            <div style={{background:'#fafafa',borderRadius:10,padding:'10px 14px',marginTop:14,fontSize:'0.83rem',color:'#555'}}>
+              {selectedSvc.name} · {selectedSvc.duration} min · <strong style={{color:'#C17B4E'}}>{formatPrice(selectedSvc.price, selectedSvc.price_type)}</strong>
+            </div>
+          )}
+          <button onClick={addLine} className="btn btn-secondary" style={{width:'100%',marginTop:14}}>
+            + Ajouter cette prestation
+          </button>
+        </div>
+
         <div className="form-group" style={{marginTop:16}}>
           <label>Notes internes (optionnel)</label>
-          <textarea className="form-control" placeholder="Préférences, allergies, rappels…" value={form.notes}
-            onChange={e=>setForm(f=>({...f,notes:e.target.value}))} style={{minHeight:64}} />
+          <textarea className="form-control" placeholder="Préférences, allergies, rappels…" value={notes}
+            onChange={e=>setNotes(e.target.value)} style={{minHeight:64}} />
         </div>
         <div style={{display:'flex',gap:12,marginTop:8}}>
           <button onClick={onClose} className="btn btn-secondary" style={{flex:1}}>Annuler</button>

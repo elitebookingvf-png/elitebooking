@@ -61,26 +61,35 @@ export default function SalonPage() {
     fetch(`/api/availability?salonId=${id}&staffId=${selectedStaff.id}&serviceId=${selectedSvc.id}&date=${selectedDate}`)
       .then(r => r.json()).then(d => {
         const raw: string[] = d.slots ?? []
-        const blocked = cart.filter(c => c.staffId === selectedStaff!.id && c.date === selectedDate)
+        // Block any time already taken in the cart on this date — regardless of employee,
+        // since the client can't be in two services at the same time.
+        const blocked = cart.filter(c => c.date === selectedDate)
         const filtered = raw.filter(slot => {
           const slotStart = tMin(slot)
           const slotEnd = slotStart + selectedSvc!.duration
           return !blocked.some(c => slotStart < tMin(c.time) + c.serviceDuration && slotEnd > tMin(c.time))
         })
         setSlots(filtered)
+        // Consecutive scheduling: if the cart already has services on this date,
+        // pre-select the first slot starting right after the last booked service.
+        if (blocked.length) {
+          const lastEnd = Math.max(...blocked.map(c => tMin(c.time) + c.serviceDuration))
+          const next = filtered.find(slot => tMin(slot) >= lastEnd)
+          if (next) setTime(next)
+        }
       })
   }, [selectedDate, selectedStaff, selectedSvc, id, cart])
 
   function addToCart() {
     if (!selectedSvc || !selectedStaff || !selectedDate || !selectedTime) return
-    // Check overlap with existing cart items for same staff+date
+    // Check overlap with ANY cart item on the same date (client can't be in two places/services at once)
     const newStart = tMin(selectedTime)
     const newEnd   = newStart + selectedSvc.duration
     const conflict = cart.some(item =>
-      item.staffId === selectedStaff.id && item.date === selectedDate &&
+      item.date === selectedDate &&
       newStart < tMin(item.time) + item.serviceDuration && newEnd > tMin(item.time)
     )
-    if (conflict) { setBookingError('Ce créneau chevauche une prestation déjà dans votre panier pour cet employé.'); return }
+    if (conflict) { setBookingError('Ce créneau chevauche une prestation déjà dans votre panier.'); return }
     const newItem: CartItem = {
       serviceId: selectedSvc.id, serviceName: selectedSvc.name,
       servicePrice: Number(selectedSvc.price) || 0, servicePriceType: selectedSvc.price_type,
