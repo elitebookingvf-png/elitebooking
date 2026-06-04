@@ -1,10 +1,15 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import ToastContainer from '@/components/Toast';
 
 export const metadata: Metadata = {
   title: 'EliteBooking — Réservez vos soins beauté au Maroc',
   description: 'La plateforme de réservation beauté marocaine. Hammam, coiffure, spa, massage.',
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -37,7 +37,7 @@ export default function FeaturedSalons({ salons, cities }: { salons: any[]; citi
 
       {/* Salon grid */}
       {filtered.length > 0 ? (
-        <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:18}}>
+        <div className="auto-grid-md">
           {filtered.map((s: any) => {
             const cat = CATEGORIES.find(c => c.id === s.category)
             return (

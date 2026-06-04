@@ -117,7 +117,7 @@ export function ProOverview({ salon }: { salon: any }) {
         </Link>
       </div>
 
-      <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:20,marginBottom:32}}>
+      <div className="kpi-grid" style={{marginBottom:32}}>
         {/* Total RDV */}
         <div className="card">
           <div style={{fontSize:'2rem',fontWeight:700}}>{rdvs.length}</div>

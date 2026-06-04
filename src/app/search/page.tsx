@@ -61,7 +61,7 @@ function SearchResults() {
         <p className="text-sm mb-6" style={{color:'#aaa'}}>
           {loading ? 'Chargement…' : `${displayed.length} salon${displayed.length !== 1 ? 's' : ''} trouvé${displayed.length !== 1 ? 's' : ''}`}
         </p>
-        <div className="grid gap-6" style={{gridTemplateColumns:'repeat(3,1fr)'}}>
+        <div className="auto-grid-md">
           {displayed.map((s: any) => {
             const cat = CATEGORIES.find(c => c.id === s.category)
             return (

@@ -108,6 +108,7 @@ export default function ProPage() {
   const [tab, setTab]       = useState('overview')
   const [salon, setSalon]   = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   useEffect(() => {
     const supabase = createClient()
@@ -173,14 +174,30 @@ export default function ProPage() {
 
   return (
     <div style={{minHeight:'100vh',display:'flex',background:'#f7f7f7'}}>
-      {/* Sidebar — white bg + gold active border (matches HTML exactly) */}
-      <aside style={{width:240,background:'#fff',borderRight:'1px solid #efefef',display:'flex',flexDirection:'column',
-        position:'fixed',height:'100%',zIndex:10}}>
-        <div style={{padding:'20px 24px',borderBottom:'1px solid #efefef'}}>
-          <div className="serif" style={{fontSize:'1.1rem',fontWeight:700,color:'#111'}}>
-            Elite<em style={{color:'#C17B4E',fontStyle:'italic'}}>Booking</em>
+      {/* Mobile top bar — only visible on small screens */}
+      <header className="pro-topbar">
+        <button onClick={() => setSidebarOpen(true)} aria-label="Menu"
+          style={{background:'none',border:'none',fontSize:'1.5rem',cursor:'pointer',lineHeight:1,padding:4,color:'#111'}}>☰</button>
+        <div className="serif" style={{fontSize:'1.05rem',fontWeight:700,color:'#111'}}>
+          Elite<em style={{color:'#C17B4E',fontStyle:'italic'}}>Booking</em>
+        </div>
+        <div style={{width:32}} />
+      </header>
+
+      {/* Backdrop for mobile drawer */}
+      <div className={`pro-backdrop${sidebarOpen ? ' show' : ''}`} onClick={() => setSidebarOpen(false)} />
+
+      {/* Sidebar — white bg + gold active border (drawer on mobile) */}
+      <aside className={`pro-aside${sidebarOpen ? ' open' : ''}`}>
+        <div style={{padding:'20px 24px',borderBottom:'1px solid #efefef',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+          <div>
+            <div className="serif" style={{fontSize:'1.1rem',fontWeight:700,color:'#111'}}>
+              Elite<em style={{color:'#C17B4E',fontStyle:'italic'}}>Booking</em>
+            </div>
+            <div style={{fontSize:'0.72rem',color:'#aaa',marginTop:2}}>Espace Pro</div>
           </div>
-          <div style={{fontSize:'0.72rem',color:'#aaa',marginTop:2}}>Espace Pro</div>
+          <button onClick={() => setSidebarOpen(false)} className="pro-aside-close" aria-label="Fermer"
+            style={{background:'none',border:'none',fontSize:'1.4rem',cursor:'pointer',color:'#aaa',lineHeight:1}}>✕</button>
         </div>
 
         <div style={{flex:1,overflowY:'auto',padding:'16px 0'}}>
@@ -188,7 +205,7 @@ export default function ProPage() {
             <div key={section.label} style={{marginBottom:20}}>
               <div style={{fontSize:'0.65rem',fontWeight:700,color:'#bbb',textTransform:'uppercase',letterSpacing:'0.1em',padding:'0 20px',marginBottom:6}}>{section.label}</div>
               {section.tabs.map(t => (
-                <button key={t.id} onClick={() => setTab(t.id)}
+                <button key={t.id} onClick={() => { setTab(t.id); setSidebarOpen(false) }}
                   style={{display:'flex',alignItems:'center',gap:10,
                     padding:'10px 20px',width:'100%',border:'none',
                     borderRight: tab===t.id ? '2px solid #C17B4E' : '2px solid transparent',
@@ -213,7 +230,7 @@ export default function ProPage() {
       </aside>
 
       {/* Main */}
-      <main style={{flex:1,marginLeft:240,padding:32,minHeight:'100vh'}}>
+      <main className="pro-content">
         {renderTab()}
       </main>
     </div>

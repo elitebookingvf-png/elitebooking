@@ -408,7 +408,7 @@ export default function SalonPage() {
 
         {/* Team tab */}
         {tab === 'team' && (
-          <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:16}}>
+          <div className="auto-grid-sm">
             {staff.map((st: any) => (
               <div key={st.id} className="card text-center">
                 <div style={{width:64,height:64,borderRadius:'50%',background:'#C17B4E',color:'#fff',

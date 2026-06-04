@@ -57,7 +57,7 @@ export default function NavBar() {
   const dashPath = profile?.type === 'pro' ? '/pro' : '/client'
 
   return (
-    <nav style={{position:'sticky',top:0,zIndex:100,background:'rgba(255,255,255,0.95)',backdropFilter:'blur(12px)',borderBottom:'1px solid #efefef',padding:'0 40px',height:64,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+    <nav className="app-nav" style={{position:'sticky',top:0,zIndex:100,background:'rgba(255,255,255,0.95)',backdropFilter:'blur(12px)',borderBottom:'1px solid #efefef',padding:'0 40px',height:64,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
       <Link href="/" className="serif" style={{fontSize:'1.45rem',fontWeight:700,textDecoration:'none',color:'#111'}}>
         Elite<em style={{color:'#C17B4E',fontStyle:'italic'}}>Booking</em>
       </Link>
@@ -68,7 +68,7 @@ export default function NavBar() {
         <Link href="/#pro-section" style={{fontSize:'0.85rem',color:'#888',textDecoration:'none'}}>Pour les pros</Link>
       </div>
 
-      <div style={{display:'flex',alignItems:'center',gap:12,minWidth:220,justifyContent:'flex-end'}}>
+      <div style={{display:'flex',alignItems:'center',gap:12,justifyContent:'flex-end'}}>
         {!ready ? (
           <div style={{width:120,height:32,borderRadius:8,background:'#f3f3f3'}} />
         ) : user && profile ? (

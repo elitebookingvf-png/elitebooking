@@ -529,8 +529,8 @@ export function ProRdvList() {
           </button>
         ))}
       </div>
-      <div className="card" style={{padding:0,overflow:'hidden'}}>
-        <table style={{width:'100%'}}>
+      <div className="card table-scroll" style={{padding:0,overflow:'auto'}}>
+        <table style={{width:'100%',minWidth:760}}>
           <thead style={{background:'#f7f7f7',borderBottom:'1px solid #eee'}}>
             <tr>
               {['Client','Prestation','Employé','Date','Heure','Prix','Statut','Action'].map(h=>(
@@ -557,7 +557,7 @@ export function ProRdvList() {
                     <div style={{display:'flex',gap:6}}>
                       <button onClick={() => requirePin('Marquer comme terminé', () => changeStatus(r.id,'completed'))}
                         style={{fontSize:'0.72rem',color:'#27AE60',background:'none',border:'none',cursor:'pointer'}}>✓ Terminé</button>
-                      <button onClick={() => requirePin('Annuler ce rendez-vous', () => changeStatus(r.id,'cancelled'))}
+                      <button onClick={() => changeStatus(r.id,'cancelled')}
                         style={{fontSize:'0.72rem',color:'#EB5757',background:'none',border:'none',cursor:'pointer'}}>✗ Annuler</button>
                     </div>
                   )}
@@ -815,7 +815,7 @@ export function ProStaff() {
         <h1 className="serif" style={{fontSize:'2rem'}}>Employés</h1>
         <button onClick={() => openForm()} className="btn btn-primary">+ Ajouter</button>
       </div>
-      <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:16}}>
+      <div className="auto-grid-md">
         {staff.map(st => (
           <div key={st.id} className="card text-center">
             <div style={{width:56,height:56,borderRadius:'50%',background:'#C17B4E',color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700,fontSize:'1.1rem',margin:'0 auto 12px'}}>
@@ -953,7 +953,7 @@ export function ProClients() {
       </div>
 
       {/* KPIs */}
-      <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:16,marginBottom:24}}>
+      <div className="auto-grid-sm" style={{marginBottom:24}}>
         <div className="card">
           <div style={{fontSize:'2rem',fontWeight:700}}>{allClients.length}</div>
           <div style={{fontSize:'0.85rem',color:'#aaa',marginTop:4}}>Clients uniques</div>

@@ -131,7 +131,7 @@ function RdvDetailModal({ rdv, allRdvs, onClose, onStatusChange, pin }: {
                 style={{padding:'10px',borderRadius:12,border:'2px solid #F59E0B',background:'#FFFBEB',color:'#F59E0B',fontWeight:700,cursor:'pointer',fontSize:'0.85rem'}}>
                 ❌ Pas venu
               </button>
-              <button disabled={saving} onClick={() => requirePin('Annuler ce rendez-vous', 'cancelled')}
+              <button disabled={saving} onClick={() => doSetStatus('cancelled')}
                 style={{padding:'10px',borderRadius:12,border:'2px solid #EB5757',background:'#FEF2F2',color:'#EB5757',fontWeight:700,cursor:'pointer',fontSize:'0.85rem',gridColumn:'span 2'}}>
                 🚫 Annuler le RDV
               </button>
