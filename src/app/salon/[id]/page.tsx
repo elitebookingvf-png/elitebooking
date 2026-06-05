@@ -232,7 +232,7 @@ export default function SalonPage() {
                   Mes sélections ({cart.length})
                 </div>
                 {cart.map((item, idx) => (
-                  <div key={idx} style={{display:'flex',alignItems:'center',justifyContent:'space-between',
+                  <div key={idx} style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:8,
                     padding:'10px 0',borderBottom:'1px solid #e8e8e8'}}>
                     <div>
                       <div style={{fontWeight:600,fontSize:'0.88rem'}}>{item.serviceName}</div>
@@ -358,7 +358,7 @@ export default function SalonPage() {
                       {t}
                     </div>
                   ))}
-                  {slots.length === 0 && <p style={{color:'#aaa',fontSize:'0.88rem',gridColumn:'span 4'}}>Aucun créneau disponible ce jour.</p>}
+                  {slots.length === 0 && <p className="col-span-full" style={{color:'#aaa',fontSize:'0.88rem'}}>Aucun créneau disponible ce jour.</p>}
                 </div>
 
                 {selectedTime && (
@@ -421,7 +421,7 @@ export default function SalonPage() {
                 <div style={{fontSize:'0.75rem',color:'#ccc',marginTop:4}}>{st.days?.join(', ')}</div>
               </div>
             ))}
-            {staff.length === 0 && <p style={{color:'#aaa',gridColumn:'span 4'}}>Aucun employé.</p>}
+            {staff.length === 0 && <p className="col-span-full" style={{color:'#aaa'}}>Aucun employé.</p>}
           </div>
         )}
       </div>

@@ -75,7 +75,7 @@ export default async function HomePage() {
       </div>
 
       {/* ── STATS ── */}
-      <div style={{display:'flex',justifyContent:'center',gap:56,padding:'40px',borderTop:'1px solid #efefef',borderBottom:'1px solid #efefef',background:'#fafafa',flexWrap:'wrap'}}>
+      <div className="stats-bar" style={{display:'flex',justifyContent:'center',gap:56,borderTop:'1px solid #efefef',borderBottom:'1px solid #efefef',background:'#fafafa',flexWrap:'wrap'}}>
         {[
           { n: stats.salons > 0 ? `${stats.salons}+` : '500+', l: 'Établissements partenaires' },
           { n: '12K+', l: 'Réservations effectuées' },
@@ -118,7 +118,7 @@ export default async function HomePage() {
         <h2 className="serif" style={{fontSize:'clamp(1.8rem,3vw,2.6rem)',marginBottom:52}}>
           Réservez en <em style={{fontStyle:'italic'}}>3 étapes</em>
         </h2>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:36,maxWidth:820,margin:'0 auto'}}>
+        <div className="steps-grid-wrap" style={{gap:36,maxWidth:820,margin:'0 auto'}}>
           {[
             { n:'1', t:'Trouvez votre salon', p:'Recherchez par ville, type de soin ou établissement. Consultez photos, avis et tarifs.' },
             { n:'2', t:'Choisissez un créneau', p:'Sélectionnez la prestation, l\'employé et l\'horaire. Confirmation instantanée.' },
@@ -137,7 +137,7 @@ export default async function HomePage() {
 
       {/* ── PRO SECTION ── */}
       <div id="pro-section" style={{background:'#111',color:'#fff',padding:'80px 40px'}}>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:64,alignItems:'center',maxWidth:1000,margin:'0 auto'}}>
+        <div className="pro-section-grid" style={{gap:64,alignItems:'center',maxWidth:1000,margin:'0 auto'}}>
           <div>
             <div style={{fontSize:'0.72rem',fontWeight:700,letterSpacing:'0.12em',textTransform:'uppercase',color:'#C17B4E',marginBottom:12}}>Espace professionnels</div>
             <h2 className="serif" style={{fontSize:'clamp(1.8rem,3vw,2.6rem)',color:'#fff',marginBottom:12}}>
@@ -177,7 +177,7 @@ export default async function HomePage() {
               <span style={{fontSize:'0.82rem',fontWeight:600}}>Tableau de bord</span>
               <span style={{fontSize:'0.68rem',color:'rgba(255,255,255,0.35)'}}>Ce mois</span>
             </div>
-            <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:10,marginBottom:18}}>
+            <div className="auto-grid-sm" style={{marginBottom:18}}>
               {[{v:'142',l:'RDV',c:'↑ +18%'},{v:'24K',l:'MAD',c:'↑ +23%'},{v:'4.9',l:'Note',c:'★ Top 5%'}].map(k=>(
                 <div key={k.l} style={{background:'rgba(255,255,255,0.05)',borderRadius:10,padding:12}}>
                   <span className="serif" style={{fontSize:'1.4rem',display:'block'}}>{k.v}</span>
@@ -210,7 +210,7 @@ export default async function HomePage() {
             <p style={{color:'#888',fontSize:'0.92rem',marginBottom:16}}>Aucune carte bancaire requise · Annulation à tout moment</p>
             <Link href="/auth?mode=register&type=pro" className="btn btn-lg" style={{marginTop:8}}>Démarrer mon essai gratuit →</Link>
           </div>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+          <div className="featured-grid" style={{gap:16}}>
             {[
               { icon:'📵', t:'Fini les appels manqués', p:'Vos clients réservent seuls, 24h/24 et 7j/7, même la nuit et le week-end.' },
               { icon:'💰', t:'Augmentez votre CA', p:'Nos salons partenaires reportent en moyenne +28% de revenus dès le 1er mois.' },
@@ -246,7 +246,7 @@ export default async function HomePage() {
         <h2 className="serif" style={{fontSize:'clamp(1.8rem,3vw,2.6rem)',marginBottom:44}}>
           Ce que disent <em style={{fontStyle:'italic'}}>nos utilisateurs</em>
         </h2>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:18}}>
+        <div className="testi-grid-wrap" style={{gap:18}}>
           {[
             { stars:'★★★★★', text:'"EliteBooking m\'a changé la vie. Mon agenda est plein, je ne réponds plus au téléphone pour prendre des RDV."', av:'👩', name:'Fatima Z.', role:'Gérante · Beldi Spa, Casa' },
             { stars:'★★★★★', text:'"Enfin une app 100% marocaine. Je réserve mon hammam en 30 secondes depuis mon canapé. Parfait."', av:'👨', name:'Karim M.', role:'Client · Rabat' },
@@ -280,7 +280,7 @@ export default async function HomePage() {
       </div>
 
       {/* ── FOOTER ── */}
-      <footer style={{padding:'52px 40px 32px',display:'grid',gridTemplateColumns:'2fr 1fr 1fr 1fr',gap:40,borderTop:'1px solid #efefef'}}>
+      <footer className="footer-grid" style={{padding:'52px 40px 32px',display:'grid',gap:40,borderTop:'1px solid #efefef'}}>
         <div>
           <div className="serif" style={{fontSize:'1.3rem',marginBottom:10}}>Elite<em style={{fontStyle:'italic',color:'#C17B4E'}}>Booking</em></div>
           <p style={{fontSize:'0.8rem',color:'#888',lineHeight:1.65,fontWeight:300,maxWidth:220}}>La première plateforme de réservation beauté & bien-être dédiée au Maroc.</p>

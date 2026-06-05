@@ -136,7 +136,7 @@ export default function ClientPage() {
                 <h3 style={{fontWeight:600,fontSize:'0.88rem',textTransform:'uppercase',letterSpacing:'0.06em',color:'#aaa',marginBottom:12}}>À venir</h3>
                 <div style={{display:'flex',flexDirection:'column',gap:12}}>
                   {upcoming.map(r => (
-                    <div key={r.id} className="card" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:16}}>
+                    <div key={r.id} className="card" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:16,flexWrap:'wrap'}}>
                       <div>
                         <div style={{fontWeight:600}}>{r.service_name}</div>
                         <div style={{fontSize:'0.85rem',color:'#aaa',marginTop:2}}>{r.salon_name} · {r.staff_name}</div>
@@ -163,7 +163,7 @@ export default function ClientPage() {
                 <h3 style={{fontWeight:600,fontSize:'0.88rem',textTransform:'uppercase',letterSpacing:'0.06em',color:'#aaa',marginBottom:12}}>Historique</h3>
                 <div style={{display:'flex',flexDirection:'column',gap:12}}>
                   {past.map(r => (
-                    <div key={r.id} className="card" style={{display:'flex',alignItems:'center',justifyContent:'space-between',opacity:0.7}}>
+                    <div key={r.id} className="card" style={{display:'flex',alignItems:'center',justifyContent:'space-between',opacity:0.7,flexWrap:'wrap',gap:8}}>
                       <div>
                         <div style={{fontWeight:500}}>{r.service_name}</div>
                         <div style={{fontSize:'0.85rem',color:'#aaa'}}>{r.salon_name} · {r.date} à {r.start_time}</div>

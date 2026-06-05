@@ -386,7 +386,7 @@ export function ProAgenda({ salon }: { salon: any }) {
       {/* Header */}
       <div style={{display:'flex',flexWrap:'wrap',alignItems:'center',justifyContent:'space-between',gap:12,marginBottom:24}}>
         <h1 className="serif" style={{fontSize:'2rem'}}>Agenda</h1>
-        <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
+        <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',maxWidth:'100%'}}>
           <div style={{display:'flex',background:'#f3f3f3',borderRadius:12,padding:4,gap:4}}>
             {(['day','staff','week','month'] as View[]).map(v => (
               <button key={v} onClick={() => setView(v)}
@@ -399,7 +399,7 @@ export function ProAgenda({ salon }: { salon: any }) {
             ))}
           </div>
           <button onClick={() => navigate(-1)} className="btn btn-secondary" style={{padding:'6px 12px'}}>‹</button>
-          <span style={{fontSize:'0.85rem',fontWeight:500,minWidth:200,textAlign:'center',textTransform:'capitalize'}}>{periodLabel()}</span>
+          <span style={{fontSize:'0.85rem',fontWeight:500,minWidth:120,textAlign:'center',textTransform:'capitalize'}}>{periodLabel()}</span>
           <button onClick={() => navigate(1)} className="btn btn-secondary" style={{padding:'6px 12px'}}>›</button>
           <button onClick={() => setDate(new Date())} className="btn btn-secondary" style={{fontSize:'0.82rem'}}>Aujourd'hui</button>
           <button onClick={() => { setAddRdvDate(iso); setAddRdvTime(undefined); setAddRdvStaffId(undefined); setShowAddRdv(true) }} className="btn btn-primary" style={{fontSize:'0.82rem'}}>+ Ajouter un RDV</button>

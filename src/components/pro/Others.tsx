@@ -665,7 +665,7 @@ export function ProServices() {
             </div>
             <div style={{display:'flex',flexDirection:'column',gap:8}}>
               {svcs.map(s => (
-                <div key={s.id} className="card" style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                <div key={s.id} className="card" style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:12}}>
                   <div>
                     <div style={{fontWeight:600}}>{s.name}</div>
                     <div style={{fontSize:'0.75rem',color:'#aaa',marginTop:2}}>⏱ {s.duration} min{s.staff_ids?.length ? ` · ${s.staff_ids.length} employé(s)` : ' · Tous les employés'}</div>
@@ -688,7 +688,7 @@ export function ProServices() {
         <div style={{marginBottom:24}}>
           <div style={{fontWeight:700,fontSize:'0.85rem',textTransform:'uppercase',letterSpacing:'0.04em',color:'#aaa',marginBottom:8}}>Sans catégorie</div>
           {services.filter(s => !s.cat_id).map(s => (
-            <div key={s.id} className="card" style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
+            <div key={s.id} className="card" style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:12,marginBottom:8}}>
               <div>
                 <div style={{fontWeight:600}}>{s.name}</div>
                 <div style={{fontSize:'0.75rem',color:'#aaa',marginTop:2}}>⏱ {s.duration} min</div>
@@ -1075,7 +1075,7 @@ export function ProSchedule() {
   return (
     <div>
       <h1 className="serif" style={{fontSize:'2rem',marginBottom:32}}>Horaires & Blocages</h1>
-      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:24,alignItems:'start'}}>
+      <div className="pro-schedule-grid" style={{display:'grid',gap:24,alignItems:'start'}}>
         {/* Schedule */}
         <div className="card">
           <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16}}>

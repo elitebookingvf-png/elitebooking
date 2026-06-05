@@ -33,11 +33,11 @@ function SearchResults() {
 
   return (
     <div className="min-h-screen" style={{background:'#f7f7f7'}}>
-      <nav className="bg-white border-b px-4 h-16 flex items-center gap-4" style={{borderColor:'#eee'}}>
+      <nav className="bg-white border-b px-4 h-16 flex items-center gap-4 flex-wrap" style={{borderColor:'#eee',height:'auto',paddingTop:12,paddingBottom:12}}>
         <Link href="/" className="serif text-xl font-bold" style={{textDecoration:'none',color:'#111'}}>
           Elite<em style={{color:'#C17B4E',fontStyle:'normal'}}>Booking</em>
         </Link>
-        <div className="flex-1 flex gap-2" style={{maxWidth:720}}>
+        <div className="flex-1 flex gap-2 flex-wrap" style={{maxWidth:720,minWidth:200}}>
           <input value={q} onChange={e => setQ(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && search()}
             className="form-control flex-1" placeholder="Rechercher un salon…" />
@@ -85,7 +85,7 @@ function SearchResults() {
             )
           })}
           {!loading && displayed.length === 0 && (
-            <div className="text-center py-20" style={{gridColumn:'span 3',color:'#aaa'}}>
+            <div className="text-center py-20 col-span-full" style={{color:'#aaa'}}>
               <div style={{fontSize:'3rem',marginBottom:16}}>🔍</div>
               <p>Aucun salon trouvé pour ces critères</p>
             </div>
