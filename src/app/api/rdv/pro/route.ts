@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient, getUserIdFromCookies } from '@/lib/supabase/server';
 import { isSlotFree } from '@/lib/utils';
 
 function uuid() { return crypto.randomUUID(); }
@@ -16,10 +16,10 @@ async function getProSalonId(supabase: any, userId: string) {
 
 // GET /api/rdv/pro — tous les RDV du salon pro
 export async function GET(req: NextRequest) {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: '401' }, { status: 401 });
-  const salonId = await getProSalonId(supabase, user.id);
+  const userId = getUserIdFromCookies();
+  if (!userId) return NextResponse.json({ error: '401' }, { status: 401 });
+  const supabase = createAdminClient();
+  const salonId = await getProSalonId(supabase, userId);
   if (!salonId) return NextResponse.json({ error: '403' }, { status: 403 });
   const { searchParams } = new URL(req.url);
   const date = searchParams.get('date');
@@ -31,10 +31,10 @@ export async function GET(req: NextRequest) {
 
 // POST /api/rdv/pro — pro crée des RDV pour un client (multi-prestations)
 export async function POST(req: NextRequest) {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: '401' }, { status: 401 });
-  const salonId = await getProSalonId(supabase, user.id);
+  const userId = getUserIdFromCookies();
+  if (!userId) return NextResponse.json({ error: '401' }, { status: 401 });
+  const supabase = createAdminClient();
+  const salonId = await getProSalonId(supabase, userId);
   if (!salonId) return NextResponse.json({ error: '403' }, { status: 403 });
   const body = await req.json();
   const items: any[] = Array.isArray(body.items) ? body.items : [body];

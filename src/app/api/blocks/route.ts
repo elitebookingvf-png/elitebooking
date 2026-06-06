@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient, getUserIdFromCookies } from '@/lib/supabase/server';
 
 async function getProSalonId(supabase: any, userId: string) {
   const { data } = await supabase.from('profiles').select('type, salon_id').eq('id', userId).single();
@@ -12,10 +12,10 @@ async function getProSalonId(supabase: any, userId: string) {
 }
 
 export async function GET(req: NextRequest) {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: '401' }, { status: 401 });
-  const salonId = await getProSalonId(supabase, user.id);
+  const userId = getUserIdFromCookies();
+  if (!userId) return NextResponse.json({ error: '401' }, { status: 401 });
+  const supabase = createAdminClient();
+  const salonId = await getProSalonId(supabase, userId);
   if (!salonId) return NextResponse.json({ error: '403' }, { status: 403 });
   const { searchParams } = new URL(req.url);
   const date = searchParams.get('date');
@@ -26,10 +26,10 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: '401' }, { status: 401 });
-  const salonId = await getProSalonId(supabase, user.id);
+  const userId = getUserIdFromCookies();
+  if (!userId) return NextResponse.json({ error: '401' }, { status: 401 });
+  const supabase = createAdminClient();
+  const salonId = await getProSalonId(supabase, userId);
   if (!salonId) return NextResponse.json({ error: '403' }, { status: 403 });
   const body = await req.json();
   const { data, error } = await supabase.from('blocks').insert({ salon_id: salonId, ...body }).select().single();
@@ -38,9 +38,9 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: '401' }, { status: 401 });
+  const userId = getUserIdFromCookies();
+  if (!userId) return NextResponse.json({ error: '401' }, { status: 401 });
+  const supabase = createAdminClient();
   const { id } = await req.json();
   await supabase.from('blocks').delete().eq('id', id);
   return NextResponse.json({ ok: true });

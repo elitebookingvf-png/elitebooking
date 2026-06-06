@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient, getUserIdFromCookies } from '@/lib/supabase/server';
 
 async function getProSalonId(supabase: any, userId: string): Promise<string | null> {
   const { data } = await supabase.from('profiles').select('type, salon_id').eq('id', userId).single();
@@ -12,10 +12,10 @@ async function getProSalonId(supabase: any, userId: string): Promise<string | nu
 }
 
 export async function GET(req: NextRequest) {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: '401' }, { status: 401 });
-  const salonId = await getProSalonId(supabase, user.id);
+  const userId = getUserIdFromCookies();
+  if (!userId) return NextResponse.json({ error: '401' }, { status: 401 });
+  const supabase = createAdminClient();
+  const salonId = await getProSalonId(supabase, userId);
   if (!salonId) return NextResponse.json({ error: '403' }, { status: 403 });
   const [cats, services] = await Promise.all([
     supabase.from('service_categories').select('*').eq('salon_id', salonId).order('order'),
@@ -25,10 +25,10 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: '401' }, { status: 401 });
-  const salonId = await getProSalonId(supabase, user.id);
+  const userId = getUserIdFromCookies();
+  if (!userId) return NextResponse.json({ error: '401' }, { status: 401 });
+  const supabase = createAdminClient();
+  const salonId = await getProSalonId(supabase, userId);
   if (!salonId) return NextResponse.json({ error: '403' }, { status: 403 });
   const body = await req.json();
   if (body.resourceType === 'category') {
@@ -43,9 +43,9 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest) {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: '401' }, { status: 401 });
+  const userId = getUserIdFromCookies();
+  if (!userId) return NextResponse.json({ error: '401' }, { status: 401 });
+  const supabase = createAdminClient();
   const body = await req.json();
   const table = body.resourceType === 'category' ? 'service_categories' : 'services';
   const { id, resourceType: _, ...rest } = body;
@@ -55,9 +55,9 @@ export async function PUT(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: '401' }, { status: 401 });
+  const userId = getUserIdFromCookies();
+  if (!userId) return NextResponse.json({ error: '401' }, { status: 401 });
+  const supabase = createAdminClient();
   const { id, resourceType } = await req.json();
   if (resourceType === 'category') {
     await supabase.from('services').update({ cat_id: null }).eq('cat_id', id);
