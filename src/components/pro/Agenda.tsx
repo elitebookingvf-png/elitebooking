@@ -417,10 +417,6 @@ export function ProAgenda({ salon }: { salon: any }) {
   const iso    = toISO(date)
   const dayKey = dayKeyForISO(iso).toLowerCase()
   const isOpen = schedule ? schedule[`${dayKey}_open`] !== false : true
-  const dayStart = schedule?.[`${dayKey}_start`] || '09:00'
-  const dayEnd   = schedule?.[`${dayKey}_end`]   || '19:00'
-  const startHour = 0
-  const endHour   = 24
   const HOURS = Array.from({ length: 24 }, (_, i) => i)
 
   const navigate = (dir: number) => {
@@ -452,8 +448,6 @@ export function ProAgenda({ salon }: { salon: any }) {
 
   function staffWorksHour(st: any, h: number) {
     if (!isOpen) return false
-    if (h*60 < tMin(dayStart)) return false
-    if (h*60 >= tMin(dayEnd)) return false
     if (st.days?.length && !st.days.includes(dayKeyForISO(iso))) return false
     if (st.start_time && h*60 < tMin(st.start_time)) return false
     if (st.end_time   && h*60 >= tMin(st.end_time))  return false
