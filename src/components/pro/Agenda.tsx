@@ -77,9 +77,17 @@ function RdvDetailModal({ rdv, allRdvs, onClose, onStatusChange, pin }: {
             {statusLabel[rdv.status]||rdv.status}
           </div>
           <div style={{display:'flex',flexDirection:'column',gap:10,marginBottom:20}}>
+            {/* Client name at top */}
             <div style={{display:'flex',gap:8}}>
-              <span style={{fontSize:'1.1rem'}}>�</span>
-              <div><div style={{fontWeight:600}}>{rdv.date} a {rdv.start_time}</div><div style={{fontSize:'0.78rem',color:'#aaa'}}>{rdv.duration} min</div></div>
+              <span style={{fontSize:'1.1rem'}}>👤</span>
+              <div>
+                <div style={{fontWeight:700,fontSize:'1.1rem'}}>{rdv.client_name || 'Client'}</div>
+                {rdv.client_phone && <div style={{fontSize:'0.82rem',color:'#666',marginTop:2}}>📞 {rdv.client_phone}</div>}
+              </div>
+            </div>
+            <div style={{display:'flex',gap:8}}>
+              <span style={{fontSize:'1.1rem'}}>🗓️</span>
+              <div><div style={{fontWeight:600}}>{new Date(rdv.date).toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})} a {rdv.start_time}</div><div style={{fontSize:'0.78rem',color:'#aaa'}}>{rdv.duration} min</div></div>
             </div>
             {!isGroup ? (
               <div style={{display:'flex',gap:8}}>
@@ -104,14 +112,7 @@ function RdvDetailModal({ rdv, allRdvs, onClose, onStatusChange, pin }: {
                 </div>
               </div>
             )}
-            <div style={{display:'flex',gap:8}}>
-              <span style={{fontSize:'1.1rem'}}>👤</span>
-              <div>
-                <div style={{fontWeight:600}}>{rdv.client_name || 'Client'}</div>
-                {rdv.client_phone && <div style={{fontSize:'0.82rem',color:'#666',marginTop:2}}>📞 {rdv.client_phone}</div>}
-                {rdv.staff_name && <div style={{fontSize:'0.78rem',color:'#aaa',marginTop:2}}>Employe : {rdv.staff_name}</div>}
-              </div>
-            </div>
+            {rdv.staff_name && <div style={{display:'flex',gap:8}}><span style={{fontSize:'1.1rem'}}>�</span><div style={{fontSize:'0.85rem',color:'#666'}}>Employé : {rdv.staff_name}</div></div>}
             {rdv.notes && <div style={{background:'#f7f7f7',borderRadius:10,padding:'10px 14px',fontSize:'0.82rem',color:'#555'}}>📝 {rdv.notes}</div>}
           </div>
           {waPhone && (
@@ -149,14 +150,38 @@ function RdvDetailModal({ rdv, allRdvs, onClose, onStatusChange, pin }: {
   )
 }
 
+type CartItem = {
+  id: string; service_id: string; staff_id: string; date: string; start_time: string;
+  service_name: string; staff_name: string; duration: number; price: number; price_type: string
+}
+
+function formatDuration(mins: number) {
+  const h = Math.floor(mins/60), m = mins%60
+  return h>0 ? `${h}h${m>0?String(m).padStart(2,'0'):''}` : `${m}min`
+}
+
+function suggestNextSlot(currentTime: string, duration: number): string {
+  const [h,m] = currentTime.split(':').map(Number)
+  const totalMin = h*60 + m + duration
+  const nextH = Math.floor(totalMin/60)
+  const nextM = totalMin%60
+  if (nextH >= 24) return ''
+  return `${String(nextH).padStart(2,'0')}:${String(nextM).padStart(2,'0')}`
+}
+
 function AddRdvModal({ staff, services, salonId, onClose, onSaved, defaultDate, defaultTime, defaultStaffId }: {
   staff: any[]; services: any[]; salonId: string; onClose: () => void; onSaved: () => void
   defaultDate?: string; defaultTime?: string; defaultStaffId?: string
 }) {
   const today = toISO(new Date())
+  const [clientName, setClientName] = useState('')
+  const [clientPhone, setClientPhone] = useState('')
+  const [notes, setNotes] = useState('')
+  const [cart, setCart] = useState<CartItem[]>([])
+  
   const [form, setForm] = useState({
-    client_name: '', client_phone: '', service_id: '', staff_id: defaultStaffId || 'any',
-    date: defaultDate || today, start_time: defaultTime || '', notes: '', status: 'confirmed'
+    service_id: '', staff_id: defaultStaffId || 'any',
+    date: defaultDate || today, start_time: defaultTime || ''
   })
   const [slots, setSlots] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
@@ -166,6 +191,14 @@ function AddRdvModal({ staff, services, salonId, onClose, onSaved, defaultDate, 
   const eligibleStaff = selectedSvc?.staff_ids?.length
     ? staff.filter(s => selectedSvc.staff_ids.includes(s.id))
     : staff
+
+  // Calculate cart end time for next suggestion
+  const cartEndTime = cart.length > 0
+    ? (() => {
+        const last = cart[cart.length-1]
+        return suggestNextSlot(last.start_time, last.duration)
+      })()
+    : ''
 
   useEffect(() => {
     if (!form.service_id || !form.date) { setSlots([]); return }
@@ -178,21 +211,53 @@ function AddRdvModal({ staff, services, salonId, onClose, onSaved, defaultDate, 
     fetch('/api/availability?' + sp).then(r => r.json()).then(d => setSlots(Array.isArray(d.slots) ? d.slots : []))
   }, [form.service_id, form.staff_id, form.date, salonId])
 
+  // Auto-suggest consecutive slot when cart has items
+  useEffect(() => {
+    if (cart.length > 0 && !form.start_time && cartEndTime && slots.includes(cartEndTime)) {
+      setForm(f => ({ ...f, start_time: cartEndTime }))
+    }
+  }, [slots, cart.length, cartEndTime])
+
+  function addToCart() {
+    if (!form.service_id || !form.start_time) { setErr('Veuillez sélectionner une prestation et un horaire'); return }
+    const svc = services.find(s => s.id === form.service_id)
+    const stf = form.staff_id === 'any' ? eligibleStaff[0] : staff.find(s => s.id === form.staff_id)
+    if (!svc || !stf) { setErr('Données invalides'); return }
+    
+    const newItem: CartItem = {
+      id: crypto.randomUUID(),
+      service_id: form.service_id, staff_id: stf.id, date: form.date, start_time: form.start_time,
+      service_name: svc.name, staff_name: `${stf.firstname} ${stf.lastname}`,
+      duration: svc.duration, price: svc.price, price_type: svc.price_type
+    }
+    setCart([...cart, newItem])
+    setForm(f => ({ ...f, service_id: '', start_time: '' }))
+    setSlots([])
+    setErr('')
+  }
+
+  function removeFromCart(id: string) {
+    setCart(cart.filter(i => i.id !== id))
+  }
+
+  const cartTotal = cart.reduce((sum, i) => sum + (Number(i.price) || 0), 0)
+
   async function save() {
-    if (!form.client_name.trim()) { setErr('Nom du client requis'); return }
-    if (!form.service_id) { setErr('Prestation requise'); return }
-    if (!form.start_time) { setErr('Heure requise'); return }
+    if (!clientName.trim()) { setErr('Nom du client requis'); return }
+    if (cart.length === 0) { setErr('Ajoutez au moins une prestation'); return }
     setSaving(true); setErr('')
-    const staffId = form.staff_id === 'any' ? (eligibleStaff[0]?.id || null) : form.staff_id
+    
+    const items = cart.map(i => ({
+      client_name: clientName, client_phone: clientPhone || null,
+      service_id: i.service_id, staff_id: i.staff_id,
+      date: i.date, start_time: i.start_time,
+      notes: notes || null, status: 'confirmed'
+    }))
+    
     const res = await fetch('/api/rdv/pro', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        client_name: form.client_name, client_phone: form.client_phone || null,
-        service_id: form.service_id, staff_id: staffId,
-        date: form.date, start_time: form.start_time,
-        notes: form.notes || null, status: form.status,
-      }),
+      body: JSON.stringify({ items }),
     })
     setSaving(false)
     if (res.ok) { onSaved(); onClose() }
@@ -201,71 +266,109 @@ function AddRdvModal({ staff, services, salonId, onClose, onSaved, defaultDate, 
 
   return (
     <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.55)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
-      <div style={{background:'#fff',borderRadius:20,padding:32,width:'100%',maxWidth:540,maxHeight:'90vh',overflowY:'auto',boxShadow:'0 20px 60px rgba(0,0,0,0.2)'}}>
+      <div style={{background:'#fff',borderRadius:20,padding:32,width:'100%',maxWidth:600,maxHeight:'90vh',overflowY:'auto',boxShadow:'0 20px 60px rgba(0,0,0,0.2)'}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:24}}>
           <h2 className="serif" style={{fontSize:'1.5rem'}}>Ajouter un rendez-vous</h2>
           <button onClick={onClose} style={{background:'none',border:'none',fontSize:'1.4rem',cursor:'pointer',color:'#aaa',lineHeight:1}}>✕</button>
         </div>
+        
         {err && <div style={{background:'#fef2f2',color:'#e53e3e',padding:'10px 14px',borderRadius:8,marginBottom:16,fontSize:'0.83rem'}}>{err}</div>}
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+        
+        {/* Client info */}
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
           <div className="form-group" style={{marginBottom:0}}>
             <label>Nom du client *</label>
-            <input className="form-control" placeholder="Fatima Benali" value={form.client_name}
-              onChange={e=>setForm(f=>({...f,client_name:e.target.value}))} />
+            <input className="form-control" placeholder="Fatima Benali" value={clientName}
+              onChange={e=>setClientName(e.target.value)} />
           </div>
           <div className="form-group" style={{marginBottom:0}}>
             <label>Téléphone client</label>
-            <input className="form-control" type="tel" placeholder="+212 6XX XXX XXX" value={form.client_phone}
-              onChange={e=>setForm(f=>({...f,client_phone:e.target.value}))} />
+            <input className="form-control" type="tel" placeholder="+212 6XX XXX XXX" value={clientPhone}
+              onChange={e=>setClientPhone(e.target.value)} />
           </div>
         </div>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginTop:16}}>
-          <div className="form-group" style={{marginBottom:0}}>
-            <label>Prestation *</label>
-            <select className="form-control" value={form.service_id}
-              onChange={e=>setForm(f=>({...f,service_id:e.target.value,start_time:''}))}>
-              <option value="">— Choisir —</option>
-              {services.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}
-            </select>
-          </div>
-          <div className="form-group" style={{marginBottom:0}}>
-            <label>Employé</label>
-            <select className="form-control" value={form.staff_id}
-              onChange={e=>setForm(f=>({...f,staff_id:e.target.value,start_time:''}))}>
-              <option value="any">N'importe qui</option>
-              {eligibleStaff.map(s=><option key={s.id} value={s.id}>{s.firstname} {s.lastname}</option>)}
-            </select>
-          </div>
+        
+        <div className="form-group" style={{marginBottom:16}}>
+          <label>Notes (optionnel)</label>
+          <textarea className="form-control" placeholder="Préférences, allergies…" value={notes}
+            onChange={e=>setNotes(e.target.value)} style={{minHeight:50}} />
         </div>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginTop:16}}>
-          <div className="form-group" style={{marginBottom:0}}>
-            <label>Date *</label>
-            <input type="date" className="form-control" min={today} value={form.date}
-              onChange={e=>setForm(f=>({...f,date:e.target.value,start_time:''}))} />
+        
+        {/* Add service form */}
+        <div style={{background:'#f7f7f7',borderRadius:12,padding:16,marginBottom:16}}>
+          <div style={{fontSize:'0.85rem',fontWeight:600,color:'#666',marginBottom:12,textTransform:'uppercase'}}>Ajouter une prestation</div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:12}}>
+            <div className="form-group" style={{marginBottom:0}}>
+              <label>Prestation</label>
+              <select className="form-control" value={form.service_id}
+                onChange={e=>setForm(f=>({...f,service_id:e.target.value,start_time:''}))}>
+                <option value="">— Choisir —</option>
+                {services.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
+            </div>
+            <div className="form-group" style={{marginBottom:0}}>
+              <label>Employé</label>
+              <select className="form-control" value={form.staff_id}
+                onChange={e=>setForm(f=>({...f,staff_id:e.target.value,start_time:''}))}>
+                <option value="any">N'importe qui</option>
+                {eligibleStaff.map(s=><option key={s.id} value={s.id}>{s.firstname} {s.lastname}</option>)}
+              </select>
+            </div>
           </div>
-          <div className="form-group" style={{marginBottom:0}}>
-            <label>Heure *</label>
-            <select className="form-control" value={form.start_time}
-              onChange={e=>setForm(f=>({...f,start_time:e.target.value}))}>
-              <option value="">— Choisir —</option>
-              {slots.map(t=><option key={t} value={t}>{t}</option>)}
-            </select>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+            <div className="form-group" style={{marginBottom:0}}>
+              <label>Date</label>
+              <input type="date" className="form-control" min={today} value={form.date}
+                onChange={e=>setForm(f=>({...f,date:e.target.value,start_time:''}))} />
+            </div>
+            <div className="form-group" style={{marginBottom:0}}>
+              <label>Heure {cartEndTime && slots.includes(cartEndTime) && <span style={{color:'#C17B4E',fontSize:'0.75rem'}}>({cartEndTime} suggéré)</span>}</label>
+              <select className="form-control" value={form.start_time}
+                onChange={e=>setForm(f=>({...f,start_time:e.target.value}))}>
+                <option value="">— Choisir —</option>
+                {slots.map(t=><option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
           </div>
+          {selectedSvc && form.start_time && (
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:12,padding:'10px 12px',background:'#fff',borderRadius:8}}>
+              <span style={{fontSize:'0.85rem',color:'#555'}}>{selectedSvc.name} · {selectedSvc.duration} min</span>
+              <span style={{fontWeight:700,color:'#C17B4E'}}>{formatPrice(selectedSvc.price, selectedSvc.price_type)}</span>
+            </div>
+          )}
+          <button onClick={addToCart} disabled={!form.service_id || !form.start_time}
+            className="btn btn-secondary" style={{width:'100%',marginTop:12,opacity:!form.service_id||!form.start_time?0.5:1}}>
+            + Ajouter au panier
+          </button>
         </div>
-        {selectedSvc && form.start_time && (
-          <div style={{background:'#f7f7f7',borderRadius:12,padding:'12px 16px',marginTop:16,fontSize:'0.85rem',color:'#555'}}>
-            {selectedSvc.name} · {selectedSvc.duration} min · <strong style={{color:'#C17B4E'}}>{formatPrice(selectedSvc.price, selectedSvc.price_type)}</strong>
+        
+        {/* Cart */}
+        {cart.length > 0 && (
+          <div style={{background:'#f0fdf4',borderRadius:12,padding:16,marginBottom:20,border:'1px solid #bbf7d0'}}>
+            <div style={{fontSize:'0.85rem',fontWeight:600,color:'#166534',marginBottom:12}}>Panier ({cart.length} prestation{cart.length>1?'s':''})</div>
+            {cart.map((item, idx) => (
+              <div key={item.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 0',borderBottom:idx<cart.length-1?'1px solid #bbf7d0':'none'}}>
+                <div>
+                  <div style={{fontWeight:600,fontSize:'0.9rem'}}>{item.start_time} · {item.service_name}</div>
+                  <div style={{fontSize:'0.78rem',color:'#666'}}>{item.staff_name} · {item.duration} min</div>
+                </div>
+                <div style={{display:'flex',alignItems:'center',gap:12}}>
+                  <span style={{fontWeight:700,color:'#C17B4E'}}>{formatPrice(item.price, item.price_type)}</span>
+                  <button onClick={()=>removeFromCart(item.id)} style={{background:'none',border:'none',color:'#ef4444',cursor:'pointer',fontSize:'1.1rem'}}>×</button>
+                </div>
+              </div>
+            ))}
+            <div style={{display:'flex',justifyContent:'space-between',marginTop:12,paddingTop:12,borderTop:'2px solid #bbf7d0',fontWeight:700,fontSize:'1.1rem'}}>
+              <span>Total</span>
+              <span style={{color:'#C17B4E'}}>{formatPrice(cartTotal, 'fixe')}</span>
+            </div>
           </div>
         )}
-        <div className="form-group" style={{marginTop:16}}>
-          <label>Notes internes (optionnel)</label>
-          <textarea className="form-control" placeholder="Préférences, allergies, rappels…" value={form.notes}
-            onChange={e=>setForm(f=>({...f,notes:e.target.value}))} style={{minHeight:64}} />
-        </div>
-        <div style={{display:'flex',gap:12,marginTop:8}}>
+        
+        <div style={{display:'flex',gap:12}}>
           <button onClick={onClose} className="btn btn-secondary" style={{flex:1}}>Annuler</button>
-          <button onClick={save} disabled={saving} className="btn btn-primary" style={{flex:1,opacity:saving?0.6:1}}>
-            {saving ? 'Enregistrement…' : 'Enregistrer le RDV'}
+          <button onClick={save} disabled={saving || cart.length===0} className="btn btn-primary" style={{flex:1,opacity:saving||cart.length===0?0.6:1}}>
+            {saving ? 'Enregistrement…' : cart.length>1 ? `Enregistrer ${cart.length} RDV` : 'Enregistrer le RDV'}
           </button>
         </div>
       </div>
@@ -316,9 +419,9 @@ export function ProAgenda({ salon }: { salon: any }) {
   const isOpen = schedule ? schedule[`${dayKey}_open`] !== false : true
   const dayStart = schedule?.[`${dayKey}_start`] || '09:00'
   const dayEnd   = schedule?.[`${dayKey}_end`]   || '19:00'
-  const startHour = Math.floor(tMin(dayStart) / 60)
-  const endHour   = Math.ceil(tMin(dayEnd) / 60)
-  const HOURS = Array.from({ length: endHour - startHour }, (_, i) => startHour + i)
+  const startHour = 0
+  const endHour   = 24
+  const HOURS = Array.from({ length: 24 }, (_, i) => i)
 
   const navigate = (dir: number) => {
     const d = new Date(date)
@@ -388,13 +491,13 @@ export function ProAgenda({ salon }: { salon: any }) {
         <h1 className="serif" style={{fontSize:'2rem'}}>Agenda</h1>
         <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',maxWidth:'100%'}}>
           <div style={{display:'flex',background:'#f3f3f3',borderRadius:12,padding:4,gap:4}}>
-            {(['day','staff','week','month'] as View[]).map(v => (
+            {(['staff','week','month'] as View[]).map(v => (
               <button key={v} onClick={() => setView(v)}
                 style={{padding:'6px 14px',borderRadius:8,fontSize:'0.82rem',fontWeight:500,border:'none',cursor:'pointer',
                   background: view===v?'#fff':'transparent',
                   boxShadow: view===v?'0 1px 4px rgba(0,0,0,0.1)':'none',
                   color: view===v?'#111':'#888'}}>
-                {v==='day'?'Jour':v==='staff'?'Employés':v==='week'?'Semaine':'Mois'}
+                {v==='staff'?'Employés':v==='week'?'Semaine':'Mois'}
               </button>
             ))}
           </div>
