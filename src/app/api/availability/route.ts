@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { tMin, generateSlots, dayKeyForISO, DAY_KEYS } from '@/lib/utils';
+import { tMin, generateSlots, dayKeyForISO } from '@/lib/utils';
 
 // GET /api/availability?salonId=&staffId=&serviceId=&date=
 export async function GET(req: NextRequest) {
@@ -28,8 +28,10 @@ export async function GET(req: NextRequest) {
   const dayKey = dayKeyForISO(date).toLowerCase();
   const isOpen = (schedule as any)[`${dayKey}_open`] as boolean;
   if (!isOpen) return NextResponse.json({ slots: [], closed: true });
-  let openStr  = staff?.start_time || '00:00';
-  let closeStr = staff?.end_time   || '24:00';
+  let openStr  = (schedule as any)[`${dayKey}_start`] as string || '00:00';
+  let closeStr = (schedule as any)[`${dayKey}_end`]   as string || '24:00';
+  if (staff?.start_time && tMin(staff.start_time) > tMin(openStr))  openStr  = staff.start_time;
+  if (staff?.end_time   && tMin(staff.end_time)   < tMin(closeStr)) closeStr = staff.end_time;
   const duration = service.duration;
   const allSlots = generateSlots(openStr, closeStr, duration);
   const available = allSlots.filter(slot => {

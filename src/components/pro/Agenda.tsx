@@ -446,12 +446,8 @@ export function ProAgenda({ salon }: { salon: any }) {
     })
   }
 
-  function staffWorksHour(st: any, h: number) {
-    if (!isOpen) return false
-    if (st.days?.length && !st.days.includes(dayKeyForISO(iso))) return false
-    if (st.start_time && h*60 < tMin(st.start_time)) return false
-    if (st.end_time   && h*60 >= tMin(st.end_time))  return false
-    return true
+  function staffWorksHour(_st: any, _h: number) {
+    return isOpen
   }
 
   return (
