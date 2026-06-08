@@ -780,20 +780,21 @@ export function ProServices() {
 // ─── Staff ───────────────────────────────────────────────────
 const DAY_OPTIONS = ['Lu','Ma','Me','Je','Ve','Sa','Di']
 const TIME_OPTIONS: string[] = []
-for(let h=7;h<=21;h++) for(let m=0;m<60;m+=30) TIME_OPTIONS.push(`${String(h).padStart(2,'0')}:${m===0?'00':'30'}`)
+for(let h=0;h<24;h++) for(let m=0;m<60;m+=30) TIME_OPTIONS.push(`${String(h).padStart(2,'0')}:${m===0?'00':'30'}`)
+TIME_OPTIONS.push('24:00')
 
 export function ProStaff() {
   const [staff, setStaff]   = useState<any[]>([])
   const [editing, setEditing] = useState<any>(null)
-  const [form, setForm] = useState({ firstname:'', lastname:'', role:'', phone:'', days:['Lu','Ma','Me','Je','Ve'] as string[], start_time:'09:00', end_time:'19:00' })
+  const [form, setForm] = useState({ firstname:'', lastname:'', role:'', phone:'', days:['Lu','Ma','Me','Je','Ve'] as string[], start_time:'00:00', end_time:'24:00' })
   const [saving, setSaving] = useState(false)
 
   const load = () => fetch('/api/staff').then(r => r.json()).then(d => setStaff(Array.isArray(d) ? d : []))
   useEffect(() => { load() }, [])
 
   const openForm = (st?: any) => {
-    if (st) { setEditing(st); setForm({ firstname:st.firstname, lastname:st.lastname, role:st.role, phone:st.phone||'', days:st.days||['Lu','Ma','Me','Je','Ve'], start_time:st.start_time||'09:00', end_time:st.end_time||'19:00' }) }
-    else { setEditing({}); setForm({ firstname:'', lastname:'', role:'', phone:'', days:['Lu','Ma','Me','Je','Ve'], start_time:'09:00', end_time:'19:00' }) }
+    if (st) { setEditing(st); setForm({ firstname:st.firstname, lastname:st.lastname, role:st.role, phone:st.phone||'', days:st.days||['Lu','Ma','Me','Je','Ve'], start_time:st.start_time||'00:00', end_time:st.end_time||'24:00' }) }
+    else { setEditing({}); setForm({ firstname:'', lastname:'', role:'', phone:'', days:['Lu','Ma','Me','Je','Ve'], start_time:'00:00', end_time:'24:00' }) }
   }
 
   const save = async () => {
@@ -1033,7 +1034,8 @@ export function ProClients() {
 const SCHED_KEYS  = ['di','lu','ma','me','je','ve','sa']
 const SCHED_LABELS = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi']
 const BLOCK_TIMES: string[] = []
-for(let h=6;h<=22;h++) for(let m=0;m<60;m+=30) BLOCK_TIMES.push(`${String(h).padStart(2,'0')}:${m===0?'00':'30'}`)
+for(let h=0;h<24;h++) for(let m=0;m<60;m+=30) BLOCK_TIMES.push(`${String(h).padStart(2,'0')}:${m===0?'00':'30'}`)
+BLOCK_TIMES.push('24:00')
 
 export function ProSchedule() {
   const [schedule, setSchedule]   = useState<any>({})
@@ -1085,8 +1087,8 @@ export function ProSchedule() {
           </div>
           {SCHED_KEYS.map((k, i) => {
             const isOpen = schedule[`${k}_open`] !== false
-            const start  = schedule[`${k}_start`] || '09:00'
-            const end    = schedule[`${k}_end`]   || '19:00'
+            const start  = schedule[`${k}_start`] || '00:00'
+            const end    = schedule[`${k}_end`]   || '24:00'
             return (
               <div key={k} style={{display:'flex',alignItems:'center',gap:16,padding:'12px 0',borderBottom:'1px solid #f3f3f3'}}>
                 <div style={{width:96,fontSize:'0.85rem',fontWeight:500}}>{SCHED_LABELS[i]}</div>
