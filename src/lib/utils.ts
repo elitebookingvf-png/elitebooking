@@ -87,13 +87,16 @@ export const CITIES = [
 ];
 
 export const CATEGORIES = [
-  { id: 'hammam',   label: 'Hammam & Spa',  emoji: '🛁' },
-  { id: 'coiffure', label: 'Coiffure',      emoji: '✂️' },
-  { id: 'onglerie', label: 'Onglerie',      emoji: '💅' },
-  { id: 'massage',  label: 'Massage',       emoji: '💆' },
-  { id: 'esthetic', label: 'Esthétique',    emoji: '✨' },
-  { id: 'barbier',  label: 'Barbier',       emoji: '💈' },
-  { id: 'autre',    label: 'Autre',         emoji: '🏠' },
+  { id: 'hammam',    label: 'Hammam & Spa',         emoji: '🛁' },
+  { id: 'coiffure',  label: 'Coiffure',              emoji: '✂️' },
+  { id: 'onglerie',  label: 'Onglerie',              emoji: '💅' },
+  { id: 'massage',   label: 'Massage',               emoji: '💆' },
+  { id: 'esthetic',  label: 'Esthétique',            emoji: '✨' },
+  { id: 'barbier',   label: 'Barbier',               emoji: '💈' },
+  { id: 'medecine',  label: 'Médecine esthétique',   emoji: '🩺' },
+  { id: 'domicile',  label: 'À domicile',            emoji: '🏠' },
+  { id: 'bienetre',  label: 'Bien-être',             emoji: '🧘' },
+  { id: 'autre',     label: 'Autre',                 emoji: '⭐' },
 ] as const;
 
 export const DAY_KEYS = ['Di', 'Lu', 'Ma', 'Me', 'Je', 'Ve', 'Sa'] as const;

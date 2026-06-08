@@ -60,10 +60,10 @@ function RdvAddModal({ staff, services, onClose, onSaved, defaultDate }: {
     const staffId = form.staff_id === 'any' ? (eligibleStaff[0]?.id || '') : form.staff_id
     const st = staff.find(s => s.id === staffId)
     if (!staffId || !st) { setErr('Aucun employé disponible'); return }
-    // Conflict against existing cart (any employee, same date)
+    // Conflict only against same staff on same date
     const s = tMin(form.start_time), e = s + svc.duration
-    const conflict = cart.some(c => c.date === form.date && s < tMin(c.start_time) + c.duration && e > tMin(c.start_time))
-    if (conflict) { setErr('Ce créneau chevauche une prestation déjà ajoutée'); return }
+    const conflict = cart.some(c => c.date === form.date && c.staff_id === staffId && s < tMin(c.start_time) + c.duration && e > tMin(c.start_time))
+    if (conflict) { setErr('Ce créneau chevauche une prestation déjà ajoutée pour cet employé'); return }
     const item: ProCartItem = {
       service_id: svc.id, service_name: svc.name, duration: svc.duration,
       price: Number(svc.price) || 0, price_type: svc.price_type,
@@ -278,8 +278,19 @@ function ClientFicheModal({ clientKey, clientRdvs, isBlocked, onToggleBlock, onC
 }) {
   const sample  = clientRdvs[0]
   const name    = sample?.client_name || 'Client'
-  const phone   = clientRdvs.find((r: any) => r.client_phone)?.client_phone || ''
+  const [editPhone, setEditPhone] = useState(clientRdvs.find((r: any) => r.client_phone)?.client_phone || '')
+  const [savingPhone, setSavingPhone] = useState(false)
+  const [phoneSaved, setPhoneSaved] = useState(false)
+  const phone   = editPhone
   const waPhone = phone.replace(/\D/g,'')
+
+  async function savePhone() {
+    if (!editPhone.trim()) return
+    setSavingPhone(true)
+    await fetch('/api/rdv/pro', { method: 'PATCH', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ client_name: name, client_phone: editPhone }) })
+    setSavingPhone(false); setPhoneSaved(true); setTimeout(() => setPhoneSaved(false), 2000)
+  }
   const sorted  = [...clientRdvs].sort((a: any,b: any) => b.date.localeCompare(a.date) || b.start_time.localeCompare(a.start_time))
   const total   = clientRdvs.filter((r: any) => r.status !== 'cancelled').reduce((s: number, r: any) => s + (Number(r.price)||0), 0)
   const noShows = clientRdvs.filter((r: any) => r.status === 'no-show').length
@@ -304,10 +315,14 @@ function ClientFicheModal({ clientKey, clientRdvs, isBlocked, onToggleBlock, onC
                 {name}
                 {isBlocked && <span style={{fontSize:'0.68rem',background:'#EB5757',color:'#fff',padding:'2px 8px',borderRadius:8,fontWeight:600}}>Bloqué</span>}
               </div>
-              {phone
-                ? <div style={{fontSize:'0.85rem',color:'#444',marginTop:3}}>📞 {phone}</div>
-                : <div style={{fontSize:'0.8rem',color:'#aaa',marginTop:3}}>Aucun numéro enregistré</div>
-              }
+              <div style={{display:'flex',alignItems:'center',gap:6,marginTop:3}}>
+                <input value={editPhone} onChange={e => setEditPhone(e.target.value)}
+                  placeholder="+212 6XX XXX XXX" style={{fontSize:'0.82rem',border:'1px solid #eee',borderRadius:8,padding:'3px 8px',width:160,outline:'none'}} />
+                <button onClick={savePhone} disabled={savingPhone}
+                  style={{fontSize:'0.72rem',background: phoneSaved?'#27AE60':'#111',color:'#fff',border:'none',borderRadius:8,padding:'4px 10px',cursor:'pointer',fontWeight:600,flexShrink:0}}>
+                  {phoneSaved ? '✓' : 'Enr.'}
+                </button>
+              </div>
             </div>
           </div>
           <button onClick={onClose} style={{background:'none',border:'none',fontSize:'1.4rem',cursor:'pointer',color:'#aaa',padding:4}}>✕</button>
@@ -781,20 +796,19 @@ export function ProServices() {
 const DAY_OPTIONS = ['Lu','Ma','Me','Je','Ve','Sa','Di']
 const TIME_OPTIONS: string[] = []
 for(let h=0;h<24;h++) for(let m=0;m<60;m+=30) TIME_OPTIONS.push(`${String(h).padStart(2,'0')}:${m===0?'00':'30'}`)
-TIME_OPTIONS.push('24:00')
 
 export function ProStaff() {
   const [staff, setStaff]   = useState<any[]>([])
   const [editing, setEditing] = useState<any>(null)
-  const [form, setForm] = useState({ firstname:'', lastname:'', role:'', phone:'', days:['Lu','Ma','Me','Je','Ve'] as string[], start_time:'00:00', end_time:'24:00' })
+  const [form, setForm] = useState({ firstname:'', lastname:'', role:'', phone:'', days:['Lu','Ma','Me','Je','Ve'] as string[], start_time:'00:00', end_time:'23:30' })
   const [saving, setSaving] = useState(false)
 
   const load = () => fetch('/api/staff').then(r => r.json()).then(d => setStaff(Array.isArray(d) ? d : []))
   useEffect(() => { load() }, [])
 
   const openForm = (st?: any) => {
-    if (st) { setEditing(st); setForm({ firstname:st.firstname, lastname:st.lastname, role:st.role, phone:st.phone||'', days:st.days||['Lu','Ma','Me','Je','Ve'], start_time:st.start_time||'00:00', end_time:st.end_time||'24:00' }) }
-    else { setEditing({}); setForm({ firstname:'', lastname:'', role:'', phone:'', days:['Lu','Ma','Me','Je','Ve'], start_time:'00:00', end_time:'24:00' }) }
+    if (st) { setEditing(st); setForm({ firstname:st.firstname, lastname:st.lastname, role:st.role, phone:st.phone||'', days:st.days||['Lu','Ma','Me','Je','Ve'], start_time:st.start_time||'00:00', end_time:st.end_time||'23:30' }) }
+    else { setEditing({}); setForm({ firstname:'', lastname:'', role:'', phone:'', days:['Lu','Ma','Me','Je','Ve'], start_time:'00:00', end_time:'23:30' }) }
   }
 
   const save = async () => {
@@ -1035,7 +1049,6 @@ const SCHED_KEYS  = ['di','lu','ma','me','je','ve','sa']
 const SCHED_LABELS = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi']
 const BLOCK_TIMES: string[] = []
 for(let h=0;h<24;h++) for(let m=0;m<60;m+=30) BLOCK_TIMES.push(`${String(h).padStart(2,'0')}:${m===0?'00':'30'}`)
-BLOCK_TIMES.push('24:00')
 
 export function ProSchedule() {
   const [schedule, setSchedule]   = useState<any>({})
@@ -1088,7 +1101,7 @@ export function ProSchedule() {
           {SCHED_KEYS.map((k, i) => {
             const isOpen = schedule[`${k}_open`] !== false
             const start  = schedule[`${k}_start`] || '00:00'
-            const end    = schedule[`${k}_end`]   || '24:00'
+            const end    = schedule[`${k}_end`]   || '23:30'
             return (
               <div key={k} style={{display:'flex',alignItems:'center',gap:16,padding:'12px 0',borderBottom:'1px solid #f3f3f3'}}>
                 <div style={{width:96,fontSize:'0.85rem',fontWeight:500}}>{SCHED_LABELS[i]}</div>

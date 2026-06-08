@@ -29,6 +29,20 @@ export async function GET(req: NextRequest) {
   return NextResponse.json(data ?? []);
 }
 
+// PATCH /api/rdv/pro — update client phone across all their RDVs in the salon
+export async function PATCH(req: NextRequest) {
+  const userId = getUserIdFromCookies();
+  if (!userId) return NextResponse.json({ error: '401' }, { status: 401 });
+  const supabase = createAdminClient();
+  const salonId = await getProSalonId(supabase, userId);
+  if (!salonId) return NextResponse.json({ error: '403' }, { status: 403 });
+  const { client_name, client_phone } = await req.json();
+  if (!client_name) return NextResponse.json({ error: 'client_name requis' }, { status: 400 });
+  const { error } = await supabase.from('rdvs').update({ client_phone }).eq('salon_id', salonId).eq('client_name', client_name);
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ ok: true });
+}
+
 // POST /api/rdv/pro — pro crée des RDV pour un client (multi-prestations)
 export async function POST(req: NextRequest) {
   const userId = getUserIdFromCookies();

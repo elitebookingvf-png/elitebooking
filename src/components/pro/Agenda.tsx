@@ -21,7 +21,7 @@ function RdvDetailModal({ rdv, allRdvs, onClose, onStatusChange, pin }: {
   const [waMsg, setWaMsg]               = useState(`Bonjour ${rdv.client_name}, votre RDV du ${rdv.date} a ${rdv.start_time} pour ${rdv.service_name}.`)
   const waPhone = (rdv.client_phone || '').replace(/\D/g,'')
   const statusColor: Record<string,string> = { confirmed:'#27AE60', completed:'#3B82F6', cancelled:'#EB5757', 'no-show':'#F59E0B' }
-  const statusLabel: Record<string,string> = { confirmed:'Confirme', completed:'Termine', cancelled:'Annule', 'no-show':'Pas venu' }
+  const statusLabel: Record<string,string> = { confirmed:'Confirmé', completed:'Terminé', cancelled:'Annulé', 'no-show':'Pas venu' }
   async function doSetStatus(status: string) {
     setSaving(true)
     await fetch(`/api/rdv/${rdv.id}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ status }) })
@@ -70,7 +70,7 @@ function RdvDetailModal({ rdv, allRdvs, onClose, onStatusChange, pin }: {
       {!pinPrompt && !waModal && (
         <div style={{background:'#fff',borderRadius:20,padding:32,width:'100%',maxWidth:440,boxShadow:'0 20px 60px rgba(0,0,0,0.2)'}}>
           <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20}}>
-            <h2 className="serif" style={{fontSize:'1.3rem'}}>Detail du RDV</h2>
+            <h2 className="serif" style={{fontSize:'1.3rem'}}>Détail du RDV</h2>
             <button onClick={onClose} style={{background:'none',border:'none',fontSize:'1.4rem',cursor:'pointer',color:'#aaa'}}>x</button>
           </div>
           <div style={{display:'inline-block',background:statusColor[rdv.status]||'#ccc',color:'#fff',borderRadius:20,padding:'4px 12px',fontSize:'0.75rem',fontWeight:700,marginBottom:16}}>
@@ -128,20 +128,24 @@ function RdvDetailModal({ rdv, allRdvs, onClose, onStatusChange, pin }: {
                 style={{padding:'10px',borderRadius:12,border:'2px solid #3B82F6',background:'#EFF6FF',color:'#3B82F6',fontWeight:700,cursor:'pointer',fontSize:'0.85rem'}}>
                 ✅ Venu
               </button>
-              <button disabled={saving} onClick={() => requirePin('Marquer pas venu', 'no-show')}
+              <button disabled={saving} onClick={() => doSetStatus('no-show')}
                 style={{padding:'10px',borderRadius:12,border:'2px solid #F59E0B',background:'#FFFBEB',color:'#F59E0B',fontWeight:700,cursor:'pointer',fontSize:'0.85rem'}}>
                 ❌ Pas venu
               </button>
               <button disabled={saving} onClick={() => doSetStatus('cancelled')}
-                style={{padding:'10px',borderRadius:12,border:'2px solid #EB5757',background:'#FEF2F2',color:'#EB5757',fontWeight:700,cursor:'pointer',fontSize:'0.85rem',gridColumn:'span 2'}}>
-                🚫 Annuler le RDV
+                style={{padding:'10px',borderRadius:12,border:'2px solid #EB5757',background:'#FEF2F2',color:'#EB5757',fontWeight:700,cursor:'pointer',fontSize:'0.85rem'}}>
+                🚫 Annuler
+              </button>
+              <button disabled={saving} onClick={async () => { if(!confirm('Supprimer définitivement ce RDV ?')) return; setSaving(true); await fetch(`/api/rdv/${rdv.id}`, { method:'DELETE' }); onStatusChange(rdv.id, 'deleted'); setSaving(false); onClose() }}
+                style={{padding:'10px',borderRadius:12,border:'2px solid #111',background:'#111',color:'#fff',fontWeight:700,cursor:'pointer',fontSize:'0.85rem'}}>
+                🗑 Supprimer
               </button>
             </div>
           )}
-          {rdv.status !== 'confirmed' && (
+          {rdv.status !== 'confirmed' && rdv.status !== 'deleted' && (
             <button disabled={saving} onClick={() => doSetStatus('confirmed')}
               style={{width:'100%',padding:'10px',borderRadius:12,border:'2px solid #27AE60',background:'#F0FDF4',color:'#27AE60',fontWeight:700,cursor:'pointer',fontSize:'0.85rem'}}>
-              Remettre en confirme
+              Remettre en confirmé
             </button>
           )}
         </div>
@@ -481,13 +485,13 @@ export function ProAgenda({ salon }: { salon: any }) {
         <h1 className="serif" style={{fontSize:'2rem'}}>Agenda</h1>
         <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',maxWidth:'100%'}}>
           <div style={{display:'flex',background:'#f3f3f3',borderRadius:12,padding:4,gap:4}}>
-            {(['staff','week','month'] as View[]).map(v => (
+            {(['day','staff','week','month'] as View[]).map(v => (
               <button key={v} onClick={() => setView(v)}
                 style={{padding:'6px 14px',borderRadius:8,fontSize:'0.82rem',fontWeight:500,border:'none',cursor:'pointer',
                   background: view===v?'#fff':'transparent',
                   boxShadow: view===v?'0 1px 4px rgba(0,0,0,0.1)':'none',
                   color: view===v?'#111':'#888'}}>
-                {v==='staff'?'Employés':v==='week'?'Semaine':'Mois'}
+                {v==='day'?'Jour':v==='staff'?'Employés':v==='week'?'Semaine':'Mois'}
               </button>
             ))}
           </div>
