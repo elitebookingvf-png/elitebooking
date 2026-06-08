@@ -485,13 +485,13 @@ export function ProAgenda({ salon }: { salon: any }) {
         <h1 className="serif" style={{fontSize:'2rem'}}>Agenda</h1>
         <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',maxWidth:'100%'}}>
           <div style={{display:'flex',background:'#f3f3f3',borderRadius:12,padding:4,gap:4}}>
-            {(['day','staff','week','month'] as View[]).map(v => (
+            {(['day','week','month'] as View[]).map(v => (
               <button key={v} onClick={() => setView(v)}
                 style={{padding:'6px 14px',borderRadius:8,fontSize:'0.82rem',fontWeight:500,border:'none',cursor:'pointer',
                   background: view===v?'#fff':'transparent',
                   boxShadow: view===v?'0 1px 4px rgba(0,0,0,0.1)':'none',
                   color: view===v?'#111':'#888'}}>
-                {v==='day'?'Jour':v==='staff'?'Employés':v==='week'?'Semaine':'Mois'}
+                {v==='day'?'Jour':v==='week'?'Semaine':'Mois'}
               </button>
             ))}
           </div>
