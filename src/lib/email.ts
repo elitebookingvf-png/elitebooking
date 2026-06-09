@@ -62,8 +62,8 @@ export async function sendRdvConfirmationEmail(to: string, rdvId: string, params
   clientName: string; salonName: string; serviceName: string;
   staffName: string; date: string; time: string; duration: number; price: string;
 }) {
-  const cancelUrl = `${APP}/rdv/action?id=${rdvId}&action=cancel`;
-  const modifyUrl = `${APP}/rdv/action?id=${rdvId}&action=modify`;
+  const cancelUrl = `${APP}/rdv/action?id=${rdvId}&amp;action=cancel`;
+  const modifyUrl = `${APP}/rdv/action?id=${rdvId}&amp;action=modify`;
   const dateFormatted = new Date(params.date + 'T12:00').toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
   const html = base(`
     <h2 style="margin:0 0 12px;font-size:1.2rem;font-weight:800;color:#111">Votre rendez-vous est confirmé ✅</h2>
@@ -104,7 +104,7 @@ export async function sendNewRdvNotificationEmail(to: string, params: {
       <strong>Heure :</strong> ${params.time}<br/>
       <strong>Durée :</strong> ${params.duration} min
     </div>
-    <p style="margin:20px 0 8px">${btn(`${APP}/pro/agenda`, 'Voir l\'agenda', '#C17B4E', '#ffffff')}</p>
+    <p style="margin:20px 0 8px">${btn(`${APP}/pro`, 'Voir l\'agenda', '#C17B4E', '#ffffff')}</p>
   `);
   await send(to, `Nouveau RDV — ${params.clientName} le ${params.date} à ${params.time}`, html);
 }
