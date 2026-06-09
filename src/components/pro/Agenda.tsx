@@ -476,7 +476,11 @@ export function ProAgenda({ salon }: { salon: any }) {
           pin={pin}
           onClose={() => setSelectedRdv(null)}
           onStatusChange={(id, status) => {
-            setRdvs(prev => prev.map(r => r.id === id ? { ...r, status } : r))
+            if (status === 'cancelled' || status === 'deleted') {
+              setRdvs(prev => prev.filter(r => r.id !== id))
+            } else {
+              setRdvs(prev => prev.map(r => r.id === id ? { ...r, status } : r))
+            }
             setSelectedRdv(null)
           }}
         />
