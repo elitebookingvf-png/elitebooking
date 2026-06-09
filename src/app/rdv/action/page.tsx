@@ -1,8 +1,8 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 
-export default function RdvActionPage() {
+function RdvActionInner() {
   const params  = useSearchParams()
   const router  = useRouter()
   const id      = params.get('id')
@@ -83,6 +83,14 @@ export default function RdvActionPage() {
   )
 
   return null
+}
+
+export default function RdvActionPage() {
+  return (
+    <Suspense fallback={<div style={wrap}><div style={card}><p style={{textAlign:'center',color:'#aaa'}}>Chargement…</p></div></div>}>
+      <RdvActionInner />
+    </Suspense>
+  )
 }
 
 const wrap: React.CSSProperties = { minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'#f5f5f5', padding:16 }
