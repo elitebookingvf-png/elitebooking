@@ -2,7 +2,7 @@ import { Resend } from 'resend';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM   = 'EliteBooking <onboarding@resend.dev>';
-const APP    = process.env.NEXT_PUBLIC_APP_URL || 'https://elitebooking.netlify.app';
+const APP    = process.env.NEXT_PUBLIC_APP_URL || 'https://elitebooking-lac.vercel.app';
 
 // Until a custom domain is verified, Resend only allows sending to the account owner email.
 // VERIFIED_EMAIL is the email you signed up with on resend.com
