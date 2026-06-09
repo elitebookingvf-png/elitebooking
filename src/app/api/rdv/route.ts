@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { isSlotFree, tMin as tMinUtil } from '@/lib/utils';
+import { isSlotFree, tMin as tMinUtil, formatPrice } from '@/lib/utils';
+import { sendRdvConfirmationEmail, sendNewRdvNotificationEmail } from '@/lib/email';
 
 function uuid() { return crypto.randomUUID(); }
 
@@ -72,5 +73,33 @@ export async function POST(req: NextRequest) {
     console.error('[rdv POST] insert error:', JSON.stringify(error));
     return NextResponse.json({ error: error.message, detail: error.details, hint: error.hint }, { status: 500 });
   }
+
+  // Send emails (fire-and-forget) for first item in the booking
+  const first = toInsert[0];
+  if (first && user.email) {
+    sendRdvConfirmationEmail(user.email, (data as any[])[0].id, {
+      clientName: first.client_name, salonName: first.salon_name,
+      serviceName: first.service_name, staffName: first.staff_name,
+      date: first.date, time: first.start_time, duration: first.duration,
+      price: formatPrice(first.price, first.price_type),
+    }).catch(console.error);
+  }
+  // Notify salon owner
+  if (first) {
+    const { data: ownerProfile } = await supabase.from('salons')
+      .select('owner_id').eq('id', first.salon_id).single();
+    if (ownerProfile?.owner_id) {
+      const { data: ownerAuth } = await supabase.from('profiles')
+        .select('email').eq('id', ownerProfile.owner_id).single();
+      if ((ownerAuth as any)?.email) {
+        sendNewRdvNotificationEmail((ownerAuth as any).email, {
+          clientName: first.client_name, clientPhone: null,
+          serviceName: first.service_name, staffName: first.staff_name,
+          date: first.date, time: first.start_time, duration: first.duration,
+        }).catch(console.error);
+      }
+    }
+  }
+
   return NextResponse.json({ ok: true, rdvs: data }, { status: 201 });
 }

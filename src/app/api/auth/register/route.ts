@@ -1,6 +1,7 @@
 // src/app/api/auth/register/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { sendWelcomeEmail } from '@/lib/email';
 
 export async function POST(req: NextRequest) {
   try {
@@ -80,6 +81,9 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: `Profile link failed: ${linkErr.message}` }, { status: 500 });
       }
     }
+
+    // Send welcome email (fire-and-forget)
+    sendWelcomeEmail(email, firstname, type || 'client').catch(console.error);
 
     return NextResponse.json({ ok: true }, { status: 201 });
   } catch (e: any) {

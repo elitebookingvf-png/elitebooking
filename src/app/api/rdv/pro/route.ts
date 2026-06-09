@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient, getUserIdFromCookies } from '@/lib/supabase/server';
 import { isSlotFree } from '@/lib/utils';
+import { sendNewRdvNotificationEmail } from '@/lib/email';
 
 function uuid() { return crypto.randomUUID(); }
 
@@ -75,5 +76,19 @@ export async function POST(req: NextRequest) {
   }
   const { data, error } = await supabase.from('rdvs').insert(toInsert).select();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Notify salon owner (pro created RDV — just a confirmation for their records)
+  const first = toInsert[0];
+  if (first) {
+    const { data: ownerProfile } = await supabase.from('profiles').select('email').eq('id', userId).single();
+    if ((ownerProfile as any)?.email) {
+      sendNewRdvNotificationEmail((ownerProfile as any).email, {
+        clientName: first.client_name, clientPhone: first.client_phone,
+        serviceName: first.service_name, staffName: first.staff_name,
+        date: first.date, time: first.start_time, duration: first.duration,
+      }).catch(console.error);
+    }
+  }
+
   return NextResponse.json({ ok: true, rdvs: data }, { status: 201 });
 }
