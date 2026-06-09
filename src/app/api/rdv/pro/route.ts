@@ -36,9 +36,11 @@ export async function PATCH(req: NextRequest) {
   const supabase = createAdminClient();
   const salonId = await getProSalonId(supabase, userId);
   if (!salonId) return NextResponse.json({ error: '403' }, { status: 403 });
-  const { client_name, client_phone } = await req.json();
+  const { client_name, new_client_name, client_phone } = await req.json();
   if (!client_name) return NextResponse.json({ error: 'client_name requis' }, { status: 400 });
-  const { error } = await supabase.from('rdvs').update({ client_phone }).eq('salon_id', salonId).eq('client_name', client_name);
+  const update: any = { client_phone };
+  if (new_client_name && new_client_name !== client_name) update.client_name = new_client_name;
+  const { error } = await supabase.from('rdvs').update(update).eq('salon_id', salonId).eq('client_name', client_name);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });
 }

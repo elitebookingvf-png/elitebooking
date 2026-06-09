@@ -277,19 +277,19 @@ function ClientFicheModal({ clientKey, clientRdvs, isBlocked, onToggleBlock, onC
   onToggleBlock: () => void; onClose: () => void
 }) {
   const sample  = clientRdvs[0]
-  const name    = sample?.client_name || 'Client'
+  const [editName, setEditName] = useState(sample?.client_name || 'Client')
   const [editPhone, setEditPhone] = useState(clientRdvs.find((r: any) => r.client_phone)?.client_phone || '')
-  const [savingPhone, setSavingPhone] = useState(false)
-  const [phoneSaved, setPhoneSaved] = useState(false)
-  const phone   = editPhone
-  const waPhone = phone.replace(/\D/g,'')
+  const [saving2, setSaving2] = useState(false)
+  const [saved2, setSaved2] = useState(false)
+  const name    = editName
+  const waPhone = editPhone.replace(/\D/g,'')
 
-  async function savePhone() {
-    if (!editPhone.trim()) return
-    setSavingPhone(true)
+  async function saveInfo() {
+    if (!editName.trim()) return
+    setSaving2(true)
     await fetch('/api/rdv/pro', { method: 'PATCH', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ client_name: name, client_phone: editPhone }) })
-    setSavingPhone(false); setPhoneSaved(true); setTimeout(() => setPhoneSaved(false), 2000)
+      body: JSON.stringify({ client_name: sample?.client_name || 'Client', new_client_name: editName, client_phone: editPhone }) })
+    setSaving2(false); setSaved2(true); setTimeout(() => setSaved2(false), 2000)
   }
   const sorted  = [...clientRdvs].sort((a: any,b: any) => b.date.localeCompare(a.date) || b.start_time.localeCompare(a.start_time))
   const total   = clientRdvs.filter((r: any) => r.status !== 'cancelled').reduce((s: number, r: any) => s + (Number(r.price)||0), 0)
@@ -310,17 +310,18 @@ function ClientFicheModal({ clientKey, clientRdvs, isBlocked, onToggleBlock, onC
               display:'flex',alignItems:'center',justifyContent:'center',fontWeight:800,fontSize:'1.3rem',flexShrink:0}}>
               {name[0]?.toUpperCase()}
             </div>
-            <div>
-              <div style={{fontWeight:800,fontSize:'1.15rem',display:'flex',alignItems:'center',gap:8}}>
-                {name}
+            <div style={{display:'flex',flexDirection:'column',gap:6}}>
+              <div style={{display:'flex',alignItems:'center',gap:6}}>
+                <input value={editName} onChange={e => setEditName(e.target.value)}
+                  style={{fontWeight:800,fontSize:'1rem',border:'1px solid #eee',borderRadius:8,padding:'3px 8px',width:160,outline:'none'}} />
                 {isBlocked && <span style={{fontSize:'0.68rem',background:'#EB5757',color:'#fff',padding:'2px 8px',borderRadius:8,fontWeight:600}}>Bloqué</span>}
               </div>
-              <div style={{display:'flex',alignItems:'center',gap:6,marginTop:3}}>
+              <div style={{display:'flex',alignItems:'center',gap:6}}>
                 <input value={editPhone} onChange={e => setEditPhone(e.target.value)}
                   placeholder="+212 6XX XXX XXX" style={{fontSize:'0.82rem',border:'1px solid #eee',borderRadius:8,padding:'3px 8px',width:160,outline:'none'}} />
-                <button onClick={savePhone} disabled={savingPhone}
-                  style={{fontSize:'0.72rem',background: phoneSaved?'#27AE60':'#111',color:'#fff',border:'none',borderRadius:8,padding:'4px 10px',cursor:'pointer',fontWeight:600,flexShrink:0}}>
-                  {phoneSaved ? '✓' : 'Enr.'}
+                <button onClick={saveInfo} disabled={saving2}
+                  style={{fontSize:'0.72rem',background: saved2?'#27AE60':'#111',color:'#fff',border:'none',borderRadius:8,padding:'4px 10px',cursor:'pointer',fontWeight:600,flexShrink:0}}>
+                  {saved2 ? '✓' : 'Enr.'}
                 </button>
               </div>
             </div>

@@ -17,6 +17,7 @@ function RdvDetailModal({ rdv, allRdvs, onClose, onStatusChange, pin }: {
   const [pinEntry, setPinEntry]         = useState('')
   const [pinError, setPinError]         = useState(false)
   const [pendingStatus, setPendingStatus] = useState<string|null>(null)
+  const [pendingDelete, setPendingDelete] = useState(false)
   const [waModal, setWaModal]           = useState(false)
   const [waMsg, setWaMsg]               = useState(`Bonjour ${rdv.client_name}, votre RDV du ${rdv.date} a ${rdv.start_time} pour ${rdv.service_name}.`)
   const waPhone = (rdv.client_phone || '').replace(/\D/g,'')
@@ -28,11 +29,21 @@ function RdvDetailModal({ rdv, allRdvs, onClose, onStatusChange, pin }: {
     onStatusChange(rdv.id, status); setSaving(false); onClose()
   }
   function requirePin(label: string, status: string) {
-    setPendingStatus(status); setPinPrompt(label); setPinEntry(''); setPinError(false)
+    setPendingDelete(false); setPendingStatus(status); setPinPrompt(label); setPinEntry(''); setPinError(false)
   }
-  function confirmPin() {
-    if (pinEntry === pin) { setPinPrompt(null); doSetStatus(pendingStatus!) }
-    else { setPinError(true); setPinEntry('') }
+  function requirePinDelete(label: string) {
+    setPendingDelete(true); setPendingStatus(null); setPinPrompt(label); setPinEntry(''); setPinError(false)
+  }
+  async function confirmPin() {
+    if (pinEntry !== pin) { setPinError(true); setPinEntry(''); return }
+    setPinPrompt(null)
+    if (pendingDelete) {
+      setSaving(true)
+      await fetch(`/api/rdv/${rdv.id}`, { method:'DELETE' })
+      onStatusChange(rdv.id, 'deleted'); setSaving(false); onClose()
+    } else {
+      doSetStatus(pendingStatus!)
+    }
   }
   return (
     <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.55)',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
@@ -132,11 +143,11 @@ function RdvDetailModal({ rdv, allRdvs, onClose, onStatusChange, pin }: {
                 style={{padding:'10px',borderRadius:12,border:'2px solid #F59E0B',background:'#FFFBEB',color:'#F59E0B',fontWeight:700,cursor:'pointer',fontSize:'0.85rem'}}>
                 ❌ Pas venu
               </button>
-              <button disabled={saving} onClick={() => doSetStatus('cancelled')}
+              <button disabled={saving} onClick={() => requirePin('Annuler ce RDV', 'cancelled')}
                 style={{padding:'10px',borderRadius:12,border:'2px solid #EB5757',background:'#FEF2F2',color:'#EB5757',fontWeight:700,cursor:'pointer',fontSize:'0.85rem'}}>
                 🚫 Annuler
               </button>
-              <button disabled={saving} onClick={async () => { if(!confirm('Supprimer définitivement ce RDV ?')) return; setSaving(true); await fetch(`/api/rdv/${rdv.id}`, { method:'DELETE' }); onStatusChange(rdv.id, 'deleted'); setSaving(false); onClose() }}
+              <button disabled={saving} onClick={() => requirePinDelete('Supprimer ce RDV')}
                 style={{padding:'10px',borderRadius:12,border:'2px solid #111',background:'#111',color:'#fff',fontWeight:700,cursor:'pointer',fontSize:'0.85rem'}}>
                 🗑 Supprimer
               </button>
@@ -421,7 +432,9 @@ export function ProAgenda({ salon }: { salon: any }) {
   const iso    = toISO(date)
   const dayKey = dayKeyForISO(iso).toLowerCase()
   const isOpen = schedule ? schedule[`${dayKey}_open`] !== false : true
-  const HOURS = Array.from({ length: 24 }, (_, i) => i)
+  const schedStart = schedule ? tMin(schedule[`${dayKey}_start`] || '00:00') : 0
+  const schedEnd   = schedule ? tMin(schedule[`${dayKey}_end`]   || '23:30') : 23*60+30
+  const HOURS = Array.from({ length: 24 }, (_, i) => i).filter(h => h*60 >= schedStart && h*60 < schedEnd)
 
   const navigate = (dir: number) => {
     const d = new Date(date)
