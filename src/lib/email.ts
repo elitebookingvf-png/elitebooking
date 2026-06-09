@@ -4,6 +4,18 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM   = 'EliteBooking <onboarding@resend.dev>';
 const APP    = process.env.NEXT_PUBLIC_APP_URL || 'https://elitebooking.netlify.app';
 
+// Until a custom domain is verified, Resend only allows sending to the account owner email.
+// VERIFIED_EMAIL is the email you signed up with on resend.com
+const VERIFIED_EMAIL = process.env.RESEND_VERIFIED_EMAIL || 'elitebookingvf@gmail.com';
+
+async function send(to: string, subject: string, html: string) {
+  // If domain not verified, redirect to the verified email so at least owner gets it
+  const actualTo = process.env.RESEND_DOMAIN_VERIFIED === 'true' ? to : VERIFIED_EMAIL;
+  const { data, error } = await resend.emails.send({ from: FROM, to: actualTo, subject: actualTo !== to ? `[Pour: ${to}] ${subject}` : subject, html });
+  if (error) console.error('[email] Resend error:', JSON.stringify(error), '→ to:', actualTo);
+  else console.log('[email] Sent ok id:', data?.id, '→ to:', actualTo);
+}
+
 function baseHtml(content: string) {
   return `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
 <style>
@@ -57,7 +69,7 @@ export async function sendWelcomeEmail(to: string, firstname: string, type: 'cli
     </div>
     <p style="font-size:0.85rem;color:#aaa">Si vous n'êtes pas à l'origine de cette inscription, ignorez cet e-mail.</p>
   `;
-  await resend.emails.send({ from: FROM, to, subject: `Bienvenue sur EliteBooking, ${firstname} !`, html: baseHtml(content) }).catch(console.error);
+  await send(to, `Bienvenue sur EliteBooking, ${firstname} !`, baseHtml(content));
 }
 
 // ─── RDV confirmation (to client) ────────────────────────────
@@ -87,7 +99,7 @@ export async function sendRdvConfirmationEmail(to: string, rdvId: string, params
     </div>
     <p style="font-size:0.82rem;color:#aaa">Ces liens sont valables 48h avant votre rendez-vous.</p>
   `;
-  await resend.emails.send({ from: FROM, to, subject: `RDV confirmé — ${params.salonName} le ${params.date} à ${params.time}`, html: baseHtml(content) }).catch(console.error);
+  await send(to, `RDV confirmé — ${params.salonName} le ${params.date} à ${params.time}`, baseHtml(content));
 }
 
 // ─── New RDV notification (to salon owner) ───────────────────
@@ -111,5 +123,5 @@ export async function sendNewRdvNotificationEmail(to: string, params: {
       <a href="${APP}/pro/agenda" class="btn btn-primary">Voir l'agenda</a>
     </div>
   `;
-  await resend.emails.send({ from: FROM, to, subject: `Nouveau RDV — ${params.clientName} le ${params.date} à ${params.time}`, html: baseHtml(content) }).catch(console.error);
+  await send(to, `Nouveau RDV — ${params.clientName} le ${params.date} à ${params.time}`, baseHtml(content));
 }

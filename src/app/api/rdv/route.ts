@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient, getUserIdFromCookies } from '@/lib/supabase/server';
 import { isSlotFree, tMin as tMinUtil, formatPrice } from '@/lib/utils';
 import { sendRdvConfirmationEmail, sendNewRdvNotificationEmail } from '@/lib/email';
 
@@ -7,21 +7,23 @@ function uuid() { return crypto.randomUUID(); }
 
 // GET /api/rdv — RDV du client connecté
 export async function GET(req: NextRequest) {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: '401' }, { status: 401 });
-  const { data } = await supabase.from('rdvs').select('*').eq('client_id', user.id).order('date', { ascending: false }).order('start_time', { ascending: false });
+  const userId = getUserIdFromCookies();
+  if (!userId) return NextResponse.json({ error: '401' }, { status: 401 });
+  const supabase = createAdminClient();
+  const { data } = await supabase.from('rdvs').select('*').eq('client_id', userId).order('date', { ascending: false }).order('start_time', { ascending: false });
   return NextResponse.json(data ?? []);
 }
 
 // POST /api/rdv — réservation client (multi-prestations supporté)
 export async function POST(req: NextRequest) {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: '401' }, { status: 401 });
+  const userId = getUserIdFromCookies();
+  if (!userId) return NextResponse.json({ error: '401' }, { status: 401 });
+  const supabase = createAdminClient();
 
-  const { data: profile } = await supabase.from('profiles').select('firstname, lastname').eq('id', user.id).single();
-  const clientName = `${profile?.firstname ?? ''} ${profile?.lastname ?? ''}`.trim();
+  const { data: profile } = await supabase.from('profiles').select('firstname, lastname').eq('id', userId).single();
+  const clientName = `${(profile as any)?.firstname ?? ''} ${(profile as any)?.lastname ?? ''}`.trim();
+  const { data: { user: authUser } } = await supabase.auth.admin.getUserById(userId);
+  const clientEmail = authUser?.email || null;
 
   const body = await req.json();
   const items: any[] = Array.isArray(body.items) ? body.items : [body];
@@ -36,7 +38,7 @@ export async function POST(req: NextRequest) {
   if (salonId) {
     const { data: salonCheck } = await supabase.from('salons').select('blocked_clients').eq('id', salonId).single();
     const blocked: string[] = Array.isArray(salonCheck?.blocked_clients) ? salonCheck.blocked_clients : [];
-    if (blocked.includes(user.id)) return NextResponse.json({ error: 'Vous êtes bloqué par ce salon.' }, { status: 403 });
+    if (blocked.includes(userId)) return NextResponse.json({ error: 'Vous êtes bloqué par ce salon.' }, { status: 403 });
   }
 
   const toInsert: any[] = [];
@@ -57,15 +59,15 @@ export async function POST(req: NextRequest) {
     const newStart = tMinUtil(item.start_time);
     const newEnd   = newStart + service.duration;
     const clientConflict = allBlocking.some((r: any) =>
-      r.client_id === user.id &&
+      r.client_id === userId &&
       r.date === item.date &&
       tMinUtil(r.start_time) < newEnd &&
       tMinUtil(r.start_time) + r.duration > newStart
     );
     if (clientConflict) return NextResponse.json({ error: `Vous avez déjà un rendez-vous à ce créneau` }, { status: 409 });
-    const rdv = { client_id: user.id, client_name: clientName, salon_id: item.salon_id, salon_name: salon.name, service_id: item.service_id, service_name: service.name, staff_id: item.staff_id, staff_name: `${staff.firstname} ${staff.lastname}`, date: item.date, start_time: item.start_time, duration: service.duration, price: service.price, price_type: service.price_type, status: 'confirmed', notes: item.notes ?? null, group_id: groupId, source: 'client' };
+    const rdv = { client_id: userId, client_name: clientName, salon_id: item.salon_id, salon_name: salon.name, service_id: item.service_id, service_name: service.name, staff_id: item.staff_id, staff_name: `${staff.firstname} ${staff.lastname}`, date: item.date, start_time: item.start_time, duration: service.duration, price: service.price, price_type: service.price_type, status: 'confirmed', notes: item.notes ?? null, group_id: groupId, source: 'client' };
     toInsert.push(rdv);
-    tempCart.push({ salon_id: item.salon_id, staff_id: item.staff_id, client_id: user.id, date: item.date, start_time: item.start_time, duration: service.duration, status: 'confirmed' });
+    tempCart.push({ salon_id: item.salon_id, staff_id: item.staff_id, client_id: userId, date: item.date, start_time: item.start_time, duration: service.duration, status: 'confirmed' });
   }
 
   const { data, error } = await supabase.from('rdvs').insert(toInsert).select();
@@ -76,8 +78,8 @@ export async function POST(req: NextRequest) {
 
   // Send emails (fire-and-forget) for first item in the booking
   const first = toInsert[0];
-  if (first && user.email) {
-    sendRdvConfirmationEmail(user.email, (data as any[])[0].id, {
+  if (first && clientEmail) {
+    sendRdvConfirmationEmail(clientEmail, (data as any[])[0].id, {
       clientName: first.client_name, salonName: first.salon_name,
       serviceName: first.service_name, staffName: first.staff_name,
       date: first.date, time: first.start_time, duration: first.duration,
@@ -86,13 +88,11 @@ export async function POST(req: NextRequest) {
   }
   // Notify salon owner
   if (first) {
-    const { data: ownerProfile } = await supabase.from('salons')
-      .select('owner_id').eq('id', first.salon_id).single();
-    if (ownerProfile?.owner_id) {
-      const { data: ownerAuth } = await supabase.from('profiles')
-        .select('email').eq('id', ownerProfile.owner_id).single();
-      if ((ownerAuth as any)?.email) {
-        sendNewRdvNotificationEmail((ownerAuth as any).email, {
+    const { data: ownerSalon } = await supabase.from('salons').select('owner_id').eq('id', first.salon_id).single();
+    if (ownerSalon?.owner_id) {
+      const { data: { user: ownerAuth } } = await supabase.auth.admin.getUserById(ownerSalon.owner_id);
+      if (ownerAuth?.email) {
+        sendNewRdvNotificationEmail(ownerAuth.email, {
           clientName: first.client_name, clientPhone: null,
           serviceName: first.service_name, staffName: first.staff_name,
           date: first.date, time: first.start_time, duration: first.duration,

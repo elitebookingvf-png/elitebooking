@@ -80,9 +80,9 @@ export async function POST(req: NextRequest) {
   // Notify salon owner (pro created RDV — just a confirmation for their records)
   const first = toInsert[0];
   if (first) {
-    const { data: ownerProfile } = await supabase.from('profiles').select('email').eq('id', userId).single();
-    if ((ownerProfile as any)?.email) {
-      sendNewRdvNotificationEmail((ownerProfile as any).email, {
+    const { data: { user: ownerAuth } } = await supabase.auth.admin.getUserById(userId);
+    if (ownerAuth?.email) {
+      sendNewRdvNotificationEmail(ownerAuth.email, {
         clientName: first.client_name, clientPhone: first.client_phone,
         serviceName: first.service_name, staffName: first.staff_name,
         date: first.date, time: first.start_time, duration: first.duration,
