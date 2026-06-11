@@ -6,14 +6,21 @@ import { cookies } from 'next/headers';
 export function createClient() {
   const cookieStore = cookies();
   
+  // Validate environment variables
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Missing required Supabase environment variables: NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY');
+  }
+  
   // Extract project ID from URL for cookie naming
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const projectId = url.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1] || '';
+  const projectId = supabaseUrl.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1] || '';
   const storageKey = projectId ? `sb-${projectId}-auth-token` : 'sb-auth-token';
   
   return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    supabaseUrl,
+    supabaseAnonKey,
     {
       auth: {
         storageKey,
@@ -64,10 +71,18 @@ export function getUserIdFromCookies(): string | null {
 
 // Client avec service_role_key : bypass RLS (admin uniquement, JAMAIS exposé côté client)
 export function createAdminClient() {
+  // Validate environment variables
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  
+  if (!supabaseUrl || !serviceRoleKey) {
+    throw new Error('Missing required Supabase environment variables: NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY');
+  }
+  
   // Use createServerClient with service role key — bypasses RLS
   return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    supabaseUrl,
+    serviceRoleKey,
     {
       auth: { autoRefreshToken: false, persistSession: false },
       cookies: { getAll() { return []; }, setAll() {} },
