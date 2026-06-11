@@ -10,7 +10,13 @@ export function createClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   
+  // During build time, environment variables might not be available
   if (!supabaseUrl || !supabaseAnonKey) {
+    // Return a mock client during build to prevent build errors
+    if (process.env.NODE_ENV === 'development' || process.env.NEXT_PHASE === 'phase-production-build') {
+      console.warn('Supabase environment variables not available during build');
+      return null as any;
+    }
     throw new Error('Missing required Supabase environment variables: NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY');
   }
   
@@ -75,7 +81,13 @@ export function createAdminClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   
+  // During build time, environment variables might not be available
   if (!supabaseUrl || !serviceRoleKey) {
+    // Return a mock client during build to prevent build errors
+    if (process.env.NODE_ENV === 'development' || process.env.NEXT_PHASE === 'phase-production-build') {
+      console.warn('Supabase environment variables not available during build');
+      return null as any;
+    }
     throw new Error('Missing required Supabase environment variables: NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY');
   }
   

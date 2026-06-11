@@ -13,6 +13,11 @@ export async function POST(req: NextRequest) {
     const supabase      = createClient();
     const adminSupabase = createAdminClient();
 
+    // Handle build-time null clients
+    if (!supabase || !adminSupabase) {
+      return NextResponse.json({ error: 'Service temporarily unavailable during build' }, { status: 503 });
+    }
+
     // 1. Créer le compte Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
