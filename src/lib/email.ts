@@ -1,11 +1,13 @@
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM   = 'EliteBooking <onboarding@resend.dev>';
 const APP    = process.env.NEXT_PUBLIC_APP_URL || 'https://elitebooking-lac.vercel.app';
 const VERIFIED_EMAIL = process.env.RESEND_VERIFIED_EMAIL || 'elitebookingvf@gmail.com';
 
 async function send(to: string, subject: string, html: string) {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) { console.warn('[email] RESEND_API_KEY not set, skipping email'); return; }
+  const resend = new Resend(apiKey);
   const actualTo = process.env.RESEND_DOMAIN_VERIFIED === 'true' ? to : VERIFIED_EMAIL;
   const { data, error } = await resend.emails.send({ from: FROM, to: actualTo, subject: actualTo !== to ? `[Pour: ${to}] ${subject}` : subject, html });
   if (error) console.error('[email] Resend error:', JSON.stringify(error), '→ to:', actualTo);
