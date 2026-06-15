@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { formatPrice, CATEGORIES, CITIES, toISO, tMin } from '@/lib/utils'
 import ClientSearch from '@/components/ClientSearch'
+import PhoneSearch from '@/components/PhoneSearch'
 
 // ─── Shared Add-RDV modal (multi-prestations) ────────────────
 type ProCartItem = {
@@ -23,26 +24,6 @@ function RdvAddModal({ staff, services, onClose, onSaved, defaultDate }: {
   const [slots, setSlots]   = useState<string[]>([])
   const [saving, setSaving] = useState(false)
   const [err, setErr]       = useState('')
-
-  // Auto-detect client by phone number
-  const detectClientByPhone = async (phone: string) => {
-    if (!phone || phone.length < 6) return
-    try {
-      const res = await fetch(`/api/clients/search?q=${encodeURIComponent(phone)}`)
-      if (res.ok) {
-        const data = await res.json()
-        const exactMatch = data.clients?.find((c: any) => 
-          c.phone && (c.phone.replace(/\D/g, '') === phone.replace(/\D/g, ''))
-        )
-        if (exactMatch) {
-          setSelectedClient(exactMatch)
-          setClientName(exactMatch.name)
-        }
-      }
-    } catch (error) {
-      console.error('Phone detection error:', error)
-    }
-  }
 
   const selectedSvc    = services.find(s => s.id === form.service_id)
   const eligibleStaff  = selectedSvc?.staff_ids?.length
@@ -112,10 +93,22 @@ function RdvAddModal({ staff, services, onClose, onSaved, defaultDate }: {
     setSelectedClient(null)
   }
 
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const phone = e.target.value
+  const handlePhoneClientSelect = (client: any) => {
+    setSelectedClient(client)
+    setClientName(client.name)
+    setClientPhone(client.phone || '')
+  }
+
+  const handlePhoneManualInput = () => {
+    // Keep the manually typed phone, clear only client association
+    if (!selectedClient?.phone || selectedClient.phone !== clientPhone) {
+      setSelectedClient(null)
+    }
+  }
+
+  const handlePhoneChange = (phone: string) => {
     setClientPhone(phone)
-    detectClientByPhone(phone)
+    // Don't auto-detect anymore, let the dropdown handle it
   }
 
   async function save() {
@@ -177,27 +170,13 @@ function RdvAddModal({ staff, services, onClose, onSaved, defaultDate }: {
           </div>
           <div className="form-group" style={{marginBottom:0}}>
             <label>Téléphone client</label>
-            <input 
-              className="form-control" 
-              type="tel" 
-              placeholder="+212 6XX XXX XXX" 
+            <PhoneSearch
+              onClientSelect={handlePhoneClientSelect}
+              onManualInput={handlePhoneManualInput}
+              placeholder="Rechercher par numéro..."
               value={clientPhone}
               onChange={handlePhoneChange}
-              style={{
-                borderColor: selectedClient?.phone ? '#C17B4E' : undefined,
-                backgroundColor: selectedClient?.phone ? '#fdf0e6' : undefined
-              }}
             />
-            {selectedClient?.phone && (
-              <div style={{
-                marginTop: '4px',
-                fontSize: '0.75rem',
-                color: '#C17B4E',
-                fontWeight: 500
-              }}>
-                ✓ Numéro vérifié
-              </div>
-            )}
           </div>
         </div>
 
