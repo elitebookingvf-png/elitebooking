@@ -153,7 +153,7 @@ function RdvDetailModal({ rdv, allRdvs, onClose, onStatusChange, pin }: {
         </div>
       )}
       {!pinPrompt && !waModal && (
-        <div style={{background:'#fff',borderRadius:20,padding:32,width:'100%',maxWidth:440,boxShadow:'0 20px 60px rgba(0,0,0,0.2)'}}>
+        <div style={{background:'#fff',borderRadius:20,padding:32,width:'100%',maxWidth:440,boxShadow:'0 20px 60px rgba(0,0,0,0.2)',overflow:'visible'}}>
           <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20}}>
             <h2 className="serif" style={{fontSize:'1.3rem'}}>Détail du RDV</h2>
             <button onClick={onClose} style={{background:'none',border:'none',fontSize:'1.4rem',cursor:'pointer',color:'#aaa'}}>x</button>
@@ -166,7 +166,7 @@ function RdvDetailModal({ rdv, allRdvs, onClose, onStatusChange, pin }: {
             {editError && <div style={{background:'#fef2f2',color:'#e53e3e',padding:'8px 12px',borderRadius:6,fontSize:'0.8rem'}}>{editError}</div>}
             
             {editMode ? (
-              <div style={{display:'flex',flexDirection:'column',gap:12}}>
+              <div style={{display:'flex',flexDirection:'column',gap:12,overflow:'visible'}}>
                 <div style={{display:'flex',gap:8,alignItems:'flex-start'}}>
                   <span style={{fontSize:'1.1rem',marginTop:8}}>👤</span>
                   <div style={{flex:1}}>
