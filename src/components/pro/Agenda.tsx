@@ -319,8 +319,37 @@ function AddRdvModal({ staff, services, salonId, onClose, onSaved, defaultDate, 
   const today = toISO(new Date())
   const [clientName, setClientName] = useState('')
   const [clientPhone, setClientPhone] = useState('')
+  const [selectedClient, setSelectedClient] = useState<any>(null)
   const [notes, setNotes] = useState('')
   const [cart, setCart] = useState<CartItem[]>([])
+
+  const handleClientSelect = (client: any) => {
+    setSelectedClient(client)
+    setClientName(client.name)
+    if (client.phone) {
+      setClientPhone(client.phone)
+    }
+  }
+
+  const handleManualInput = () => {
+    setSelectedClient(null)
+  }
+
+  const handlePhoneClientSelect = (client: any) => {
+    setSelectedClient(client)
+    setClientName(client.name)
+    setClientPhone(client.phone || '')
+  }
+
+  const handlePhoneManualInput = () => {
+    if (!selectedClient?.phone || selectedClient.phone !== clientPhone) {
+      setSelectedClient(null)
+    }
+  }
+
+  const handlePhoneChange = (phone: string) => {
+    setClientPhone(phone)
+  }
   
   const [form, setForm] = useState({
     service_id: '', staff_id: defaultStaffId || 'any',
@@ -421,13 +450,22 @@ function AddRdvModal({ staff, services, salonId, onClose, onSaved, defaultDate, 
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
           <div className="form-group" style={{marginBottom:0}}>
             <label>Nom du client *</label>
-            <input className="form-control" placeholder="Fatima Benali" value={clientName}
-              onChange={e=>setClientName(e.target.value)} />
+            <ClientSearch
+              onClientSelect={handleClientSelect}
+              onManualInput={handleManualInput}
+              placeholder="Rechercher ou saisir un nom..."
+              value={clientName}
+            />
           </div>
           <div className="form-group" style={{marginBottom:0}}>
             <label>Téléphone client</label>
-            <input className="form-control" type="tel" placeholder="+212 6XX XXX XXX" value={clientPhone}
-              onChange={e=>setClientPhone(e.target.value)} />
+            <PhoneSearch
+              onClientSelect={handlePhoneClientSelect}
+              onManualInput={handlePhoneManualInput}
+              placeholder="Rechercher par numéro..."
+              value={clientPhone}
+              onChange={handlePhoneChange}
+            />
           </div>
         </div>
         

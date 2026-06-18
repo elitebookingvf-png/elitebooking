@@ -38,7 +38,7 @@ export default function PhoneSearch({
   }, [value])
 
   useEffect(() => {
-    if (query.length < 3) {
+    if (query.length < 2) {
       setResults([])
       setShowResults(false)
       return
@@ -131,6 +131,12 @@ export default function PhoneSearch({
     }
   }
 
+  const handleInputClick = () => {
+    if (query.length >= 2 && results.length > 0) {
+      setShowResults(true)
+    }
+  }
+
   const clearSelection = () => {
     setSelectedClient(null)
     setQuery('')
@@ -151,7 +157,12 @@ export default function PhoneSearch({
           placeholder={placeholder}
           value={query}
           onChange={handleInputChange}
-          onFocus={() => query.length >= 3 && results.length > 0 && setShowResults(true)}
+          onFocus={() => {
+            if (query.length >= 2 && results.length > 0) {
+              setShowResults(true)
+            }
+          }}
+          onClick={handleInputClick}
           style={{
             width: '100%',
             padding: '10px 35px 10px 14px',
