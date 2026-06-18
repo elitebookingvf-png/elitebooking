@@ -1,6 +1,8 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { toISO, tMin, dayKeyForISO, formatPrice } from '@/lib/utils'
+import ClientSearch from '@/components/ClientSearch'
+import PhoneSearch from '@/components/PhoneSearch'
 
 type View = 'day' | 'staff' | 'week' | 'month'
 
@@ -21,6 +23,15 @@ function RdvDetailModal({ rdv, allRdvs, onClose, onStatusChange, pin }: {
   const [waModal, setWaModal]           = useState(false)
   const [waMsg, setWaMsg]               = useState(`Bonjour ${rdv.client_name}, votre RDV du ${rdv.date} a ${rdv.start_time} pour ${rdv.service_name}.`)
   const waPhone = (rdv.client_phone || '').replace(/\D/g,'')
+  
+  // Edit mode state for client info
+  const [editMode, setEditMode] = useState(false)
+  const [clientName, setClientName] = useState(rdv.client_name || '')
+  const [clientPhone, setClientPhone] = useState(rdv.client_phone || '')
+  const [selectedClient, setSelectedClient] = useState<any>(null)
+  const [editSaving, setEditSaving] = useState(false)
+  const [editError, setEditError] = useState('')
+  
   const statusColor: Record<string,string> = { confirmed:'#27AE60', completed:'#3B82F6', cancelled:'#EB5757', 'no-show':'#F59E0B' }
   const statusLabel: Record<string,string> = { confirmed:'Confirmé', completed:'Terminé', cancelled:'Annulé', 'no-show':'Pas venu' }
   async function doSetStatus(status: string) {
@@ -45,6 +56,69 @@ function RdvDetailModal({ rdv, allRdvs, onClose, onStatusChange, pin }: {
       doSetStatus(pendingStatus!)
     }
   }
+  
+  // Client edit handlers
+  const handleClientSelect = (client: any) => {
+    setSelectedClient(client)
+    setClientName(client.name)
+    if (client.phone) {
+      setClientPhone(client.phone)
+    }
+  }
+
+  const handleManualInput = () => {
+    setSelectedClient(null)
+  }
+
+  const handlePhoneClientSelect = (client: any) => {
+    setSelectedClient(client)
+    setClientName(client.name)
+    setClientPhone(client.phone || '')
+  }
+
+  const handlePhoneManualInput = () => {
+    if (!selectedClient?.phone || selectedClient.phone !== clientPhone) {
+      setSelectedClient(null)
+    }
+  }
+
+  const handlePhoneChange = (phone: string) => {
+    setClientPhone(phone)
+  }
+
+  async function saveClientChanges() {
+    setEditError('')
+    if (!clientName.trim()) { setEditError('Nom du client requis'); return }
+    
+    setEditSaving(true)
+    try {
+      const res = await fetch(`/api/rdv/${rdv.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          client_name: clientName,
+          client_phone: clientPhone || null,
+          client_id: selectedClient?.id || null
+        })
+      })
+      
+      if (res.ok) {
+        // Update local rdv data
+        rdv.client_name = clientName
+        rdv.client_phone = clientPhone
+        rdv.client_id = selectedClient?.id || null
+        setEditMode(false)
+      } else {
+        const data = await res.json()
+        setEditError(data.error || 'Erreur lors de la mise à jour')
+      }
+    } catch (error) {
+      setEditError('Erreur réseau')
+    } finally {
+      setEditSaving(false)
+    }
+  }
+  
   return (
     <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.55)',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
       {waModal && (
@@ -88,14 +162,68 @@ function RdvDetailModal({ rdv, allRdvs, onClose, onStatusChange, pin }: {
             {statusLabel[rdv.status]||rdv.status}
           </div>
           <div style={{display:'flex',flexDirection:'column',gap:10,marginBottom:20}}>
-            {/* Client name at top */}
-            <div style={{display:'flex',gap:8}}>
-              <span style={{fontSize:'1.1rem'}}>👤</span>
-              <div>
-                <div style={{fontWeight:700,fontSize:'1.1rem'}}>{rdv.client_name || 'Client'}</div>
-                {rdv.client_phone && <div style={{fontSize:'0.82rem',color:'#666',marginTop:2}}>📞 {rdv.client_phone}</div>}
+            {/* Client info - edit mode or display mode */}
+            {editError && <div style={{background:'#fef2f2',color:'#e53e3e',padding:'8px 12px',borderRadius:6,fontSize:'0.8rem'}}>{editError}</div>}
+            
+            {editMode ? (
+              <div style={{display:'flex',flexDirection:'column',gap:12}}>
+                <div style={{display:'flex',gap:8,alignItems:'flex-start'}}>
+                  <span style={{fontSize:'1.1rem',marginTop:8}}>👤</span>
+                  <div style={{flex:1}}>
+                    <label style={{fontSize:'0.75rem',color:'#666',marginBottom:4,display:'block'}}>Nom du client</label>
+                    <ClientSearch
+                      onClientSelect={handleClientSelect}
+                      onManualInput={handleManualInput}
+                      placeholder="Rechercher ou saisir un nom..."
+                      value={clientName}
+                    />
+                  </div>
+                </div>
+                <div style={{display:'flex',gap:8,alignItems:'flex-start'}}>
+                  <span style={{fontSize:'1.1rem',marginTop:8}}>📞</span>
+                  <div style={{flex:1}}>
+                    <label style={{fontSize:'0.75rem',color:'#666',marginBottom:4,display:'block'}}>Téléphone</label>
+                    <PhoneSearch
+                      onClientSelect={handlePhoneClientSelect}
+                      onManualInput={handlePhoneManualInput}
+                      placeholder="Rechercher par numéro..."
+                      value={clientPhone}
+                      onChange={handlePhoneChange}
+                    />
+                  </div>
+                </div>
+                <div style={{display:'flex',gap:8,marginTop:8}}>
+                  <button 
+                    onClick={() => setEditMode(false)} 
+                    disabled={editSaving}
+                    style={{flex:1,padding:'8px',borderRadius:8,border:'1px solid #ddd',background:'#f5f5f5',cursor:'pointer',fontSize:'0.85rem'}}
+                  >
+                    Annuler
+                  </button>
+                  <button 
+                    onClick={saveClientChanges} 
+                    disabled={editSaving}
+                    style={{flex:1,padding:'8px',borderRadius:8,border:'none',background:'#C17B4E',color:'#fff',cursor:'pointer',fontSize:'0.85rem',fontWeight:600}}
+                  >
+                    {editSaving ? 'Enregistrement...' : 'Enregistrer'}
+                  </button>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div style={{display:'flex',gap:8,alignItems:'flex-start'}}>
+                <span style={{fontSize:'1.1rem'}}>👤</span>
+                <div style={{flex:1}}>
+                  <div style={{fontWeight:700,fontSize:'1.1rem'}}>{rdv.client_name || 'Client'}</div>
+                  {rdv.client_phone && <div style={{fontSize:'0.82rem',color:'#666',marginTop:2}}>📞 {rdv.client_phone}</div>}
+                </div>
+                <button 
+                  onClick={() => setEditMode(true)}
+                  style={{padding:'6px 12px',borderRadius:6,border:'1px solid #ddd',background:'#fff',cursor:'pointer',fontSize:'0.8rem',color:'#666'}}
+                >
+                  ✏️ Modifier
+                </button>
+              </div>
+            )}
             <div style={{display:'flex',gap:8}}>
               <span style={{fontSize:'1.1rem'}}>🗓️</span>
               <div><div style={{fontWeight:600}}>{new Date(rdv.date).toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})} a {rdv.start_time}</div><div style={{fontSize:'0.78rem',color:'#aaa'}}>{rdv.duration} min</div></div>
