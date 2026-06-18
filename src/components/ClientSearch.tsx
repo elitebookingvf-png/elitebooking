@@ -28,6 +28,8 @@ export default function ClientSearch({ onClientSelect, onManualInput, placeholde
   const [showResults, setShowResults] = useState(false)
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
   const searchRef = useRef<HTMLDivElement>(null)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+  const [dropdownPosition, setDropdownPosition] = useState({ left: 0, top: 0, width: 0 })
 
   useEffect(() => {
     if (query.length < 2) {
@@ -55,6 +57,32 @@ export default function ClientSearch({ onClientSelect, onManualInput, placeholde
     const timeoutId = setTimeout(searchClients, 300)
     return () => clearTimeout(timeoutId)
   }, [query])
+
+  // Update dropdown position when showing results
+  useEffect(() => {
+    if (showResults && searchRef.current) {
+      const updatePosition = () => {
+        const rect = searchRef.current!.getBoundingClientRect()
+        setDropdownPosition({
+          left: rect.left,
+          top: rect.bottom + 4,
+          width: rect.width
+        })
+      }
+      
+      // Initial position
+      updatePosition()
+      
+      // Update on resize/scroll
+      window.addEventListener('resize', updatePosition)
+      window.addEventListener('scroll', updatePosition, true)
+      
+      return () => {
+        window.removeEventListener('resize', updatePosition)
+        window.removeEventListener('scroll', updatePosition, true)
+      }
+    }
+  }, [showResults])
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -160,20 +188,23 @@ export default function ClientSearch({ onClientSelect, onManualInput, placeholde
       )}
 
       {showResults && results.length > 0 && (
-        <div style={{
-          position: 'absolute',
-          top: '100%',
-          left: 0,
-          right: 0,
-          background: '#fff',
-          border: '1px solid #e0e0e0',
-          borderTop: 'none',
-          borderRadius: '0 0 8px 8px',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-          maxHeight: '240px',
-          overflowY: 'auto',
-          zIndex: 1000
-        }}>
+        <div
+          ref={dropdownRef}
+          style={{
+            position: 'fixed',
+            left: dropdownPosition.left,
+            top: dropdownPosition.top,
+            width: dropdownPosition.width,
+            background: '#fff',
+            border: '1px solid #e0e0e0',
+            borderRadius: '8px',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.25)',
+            maxHeight: '240px',
+            overflowY: 'auto',
+            zIndex: 9999,
+            minWidth: '200px'
+          }}
+        >
           {results.map((client, index) => (
             <div
               key={`${client.id}-${index}`}
@@ -246,19 +277,19 @@ export default function ClientSearch({ onClientSelect, onManualInput, placeholde
 
       {showResults && !loading && results.length === 0 && query.length >= 2 && (
         <div style={{
-          position: 'absolute',
-          top: '100%',
-          left: 0,
-          right: 0,
+          position: 'fixed',
+          left: dropdownPosition.left,
+          top: dropdownPosition.top,
+          width: dropdownPosition.width,
           background: '#fff',
           border: '1px solid #e0e0e0',
-          borderTop: 'none',
-          borderRadius: '0 0 8px 8px',
+          borderRadius: '8px',
           padding: '16px',
           textAlign: 'center',
           color: '#666',
           fontSize: '0.85rem',
-          zIndex: 1000
+          zIndex: 9999,
+          minWidth: '200px'
         }}>
           Aucun client trouvé pour "{query}"
         </div>

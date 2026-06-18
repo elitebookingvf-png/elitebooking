@@ -30,6 +30,8 @@ export default function PhoneSearch({
   const [loading, setLoading] = useState(false)
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
   const searchRef = useRef<HTMLDivElement>(null)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+  const [dropdownPosition, setDropdownPosition] = useState({ left: 0, top: 0, width: 0 })
 
   useEffect(() => {
     setQuery(value)
@@ -69,6 +71,32 @@ export default function PhoneSearch({
     const timeoutId = setTimeout(searchClients, 300)
     return () => clearTimeout(timeoutId)
   }, [query])
+
+  // Update dropdown position when showing results
+  useEffect(() => {
+    if (showResults && searchRef.current) {
+      const updatePosition = () => {
+        const rect = searchRef.current!.getBoundingClientRect()
+        setDropdownPosition({
+          left: rect.left,
+          top: rect.bottom + 4,
+          width: rect.width
+        })
+      }
+      
+      // Initial position
+      updatePosition()
+      
+      // Update on resize/scroll
+      window.addEventListener('resize', updatePosition)
+      window.addEventListener('scroll', updatePosition, true)
+      
+      return () => {
+        window.removeEventListener('resize', updatePosition)
+        window.removeEventListener('scroll', updatePosition, true)
+      }
+    }
+  }, [showResults])
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -177,18 +205,20 @@ export default function PhoneSearch({
 
       {showResults && results.length > 0 && (
         <div
+          ref={dropdownRef}
           style={{
-            position: 'absolute',
-            top: 'calc(100% + 4px)',
-            left: 0,
-            right: 0,
+            position: 'fixed',
+            left: dropdownPosition.left,
+            top: dropdownPosition.top,
+            width: dropdownPosition.width,
             backgroundColor: '#fff',
             border: '1px solid #ddd',
             borderRadius: '8px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.25)',
             maxHeight: '250px',
             overflowY: 'auto',
-            zIndex: 1000,
+            zIndex: 9999,
+            minWidth: '200px',
           }}
         >
           {results.map((client, index) => (
