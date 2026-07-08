@@ -26,7 +26,7 @@ async function getStats() {
 
 export default async function HomePage() {
   const [salons, stats] = await Promise.all([getFeaturedSalons(), getStats()]);
-  const whatsapp = process.env.NEXT_PUBLIC_WHATSAPP || '212600000000';
+  const whatsapp = process.env.NEXT_PUBLIC_WHATSAPP || '212663472335';
 
   return (
     <div className="min-h-screen" style={{fontFamily:"'DM Sans',system-ui,sans-serif"}}>
