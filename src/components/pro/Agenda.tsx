@@ -176,6 +176,7 @@ function RdvDetailModal({ rdv, allRdvs, onClose, onStatusChange, pin }: {
                       onManualInput={handleManualInput}
                       placeholder="Rechercher ou saisir un nom..."
                       value={clientName}
+                      onChange={setClientName}
                     />
                   </div>
                 </div>
@@ -455,6 +456,7 @@ function AddRdvModal({ staff, services, salonId, onClose, onSaved, defaultDate, 
               onManualInput={handleManualInput}
               placeholder="Rechercher ou saisir un nom..."
               value={clientName}
+              onChange={setClientName}
             />
           </div>
           <div className="form-group" style={{marginBottom:0}}>

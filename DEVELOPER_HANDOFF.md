@@ -53,7 +53,7 @@ NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 SUPABASE_SERVICE_ROLE_KEY=eyJ...
 NEXT_PUBLIC_APP_URL=https://votre-app.vercel.app
-NEXT_PUBLIC_WHATSAPP=212600000000
+NEXT_PUBLIC_WHATSAPP=212663472335
 ```
 
 → Push sur GitHub → Vercel → **New project** → importer le repo → **Deploy** ✅

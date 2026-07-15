@@ -45,7 +45,7 @@ MongoDB Atlas (mongoose)
 MONGODB_URI         = mongodb+srv://USERNAME:PASSWORD@cluster0.xxxxx.mongodb.net/?retryWrites=true&w=majority
 NEXTAUTH_SECRET     = [générer avec: openssl rand -base64 32]
 NEXTAUTH_URL        = https://votre-app.vercel.app
-NEXT_PUBLIC_WHATSAPP = 212600000000
+NEXT_PUBLIC_WHATSAPP = 212663472335
 ```
 
 5. Cliquer **Deploy** → ✅
@@ -441,7 +441,7 @@ L'agenda lit le schedule pour calculer les heures affichées :
 | `MONGODB_URI` | ✅ | URI MongoDB Atlas (avec username:password) |
 | `NEXTAUTH_SECRET` | ✅ | Chaîne aléatoire 32 chars (`openssl rand -base64 32`) |
 | `NEXTAUTH_URL` | ✅ | URL publique de l'app (ex: https://elitebooking.vercel.app) |
-| `NEXT_PUBLIC_WHATSAPP` | ✅ | Numéro WhatsApp support (sans +, ex: 212600000000) |
+| `NEXT_PUBLIC_WHATSAPP` | ✅ | Numéro WhatsApp support (sans +, ex: 212663472335) |
 | `NEXT_PUBLIC_APP_NAME` | ⬜ | Nom affiché (défaut: EliteBooking) |
 | `CLOUDINARY_CLOUD_NAME` | ⬜ | Pour l'upload de photos salons |
 | `CLOUDINARY_API_KEY` | ⬜ | Clé API Cloudinary |

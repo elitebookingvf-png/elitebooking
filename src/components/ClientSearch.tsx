@@ -14,9 +14,10 @@ type ClientSearchProps = {
   onManualInput: () => void
   placeholder?: string
   value?: string
+  onChange?: (value: string) => void
 }
 
-export default function ClientSearch({ onClientSelect, onManualInput, placeholder = "Rechercher un client...", value = "" }: ClientSearchProps) {
+export default function ClientSearch({ onClientSelect, onManualInput, placeholder = "Rechercher un client...", value = "", onChange }: ClientSearchProps) {
   const [query, setQuery] = useState(value)
   
   // Sync with external value prop
@@ -105,6 +106,9 @@ export default function ClientSearch({ onClientSelect, onManualInput, placeholde
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value
     setQuery(newValue)
+    if (onChange) {
+      onChange(newValue)
+    }
     if (selectedClient && newValue !== selectedClient.name) {
       setSelectedClient(null)
       onManualInput()
