@@ -167,6 +167,7 @@ function RdvAddModal({ staff, services, onClose, onSaved, defaultDate }: {
               onManualInput={handleManualInput}
               placeholder="Rechercher ou saisir un nom..."
               value={clientName}
+              onChange={setClientName}
             />
           </div>
           <div className="form-group" style={{marginBottom:0}}>

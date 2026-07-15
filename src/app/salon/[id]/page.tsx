@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -23,6 +23,10 @@ export default function SalonPage() {
 
   // Current selection (resets after each add-to-cart)
   const [step, setStep]           = useState(1)
+  const [openCat, setOpenCat]     = useState<string | null>(null)
+  const stepStaffRef = useRef<HTMLDivElement>(null)
+  const stepDateRef  = useRef<HTMLDivElement>(null)
+  const stepTimeRef  = useRef<HTMLDivElement>(null)
   const [selectedSvc, setSvc]     = useState<any>(null)
   const [selectedStaff, setSelectedStaff] = useState<any>(null)
   const [selectedDate, setDate]   = useState('')
@@ -99,6 +103,7 @@ export default function SalonPage() {
     }
     setCart(prev => [...prev, newItem].sort((a,b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time)))
     setSvc(null); setSelectedStaff(null); setDate(''); setTime(''); setSlots([]); setDates([])
+    setOpenCat(null)
     setStep(1)
   }
 
@@ -269,46 +274,77 @@ export default function SalonPage() {
               </div>
             )}
 
-            {/* ── Step 1: Service ── */}
+            {/* ── Step 1: Service (accordion par catégorie) ── */}
             <div className="card">
               <h2 style={{fontWeight:600,fontSize:'1.1rem',marginBottom:16}}>
                 {cart.length > 0 ? '+ Ajouter une autre prestation' : '1. Choisissez une prestation'}
               </h2>
               {grouped.length === 0 && <p style={{color:'#aaa',fontSize:'0.88rem'}}>Aucune prestation disponible.</p>}
-              {grouped.map(({ cat, svcs }) => (
-                <div key={cat?.id || 'uncat'} style={{marginBottom:16}}>
-                  {cat && (
-                    <div style={{fontSize:'0.75rem',fontWeight:700,textTransform:'uppercase',
-                      letterSpacing:'0.05em',color:cat.color||'#888',marginBottom:8}}>
-                      {cat.name}
-                    </div>
-                  )}
-                  <div style={{display:'flex',flexDirection:'column',gap:8}}>
-                    {svcs.map((s: any) => (
-                      <div key={s.id}
-                        onClick={() => { setSvc(s); setStep(2); setSelectedStaff(null); setDate(''); setTime('') }}
-                        className="service-item"
-                        style={{borderColor:selectedSvc?.id===s.id?'#C17B4E':undefined,
-                          background:selectedSvc?.id===s.id?'#fdf0e6':undefined}}>
-                        <div style={{flex:1}}>
-                          <div className="service-name">{s.name}</div>
-                          <div style={{fontSize:'0.78rem',color:'#aaa',marginTop:2}}>⏱ {s.duration} min</div>
+              <div style={{display:'flex',flexDirection:'column',gap:10}}>
+                {grouped.map(({ cat, svcs }) => {
+                  const catId = cat?.id || 'uncat'
+                  const isOpen = openCat === catId
+                  const hasSelected = selectedSvc && svcs.some((s: any) => s.id === selectedSvc.id)
+                  return (
+                    <div key={catId} style={{border:isOpen||hasSelected?'2px solid #C17B4E':'2px solid #eee',
+                      borderRadius:14,overflow:'hidden',transition:'border-color 0.2s'}}>
+                      {/* Category header — clickable */}
+                      <div onClick={() => setOpenCat(isOpen ? null : catId)}
+                        style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,
+                          padding:'14px 18px',cursor:'pointer',userSelect:'none',
+                          background:isOpen?'#fdf7f2':'#fff',transition:'background 0.2s'}}>
+                        <div style={{display:'flex',alignItems:'center',gap:10,flex:1,minWidth:0}}>
+                          <span style={{width:10,height:10,borderRadius:'50%',flexShrink:0,
+                            background:cat?.color||'#C17B4E'}} />
+                          <span style={{fontWeight:700,fontSize:'0.95rem'}}>{cat?.name || 'Autres prestations'}</span>
+                          {hasSelected && !isOpen && (
+                            <span style={{fontSize:'0.75rem',color:'#C17B4E',fontWeight:600,
+                              whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
+                              ✓ {selectedSvc.name}
+                            </span>
+                          )}
                         </div>
-                        <div className="service-price">{formatPrice(s.price, s.price_type)}</div>
+                        <div style={{display:'flex',alignItems:'center',gap:10,flexShrink:0}}>
+                          <span style={{fontSize:'0.75rem',color:'#aaa'}}>{svcs.length} prestation{svcs.length>1?'s':''}</span>
+                          <span style={{fontSize:'0.8rem',color:'#888',transform:isOpen?'rotate(180deg)':'none',
+                            transition:'transform 0.2s'}}>▼</span>
+                        </div>
                       </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
+                      {/* Services — shown only when open */}
+                      {isOpen && (
+                        <div style={{display:'flex',flexDirection:'column',gap:8,padding:'4px 12px 12px'}}>
+                          {svcs.map((s: any) => (
+                            <div key={s.id}
+                              onClick={() => {
+                                setSvc(s); setStep(2); setSelectedStaff(null); setDate(''); setTime('')
+                                setOpenCat(null)
+                                setTimeout(() => stepStaffRef.current?.scrollIntoView({ behavior:'smooth', block:'start' }), 100)
+                              }}
+                              className="service-item"
+                              style={{borderColor:selectedSvc?.id===s.id?'#C17B4E':undefined,
+                                background:selectedSvc?.id===s.id?'#fdf0e6':undefined}}>
+                              <div style={{flex:1}}>
+                                <div className="service-name">{s.name}</div>
+                                <div style={{fontSize:'0.78rem',color:'#aaa',marginTop:2}}>⏱ {s.duration} min</div>
+                              </div>
+                              <div className="service-price">{formatPrice(s.price, s.price_type)}</div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
             </div>
 
             {/* ── Step 2: Staff ── */}
             {step >= 2 && selectedSvc && (
-              <div className="card">
+              <div className="card" ref={stepStaffRef}>
                 <h2 style={{fontWeight:600,fontSize:'1.1rem',marginBottom:16}}>2. Choisissez un employé</h2>
                 <div style={{display:'flex',flexWrap:'wrap',gap:12}}>
                   {eligibleStaff.map((st: any) => (
-                    <div key={st.id} onClick={() => { setSelectedStaff(st); setStep(3) }}
+                    <div key={st.id} onClick={() => { setSelectedStaff(st); setStep(3); setTimeout(() => stepDateRef.current?.scrollIntoView({ behavior:'smooth', block:'start' }), 100) }}
                       style={{display:'flex',flexDirection:'column',alignItems:'center',gap:8,padding:'16px',
                         borderRadius:12,border:selectedStaff?.id===st.id?'2px solid #111':'2px solid #eee',
                         background:selectedStaff?.id===st.id?'#f7f7f7':'#fff',
@@ -328,7 +364,7 @@ export default function SalonPage() {
 
             {/* ── Step 3: Date ── */}
             {step >= 3 && selectedStaff && (
-              <div className="card">
+              <div className="card" ref={stepDateRef}>
                 <h2 style={{fontWeight:600,fontSize:'1.1rem',marginBottom:16}}>3. Choisissez une date</h2>
                 <div className="slots-grid">
                   {dates.map(iso => {
@@ -336,7 +372,7 @@ export default function SalonPage() {
                     const isToday = iso === toISO(new Date())
                     const lbl = isToday ? 'Auj.' : d.toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'})
                     return (
-                      <div key={iso} onClick={() => { setDate(iso); setStep(4); setTime('') }}
+                      <div key={iso} onClick={() => { setDate(iso); setStep(4); setTime(''); setTimeout(() => stepTimeRef.current?.scrollIntoView({ behavior:'smooth', block:'start' }), 100) }}
                         className={`slot-btn${selectedDate===iso?' selected':''}`}
                         style={isToday && selectedDate!==iso ? {borderColor:'#C17B4E',color:'#C17B4E'} : {}}>
                         {lbl}
@@ -349,7 +385,7 @@ export default function SalonPage() {
 
             {/* ── Step 4: Time ── */}
             {step >= 4 && selectedDate && (
-              <div className="card">
+              <div className="card" ref={stepTimeRef}>
                 <h2 style={{fontWeight:600,fontSize:'1.1rem',marginBottom:16}}>4. Choisissez un horaire</h2>
                 <div className="slots-grid">
                   {slots.map((t: string) => (
