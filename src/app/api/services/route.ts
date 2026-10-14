@@ -28,6 +28,9 @@ export async function POST(req: NextRequest) {
   }
   // salon_id is always the caller's salon — never trust the payload
   const { resourceType: _, id: _omit, salon_id: _omit2, ...svcData } = body;
+  // Empty strings are not valid uuids — normalize nullable refs
+  if ('cat_id' in svcData) svcData.cat_id = svcData.cat_id || null;
+  if (Array.isArray(svcData.staff_ids)) svcData.staff_ids = svcData.staff_ids.filter(Boolean);
   const { data, error } = await supabase.from('services').insert({ ...svcData, salon_id: salonId }).select().single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(data, { status: 201 });
@@ -42,6 +45,9 @@ export async function PUT(req: NextRequest) {
   const body = await req.json();
   const table = body.resourceType === 'category' ? 'service_categories' : 'services';
   const { id, resourceType: _, salon_id: _omit, ...rest } = body;
+  // Empty strings are not valid uuids — normalize nullable refs
+  if ('cat_id' in rest) rest.cat_id = rest.cat_id || null;
+  if (Array.isArray(rest.staff_ids)) rest.staff_ids = rest.staff_ids.filter(Boolean);
   const { data, error } = await (supabase.from(table as any) as any).update(rest).eq('id', id).eq('salon_id', salonId).select().single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   if (!data) return NextResponse.json({ error: 'Not found' }, { status: 404 });

@@ -24,6 +24,8 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   // salon_id is always the caller's salon — never trust the payload
   const { id: _omit, salon_id: _omit2, ...rest } = body;
+  // Empty string is not a valid uuid — "" means "all staff"
+  if ('staff_id' in rest) rest.staff_id = rest.staff_id || null;
   const { data, error } = await supabase.from('blocks').insert({ ...rest, salon_id: salonId }).select().single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(data, { status: 201 });

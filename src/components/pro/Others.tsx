@@ -681,7 +681,7 @@ export function ProServices() {
     setSaving(true)
     try {
       const method = editing?.id ? 'PUT' : 'POST'
-      const payload: any = { ...form, price: +form.price, duration: +form.duration }
+      const payload: any = { ...form, price: +form.price, duration: +form.duration, cat_id: form.cat_id || null }
       if (editing?.id) payload.id = editing.id
       await apiFetch('/api/services', { method, headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) })
       setEditing(null); load()
