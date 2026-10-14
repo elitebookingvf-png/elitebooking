@@ -1,17 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
+
+import { PUBLIC_SALON_COLS } from '@/lib/utils';
 
 export async function GET(req: NextRequest) {
-  const supabase = createClient();
+  const supabase = createAdminClient();
   const { searchParams } = new URL(req.url);
   const city = searchParams.get('city');
   const category = searchParams.get('category');
   const q = searchParams.get('q');
-  let query = supabase.from('salons').select('*').eq('active', true);
+  let query = supabase.from('salons').select(PUBLIC_SALON_COLS).eq('active', true);
   if (city)     query = query.eq('city', city);
   if (category) query = query.eq('category', category);
   if (q)        query = query.ilike('name', `%${q}%`);
-  const limit = parseInt(searchParams.get('limit') || '50', 10);
+  const limit = Math.min(Math.max(parseInt(searchParams.get('limit') || '50', 10) || 50, 1), 100);
   const { data, error } = await query.order('rating', { ascending: false }).limit(limit);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(data);

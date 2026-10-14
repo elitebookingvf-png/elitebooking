@@ -102,10 +102,32 @@ export const CATEGORIES = [
 export const DAY_KEYS = ['Di', 'Lu', 'Ma', 'Me', 'Je', 'Ve', 'Sa'] as const;
 export type DayKey = typeof DAY_KEYS[number];
 
+// Columns safe to expose publicly — pin, owner_id, blocked_clients, ice stay private
+export const PUBLIC_SALON_COLS = 'id,name,category,city,address,description,rating,review_count,phone,whatsapp,instagram,cover_image,active,created_at';
+// Staff phone is not public
+export const PUBLIC_STAFF_COLS = 'id,salon_id,firstname,lastname,role,days,start_time,end_time,avatar,active';
+
 /** Retourne la clé de jour (Lu/Ma/..) pour une date ISO */
 export function dayKeyForISO(iso: string): DayKey {
   const dow = new Date(iso + 'T12:00').getDay();
   return DAY_KEYS[dow];
+}
+
+/** 'YYYY-MM-DD' / 'HH:MM' actuels dans le fuseau du salon (Maroc) */
+export function salonNow(): { date: string; time: string } {
+  const date = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Africa/Casablanca', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(new Date());
+  const time = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Africa/Casablanca', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+  }).format(new Date());
+  return { date, time };
+}
+
+/** Vrai si le créneau (date + heure locales du salon) est déjà passé */
+export function isPastSlot(date: string, time: string): boolean {
+  const now = salonNow();
+  return date < now.date || (date === now.date && time <= now.time);
 }
 
 /** Clsx léger */

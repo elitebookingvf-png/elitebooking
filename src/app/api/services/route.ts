@@ -1,18 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createAdminClient, getUserIdFromCookies } from '@/lib/supabase/server';
-
-async function getProSalonId(supabase: any, userId: string): Promise<string | null> {
-  const { data } = await supabase.from('profiles').select('type, salon_id').eq('id', userId).single();
-  if (data?.type === 'pro' && data.salon_id) return data.salon_id;
-  if (data?.type === 'pro') {
-    const { data: s } = await supabase.from('salons').select('id').eq('owner_id', userId).maybeSingle();
-    return s?.id || null;
-  }
-  return null;
-}
+import { createAdminClient, getUserIdFromCookies, getProSalonId } from '@/lib/supabase/server';
 
 export async function GET(req: NextRequest) {
-  const userId = getUserIdFromCookies();
+  const userId = await getUserIdFromCookies();
   if (!userId) return NextResponse.json({ error: '401' }, { status: 401 });
   const supabase = createAdminClient();
   const salonId = await getProSalonId(supabase, userId);
@@ -25,7 +15,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const userId = getUserIdFromCookies();
+  const userId = await getUserIdFromCookies();
   if (!userId) return NextResponse.json({ error: '401' }, { status: 401 });
   const supabase = createAdminClient();
   const salonId = await getProSalonId(supabase, userId);
@@ -36,34 +26,40 @@ export async function POST(req: NextRequest) {
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json(data, { status: 201 });
   }
-  const { resourceType: _, ...svcData } = body;
-  const { data, error } = await supabase.from('services').insert({ salon_id: salonId, ...svcData }).select().single();
+  // salon_id is always the caller's salon — never trust the payload
+  const { resourceType: _, id: _omit, salon_id: _omit2, ...svcData } = body;
+  const { data, error } = await supabase.from('services').insert({ ...svcData, salon_id: salonId }).select().single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(data, { status: 201 });
 }
 
 export async function PUT(req: NextRequest) {
-  const userId = getUserIdFromCookies();
+  const userId = await getUserIdFromCookies();
   if (!userId) return NextResponse.json({ error: '401' }, { status: 401 });
   const supabase = createAdminClient();
+  const salonId = await getProSalonId(supabase, userId);
+  if (!salonId) return NextResponse.json({ error: '403' }, { status: 403 });
   const body = await req.json();
   const table = body.resourceType === 'category' ? 'service_categories' : 'services';
-  const { id, resourceType: _, ...rest } = body;
-  const { data, error } = await (supabase.from(table as any) as any).update(rest).eq('id', id).select().single();
+  const { id, resourceType: _, salon_id: _omit, ...rest } = body;
+  const { data, error } = await (supabase.from(table as any) as any).update(rest).eq('id', id).eq('salon_id', salonId).select().single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (!data) return NextResponse.json({ error: 'Not found' }, { status: 404 });
   return NextResponse.json(data);
 }
 
 export async function DELETE(req: NextRequest) {
-  const userId = getUserIdFromCookies();
+  const userId = await getUserIdFromCookies();
   if (!userId) return NextResponse.json({ error: '401' }, { status: 401 });
   const supabase = createAdminClient();
+  const salonId = await getProSalonId(supabase, userId);
+  if (!salonId) return NextResponse.json({ error: '403' }, { status: 403 });
   const { id, resourceType } = await req.json();
   if (resourceType === 'category') {
-    await supabase.from('services').update({ cat_id: null }).eq('cat_id', id);
-    await supabase.from('service_categories').delete().eq('id', id);
+    await supabase.from('services').update({ cat_id: null }).eq('cat_id', id).eq('salon_id', salonId);
+    await supabase.from('service_categories').delete().eq('id', id).eq('salon_id', salonId);
   } else {
-    await supabase.from('services').delete().eq('id', id);
+    await supabase.from('services').delete().eq('id', id).eq('salon_id', salonId);
   }
   return NextResponse.json({ ok: true });
 }

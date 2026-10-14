@@ -1,20 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createAdminClient, getUserIdFromCookies } from '@/lib/supabase/server';
-
-async function getProSalonId(supabase: any, userId: string) {
-  const { data } = await supabase.from('profiles').select('type, salon_id').eq('id', userId).single();
-  if (data?.type === 'pro' && data.salon_id) return data.salon_id;
-  if (data?.type === 'pro') {
-    const { data: s } = await supabase.from('salons').select('id').eq('owner_id', userId).maybeSingle();
-    return s?.id || null;
-  }
-  return null;
-}
+import { createAdminClient, getUserIdFromCookies, getProSalonId } from '@/lib/supabase/server';
 
 // GET /api/clients/search?q=searchTerm
 // Search for clients by name or phone number from the salon's existing RDVs and registered users
 export async function GET(req: NextRequest) {
-  const userId = getUserIdFromCookies();
+  const userId = await getUserIdFromCookies();
   if (!userId) return NextResponse.json({ error: '401' }, { status: 401 });
   
   const supabase = createAdminClient();

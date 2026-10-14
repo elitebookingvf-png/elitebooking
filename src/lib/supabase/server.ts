@@ -48,31 +48,42 @@ export function createClient() {
   );
 }
 
-// JWT payload decoder
-function decodeJwtPayload(token: string): any {
+// Extract the VERIFIED user ID from the Supabase auth cookie.
+// The access token is validated server-side (signature + expiry) via
+// supabase.auth.getUser — never trust the JWT payload unverified.
+export async function getUserIdFromCookies(): Promise<string | null> {
+  const cookieStore = cookies();
+  // Session cookie may be chunked: sb-<ref>-auth-token.0, .1, ...
+  const parts = cookieStore.getAll()
+    .filter(c => /^sb-.+-auth-token(\.\d+)?$/.test(c.name))
+    .sort((a, b) => {
+      const ai = Number(a.name.match(/\.(\d+)$/)?.[1] ?? 0);
+      const bi = Number(b.name.match(/\.(\d+)$/)?.[1] ?? 0);
+      return ai - bi;
+    });
+  if (!parts.length) return null;
   try {
-    const base64 = token.split('.')[1];
-    const json = Buffer.from(base64, 'base64url').toString('utf8');
-    return JSON.parse(json);
+    let raw = parts.map(c => c.value).join('');
+    if (raw.startsWith('base64-')) {
+      raw = Buffer.from(raw.slice(7), 'base64').toString('utf8');
+    }
+    const session = JSON.parse(raw);
+    const token = session?.access_token;
+    if (!token) return null;
+    const admin = createAdminClient();
+    const { data: { user }, error } = await admin.auth.getUser(token);
+    if (error || !user) return null;
+    return user.id;
   } catch {
     return null;
   }
 }
 
-// Extract user ID from Supabase auth cookie
-export function getUserIdFromCookies(): string | null {
-  const cookieStore = cookies();
-  const allCookies = cookieStore.getAll();
-  const sbCookie = allCookies.find(c => c.name.startsWith('sb-') && c.name.endsWith('-auth-token'));
-  if (!sbCookie) return null;
-  try {
-    const session = JSON.parse(sbCookie.value);
-    if (!session.access_token) return null;
-    const payload = decodeJwtPayload(session.access_token);
-    return payload?.sub || null;
-  } catch {
-    return null;
-  }
+// Resolve the salon owned by this user. Trusts salons.owner_id ONLY —
+// profiles.salon_id is user-writable and must not grant salon access.
+export async function getProSalonId(supabase: any, userId: string): Promise<string | null> {
+  const { data: s } = await supabase.from('salons').select('id').eq('owner_id', userId).maybeSingle();
+  return s?.id || null;
 }
 
 // Client avec service_role_key : bypass RLS (admin uniquement, JAMAIS exposé côté client)

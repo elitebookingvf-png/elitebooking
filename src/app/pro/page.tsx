@@ -121,24 +121,10 @@ export default function ProPage() {
 
       if ((profile as any)?.type !== 'pro') { router.push('/client'); return }
 
-      // Try to load salon via salon_id first (fast path)
-      let salonRow: any = null
-      if ((profile as any)?.salon_id) {
-        const { data } = await supabase
-          .from('salons').select('*').eq('id', (profile as any).salon_id).single()
-        salonRow = data
-      }
-
-      // Fallback: find by owner_id (handles first login after register race)
-      if (!salonRow) {
-        const { data } = await supabase
-          .from('salons').select('*').eq('owner_id', user.id).maybeSingle()
-        salonRow = data
-        // Patch the profile so next load is instant
-        if (salonRow) {
-          await supabase.from('profiles').update({ salon_id: salonRow.id }).eq('id', user.id)
-        }
-      }
+      // Resolve strictly by ownership — profile.salon_id is a writable cache
+      // and must never be the source of salon access
+      const { data: salonRow } = await supabase
+        .from('salons').select('*').eq('owner_id', user.id).maybeSingle()
 
       setSalon(salonRow)
       setLoading(false)

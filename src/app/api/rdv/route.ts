@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient, getUserIdFromCookies } from '@/lib/supabase/server';
 import { isSlotFree, tMin as tMinUtil, formatPrice } from '@/lib/utils';
+import { computeAvailability } from '@/lib/availability';
 import { sendRdvConfirmationEmail, sendNewRdvNotificationEmail } from '@/lib/email';
 
 function uuid() { return crypto.randomUUID(); }
 
 // GET /api/rdv — RDV du client connecté
 export async function GET(req: NextRequest) {
-  const userId = getUserIdFromCookies();
+  const userId = await getUserIdFromCookies();
   if (!userId) return NextResponse.json({ error: '401' }, { status: 401 });
   const supabase = createAdminClient();
   const { data } = await supabase.from('rdvs').select('*').eq('client_id', userId).order('date', { ascending: false }).order('start_time', { ascending: false });
@@ -16,7 +17,7 @@ export async function GET(req: NextRequest) {
 
 // POST /api/rdv — réservation client (multi-prestations supporté)
 export async function POST(req: NextRequest) {
-  const userId = getUserIdFromCookies();
+  const userId = await getUserIdFromCookies();
   if (!userId) return NextResponse.json({ error: '401' }, { status: 401 });
   const supabase = createAdminClient();
 
@@ -31,14 +32,16 @@ export async function POST(req: NextRequest) {
 
   // Charger les RDV existants pour vérifier les conflits staff + client
   const allDates = Array.from(new Set(items.map((i: any) => i.date)));
-  const { data: existingRdvs } = await supabase.from('rdvs').select('salon_id, staff_id, client_id, date, start_time, duration, status').in('date', allDates).neq('status', 'cancelled').neq('status', 'no_show');
+  const { data: existingRdvs } = await supabase.from('rdvs').select('salon_id, staff_id, client_id, date, start_time, duration, status').in('date', allDates).neq('status', 'cancelled').neq('status', 'no-show');
 
-  // Check if client is blocked by this salon
-  const salonId = items[0]?.salon_id;
-  if (salonId) {
-    const { data: salonCheck } = await supabase.from('salons').select('blocked_clients').eq('id', salonId).single();
-    const blocked: string[] = Array.isArray(salonCheck?.blocked_clients) ? salonCheck.blocked_clients : [];
-    if (blocked.includes(userId)) return NextResponse.json({ error: 'Vous êtes bloqué par ce salon.' }, { status: 403 });
+  // Check if client is blocked by ANY salon in this booking
+  const salonIds = Array.from(new Set(items.map((i: any) => i.salon_id).filter(Boolean)));
+  if (salonIds.length) {
+    const { data: salonChecks } = await supabase.from('salons').select('id, blocked_clients').in('id', salonIds);
+    for (const s of salonChecks ?? []) {
+      const blocked: string[] = Array.isArray(s.blocked_clients) ? s.blocked_clients : [];
+      if (blocked.includes(userId)) return NextResponse.json({ error: 'Vous êtes bloqué par ce salon.' }, { status: 403 });
+    }
   }
 
   const toInsert: any[] = [];
@@ -46,11 +49,35 @@ export async function POST(req: NextRequest) {
 
   for (const item of items) {
     const [{ data: service }, { data: staff }, { data: salon }] = await Promise.all([
-      supabase.from('services').select('name, duration, price, price_type').eq('id', item.service_id).single(),
-      supabase.from('staff').select('firstname, lastname').eq('id', item.staff_id).single(),
-      supabase.from('salons').select('name').eq('id', item.salon_id).single(),
+      supabase.from('services').select('name, duration, price, price_type, salon_id, active, staff_ids').eq('id', item.service_id).single(),
+      supabase.from('staff').select('firstname, lastname, salon_id, active').eq('id', item.staff_id).single(),
+      supabase.from('salons').select('name, active').eq('id', item.salon_id).single(),
     ]);
     if (!service || !staff || !salon) return NextResponse.json({ error: 'Données invalides' }, { status: 400 });
+    if (!salon.active || !service.active || !staff.active) {
+      return NextResponse.json({ error: 'Prestation indisponible' }, { status: 400 });
+    }
+    // No cross-salon mixing: service and staff must belong to the target salon
+    if (service.salon_id !== item.salon_id || staff.salon_id !== item.salon_id) {
+      return NextResponse.json({ error: 'Données invalides' }, { status: 400 });
+    }
+    // If the service restricts which employees can perform it, enforce it
+    if (Array.isArray(service.staff_ids) && service.staff_ids.length && !service.staff_ids.includes(item.staff_id)) {
+      return NextResponse.json({ error: 'Employé non habilité pour cette prestation' }, { status: 400 });
+    }
+    if (typeof item.date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(item.date)) {
+      return NextResponse.json({ error: 'Date invalide' }, { status: 400 });
+    }
+    // The slot must be genuinely bookable — same rules as the picker:
+    // salon open, staff working that day, inside opening hours, no overlap
+    // with existing RDVs/blocks, and not in the past.
+    const { slots } = await computeAvailability(supabase, {
+      salonId: item.salon_id, staffId: item.staff_id, serviceId: item.service_id, date: item.date,
+    });
+    if (!slots.includes(item.start_time)) {
+      return NextResponse.json({ error: `Créneau ${item.start_time} le ${item.date} indisponible` }, { status: 409 });
+    }
+    // Guard against conflicts with other items in the same request
     const allBlocking = [...(existingRdvs ?? []), ...tempCart];
     if (!isSlotFree(allBlocking as any, item.staff_id, item.date, item.start_time, service.duration)) {
       return NextResponse.json({ error: `Créneau ${item.start_time} le ${item.date} déjà pris` }, { status: 409 });

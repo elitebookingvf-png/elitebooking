@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient, getUserIdFromCookies } from '@/lib/supabase/server';
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const supabase = createClient();
@@ -15,22 +15,32 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   return NextResponse.json(data);
 }
 
+import { PUBLIC_SALON_COLS, PUBLIC_STAFF_COLS } from '@/lib/utils';
+
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
-  const supabase = createClient();
+  const supabase = createAdminClient();
   const { id } = params;
 
   const [salon, categories, services, staff, schedule] = await Promise.all([
-    supabase.from('salons').select('*').eq('id', id).single(),
+    supabase.from('salons').select(`${PUBLIC_SALON_COLS},owner_id`).eq('id', id).single(),
     supabase.from('service_categories').select('*').eq('salon_id', id).order('order'),
-    supabase.from('services').select('*').eq('salon_id', id).order('order'),
-    supabase.from('staff').select('*').eq('salon_id', id).eq('active', true),
+    supabase.from('services').select('*').eq('salon_id', id).eq('active', true).order('order'),
+    supabase.from('staff').select(PUBLIC_STAFF_COLS).eq('salon_id', id).eq('active', true),
     supabase.from('schedules').select('*').eq('salon_id', id).single(),
   ]);
 
   if (!salon.data) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
+  // Inactive salons are hidden from the public — only the owner may preview
+  if (!salon.data.active) {
+    const userId = await getUserIdFromCookies();
+    const isOwner = !!userId && userId === salon.data.owner_id;
+    if (!isOwner) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
+  const { owner_id: _omit, ...publicSalon } = salon.data as any;
+
   return NextResponse.json({
-    salon: salon.data,
+    salon: publicSalon,
     categories: categories.data ?? [],
     services: services.data ?? [],
     staff: staff.data ?? [],

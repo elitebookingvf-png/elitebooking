@@ -2,12 +2,13 @@ import Link from 'next/link';
 import { CATEGORIES, CITIES } from '@/lib/utils';
 import FeaturedSalons from '@/components/FeaturedSalons';
 import NavBar from '@/components/NavBar';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/server';
+import { PUBLIC_SALON_COLS } from '@/lib/utils';
 
 async function getFeaturedSalons() {
   try {
-    const supabase = createClient();
-    const { data } = await supabase.from('salons').select('*').eq('active', true).order('rating', { ascending: false }).limit(12);
+    const supabase = createAdminClient();
+    const { data } = await supabase.from('salons').select(PUBLIC_SALON_COLS).eq('active', true).order('rating', { ascending: false }).limit(12);
     return data ?? [];
   } catch {
     return [];
@@ -16,7 +17,7 @@ async function getFeaturedSalons() {
 
 async function getStats() {
   try {
-    const supabase = createClient();
+    const supabase = createAdminClient();
     const { count } = await supabase.from('salons').select('*', { count: 'exact', head: true }).eq('active', true);
     return { salons: count ?? 0 };
   } catch {

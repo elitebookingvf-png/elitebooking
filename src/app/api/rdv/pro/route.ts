@@ -1,23 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createAdminClient, getUserIdFromCookies } from '@/lib/supabase/server';
+import { createAdminClient, getUserIdFromCookies, getProSalonId } from '@/lib/supabase/server';
 import { isSlotFree } from '@/lib/utils';
 import { sendNewRdvNotificationEmail } from '@/lib/email';
 
 function uuid() { return crypto.randomUUID(); }
 
-async function getProSalonId(supabase: any, userId: string) {
-  const { data } = await supabase.from('profiles').select('type, salon_id').eq('id', userId).single();
-  if (data?.type === 'pro' && data.salon_id) return data.salon_id;
-  if (data?.type === 'pro') {
-    const { data: s } = await supabase.from('salons').select('id').eq('owner_id', userId).maybeSingle();
-    return s?.id || null;
-  }
-  return null;
-}
-
 // GET /api/rdv/pro — tous les RDV du salon pro
 export async function GET(req: NextRequest) {
-  const userId = getUserIdFromCookies();
+  const userId = await getUserIdFromCookies();
   if (!userId) return NextResponse.json({ error: '401' }, { status: 401 });
   const supabase = createAdminClient();
   const salonId = await getProSalonId(supabase, userId);
@@ -32,7 +22,7 @@ export async function GET(req: NextRequest) {
 
 // PATCH /api/rdv/pro — update client phone across all their RDVs in the salon
 export async function PATCH(req: NextRequest) {
-  const userId = getUserIdFromCookies();
+  const userId = await getUserIdFromCookies();
   if (!userId) return NextResponse.json({ error: '401' }, { status: 401 });
   const supabase = createAdminClient();
   const salonId = await getProSalonId(supabase, userId);
@@ -48,7 +38,7 @@ export async function PATCH(req: NextRequest) {
 
 // POST /api/rdv/pro — pro crée des RDV pour un client (multi-prestations)
 export async function POST(req: NextRequest) {
-  const userId = getUserIdFromCookies();
+  const userId = await getUserIdFromCookies();
   if (!userId) return NextResponse.json({ error: '401' }, { status: 401 });
   const supabase = createAdminClient();
   const salonId = await getProSalonId(supabase, userId);
@@ -63,10 +53,17 @@ export async function POST(req: NextRequest) {
   const tempCart: any[] = [];
   for (const item of items) {
     const [{ data: service }, { data: staff }] = await Promise.all([
-      supabase.from('services').select('name, duration, price, price_type').eq('id', item.service_id).single(),
-      supabase.from('staff').select('firstname, lastname').eq('id', item.staff_id).single(),
+      supabase.from('services').select('name, duration, price, price_type, salon_id, active').eq('id', item.service_id).single(),
+      supabase.from('staff').select('firstname, lastname, salon_id, active').eq('id', item.staff_id).single(),
     ]);
     if (!service || !staff) return NextResponse.json({ error: 'Données invalides' }, { status: 400 });
+    // Both entities must belong to the caller's salon
+    if (service.salon_id !== salonId || staff.salon_id !== salonId) {
+      return NextResponse.json({ error: 'Données invalides' }, { status: 400 });
+    }
+    if (!service.active || !staff.active) {
+      return NextResponse.json({ error: 'Prestation indisponible' }, { status: 400 });
+    }
     const allBlocking = [...(existingRdvs ?? []), ...tempCart];
     if (!isSlotFree(allBlocking as any, item.staff_id, item.date, item.start_time, service.duration)) {
       return NextResponse.json({ error: `Créneau ${item.start_time} le ${item.date} occupé` }, { status: 409 });
