@@ -24,28 +24,42 @@ function AuthForm() {
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true); setError('')
-    const supabase = createClient()
-    const { error: err } = await supabase.auth.signInWithPassword({ email: form.email, password: form.password })
-    if (err) { setError('Email ou mot de passe incorrect'); setLoading(false); return }
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { setLoading(false); return }
-    const { data: profile } = await supabase.from('profiles').select('type').eq('id', user.id).single()
-    router.push(profile?.type === 'pro' ? '/pro' : '/client')
+    try {
+      const supabase = createClient()
+      const { error: err } = await supabase.auth.signInWithPassword({ email: form.email, password: form.password })
+      if (err) { setError('Email ou mot de passe incorrect'); return }
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      const { data: profile } = await supabase.from('profiles').select('type').eq('id', user.id).single()
+      router.push(profile?.type === 'pro' ? '/pro' : '/client')
+      router.refresh()
+    } catch {
+      setError('Erreur de connexion, réessayez')
+    } finally {
+      setLoading(false)
+    }
   }
 
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true); setError('')
-    const res = await fetch('/api/auth/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...form, type }),
-    })
-    if (!res.ok) { const d = await res.json(); setError(d.error || 'Erreur'); setLoading(false); return }
-    const supabase = createClient()
-    const { error: err } = await supabase.auth.signInWithPassword({ email: form.email, password: form.password })
-    if (err) { setError(err.message); setLoading(false); return }
-    router.push(type === 'pro' ? '/pro' : '/client')
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...form, type }),
+      })
+      if (!res.ok) { const d = await res.json().catch(() => ({})); setError(d.error || 'Erreur'); return }
+      const supabase = createClient()
+      const { error: err } = await supabase.auth.signInWithPassword({ email: form.email, password: form.password })
+      if (err) { setError(err.message); return }
+      router.push(type === 'pro' ? '/pro' : '/client')
+      router.refresh()
+    } catch {
+      setError('Erreur de connexion, réessayez')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
