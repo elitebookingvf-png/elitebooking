@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { toISO, formatPrice, CATEGORIES, tMin } from '@/lib/utils'
+import { toISO, formatPrice, CATEGORIES, tMin, DAY_KEYS } from '@/lib/utils'
 
 type CartItem = {
   serviceId: string; serviceName: string; servicePrice: number; servicePriceType: string
@@ -54,7 +54,8 @@ export default function SalonPage() {
       const dayKeys = ['di','lu','ma','me','je','ve','sa']
       const dk = dayKeys[d.getDay()]
       const sched = data.schedule || {}
-      if (sched[`${dk}_open`] !== false) ds.push(iso)
+      const staffWorks = !selectedStaff.days?.length || selectedStaff.days.includes(DAY_KEYS[d.getDay()])
+      if (sched[`${dk}_open`] !== false && staffWorks) ds.push(iso)
     }
     setDates(ds); setDate(''); setTime(''); setSlots([])
   }, [selectedStaff, selectedSvc, data])
@@ -140,8 +141,11 @@ export default function SalonPage() {
     setConfirming(false)
   }
 
-  const eligibleStaff = selectedSvc?.staff_ids?.length
-    ? (data?.staff || []).filter((s: any) => selectedSvc.staff_ids.includes(s.id))
+  // staff_ids can contain ids of deleted/inactive employees — ignore those
+  const activeStaffIds = new Set((data?.staff || []).map((s: any) => s.id))
+  const svcStaffIds = (selectedSvc?.staff_ids || []).filter((sid: string) => activeStaffIds.has(sid))
+  const eligibleStaff = svcStaffIds.length
+    ? (data?.staff || []).filter((s: any) => svcStaffIds.includes(s.id))
     : (data?.staff || [])
 
   const cartTotal = cart.reduce((a, i) => a + i.servicePrice, 0)

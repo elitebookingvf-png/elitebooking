@@ -659,7 +659,7 @@ export function ProServices() {
   useEffect(() => { load() }, [])
 
   const openForm = (svc?: any) => {
-    if (svc) { setEditing(svc); setForm({ name:svc.name, price:String(svc.price), price_type:svc.price_type||'fixed', duration:String(svc.duration), cat_id:svc.cat_id||'', staff_ids:svc.staff_ids||[] }) }
+    if (svc) { setEditing(svc); setForm({ name:svc.name, price:String(svc.price), price_type:svc.price_type||'fixed', duration:String(svc.duration), cat_id:svc.cat_id||'', staff_ids:(svc.staff_ids||[]).filter((id: string) => !staff.length || staff.some(st => st.id === id)) }) }
     else { setEditing({}); setForm({ name:'', price:'', price_type:'fixed', duration:'30', cat_id:'', staff_ids:[] }) }
   }
 
@@ -729,7 +729,7 @@ export function ProServices() {
                 <div key={s.id} className="card" style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:12}}>
                   <div>
                     <div style={{fontWeight:600}}>{s.name}</div>
-                    <div style={{fontSize:'0.75rem',color:'#aaa',marginTop:2}}>⏱ {s.duration} min{s.staff_ids?.length ? ` · ${s.staff_ids.length} employé(s)` : ' · Tous les employés'}</div>
+                    <div style={{fontSize:'0.75rem',color:'#aaa',marginTop:2}}>⏱ {s.duration} min{(() => { const n = (s.staff_ids || []).filter((id: string) => staff.some(st => st.id === id)).length; return n ? ` · ${n} employé(s)` : ' · Tous les employés' })()}</div>
                   </div>
                   <div style={{display:'flex',alignItems:'center',gap:16}}>
                     <span style={{fontWeight:700,color:'#C17B4E'}}>{formatPrice(s.price,s.price_type)}</span>

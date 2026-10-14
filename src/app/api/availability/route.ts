@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/server';
 import { tMin, generateSlots, dayKeyForISO } from '@/lib/utils';
 
 // GET /api/availability?salonId=&staffId=&serviceId=&date=
 export async function GET(req: NextRequest) {
-  const supabase = createClient();
+  // Admin client: availability must see ALL bookings/blocks, not just the
+  // caller's own (rdvs/blocks RLS hides them from anonymous visitors).
+  const supabase = createAdminClient();
   const { searchParams } = new URL(req.url);
   let salonId     = searchParams.get('salonId') || '';
   const staffId   = searchParams.get('staffId')!;
@@ -28,13 +30,18 @@ export async function GET(req: NextRequest) {
   const dayKey = dayKeyForISO(date).toLowerCase();
   const isOpen = (schedule as any)[`${dayKey}_open`] as boolean;
   if (!isOpen) return NextResponse.json({ slots: [], closed: true });
+  // Employee's day off — staff.days uses 'Lu','Ma',... format
+  const staffDay = dayKeyForISO(date);
+  if (staff?.days?.length && !staff.days.includes(staffDay)) {
+    return NextResponse.json({ slots: [], off: true });
+  }
   let openStr  = (schedule as any)[`${dayKey}_start`] as string || '00:00';
   let closeStr = (schedule as any)[`${dayKey}_end`]   as string || '24:00';
   if (staff?.start_time && tMin(staff.start_time) > tMin(openStr))  openStr  = staff.start_time;
   if (staff?.end_time   && tMin(staff.end_time)   < tMin(closeStr)) closeStr = staff.end_time;
   const duration = service.duration;
   const allSlots = generateSlots(openStr, closeStr, duration);
-  const available = allSlots.filter(slot => {
+  let available = allSlots.filter(slot => {
     const ts = tMin(slot), te = ts + duration;
     const rdvConflict = (rdvs ?? []).some((r: any) => { const rs = tMin(r.start_time), re = rs + r.duration; return ts < re && te > rs; });
     if (rdvConflict) return false;
@@ -45,5 +52,16 @@ export async function GET(req: NextRequest) {
     });
     return !blockConflict;
   });
+  // Drop past slots when booking for today (salon local time — Morocco)
+  const todayLocal = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Africa/Casablanca', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(new Date());
+  if (date === todayLocal) {
+    const hm = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Africa/Casablanca', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+    }).format(new Date());
+    const nowMin = tMin(hm);
+    available = available.filter(s => tMin(s) > nowMin);
+  }
   return NextResponse.json({ slots: available, open: openStr, close: closeStr });
 }
