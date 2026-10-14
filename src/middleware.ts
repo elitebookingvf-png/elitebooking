@@ -3,7 +3,7 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
 // Set to false to restore the site
-const SITE_LOCKED = true;
+const SITE_LOCKED = false;
 
 const LOCKED_HTML = `<!doctype html>
 <html lang="fr">
