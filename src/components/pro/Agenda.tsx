@@ -574,28 +574,43 @@ export function ProAgenda({ salon }: { salon: any }) {
   const [selectedRdv, setSelectedRdv] = useState<any>(null)
   const [pin, setPin] = useState('0000')
 
+  // Only fetch the window the agenda can display (month view = widest), not
+  // the salon's entire history. Window is keyed by month so navigating
+  // within it costs nothing; crossing it refetches.
+  const windowKey = `${date.getFullYear()}-${date.getMonth()}`
+  const rdvWindow = () => {
+    const from = new Date(date.getFullYear(), date.getMonth() - 1, 15)
+    const to   = new Date(date.getFullYear(), date.getMonth() + 2, 15)
+    return `from=${toISO(from)}&to=${toISO(to)}`
+  }
   const loadRdvs = () =>
-    fetch('/api/rdv/pro').then(r => r.json()).then(d => setRdvs(Array.isArray(d) ? d : []))
+    fetch(`/api/rdv/pro?${rdvWindow()}`).then(r => r.json()).then(d => setRdvs(Array.isArray(d) ? d : []))
 
   useEffect(() => {
     Promise.all([
-      fetch('/api/rdv/pro').then(r => r.json()),
       fetch('/api/staff').then(r => r.json()),
       fetch('/api/schedule').then(r => r.json()),
       fetch('/api/blocks').then(r => r.json()),
       fetch('/api/services').then(r => r.json()),
       fetch('/api/users/me').then(r => r.json()),
-    ]).then(([r, s, sc, b, sv, me]) => {
+    ]).then(([s, sc, b, sv, me]) => {
       if (me?.salon?.pin) setPin(me.salon.pin)
-      setRdvs(Array.isArray(r) ? r : [])
       setStaff(Array.isArray(s) ? s : [])
       setSchedule(sc && !sc.error ? sc : null)
       setBlocks(Array.isArray(b) ? b : [])
       setServices(Array.isArray(sv.services) ? sv.services : [])
     })
-    const interval = setInterval(loadRdvs, 30000)
-    return () => clearInterval(interval)
   }, [])
+
+  useEffect(() => {
+    loadRdvs()
+    // Poll only while the tab is visible — a backgrounded dashboard shouldn't hit the DB every 30s
+    const tick = () => { if (document.visibilityState === 'visible') loadRdvs() }
+    const interval = setInterval(tick, 30000)
+    document.addEventListener('visibilitychange', tick)
+    return () => { clearInterval(interval); document.removeEventListener('visibilitychange', tick) }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [windowKey])
 
   const iso    = toISO(date)
   const dayKey = dayKeyForISO(iso).toLowerCase()

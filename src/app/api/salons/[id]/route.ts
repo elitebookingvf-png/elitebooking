@@ -32,10 +32,12 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   if (!salon.data) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
   // Inactive salons are hidden from the public — only the owner may preview
+  let ownerPreview = false;
   if (!salon.data.active) {
     const userId = await getUserIdFromCookies();
     const isOwner = !!userId && userId === salon.data.owner_id;
     if (!isOwner) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    ownerPreview = true;
   }
   const { owner_id: _omit, ...publicSalon } = salon.data as any;
 
@@ -45,5 +47,9 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     services: services.data ?? [],
     staff: staff.data ?? [],
     schedule: schedule.data ?? null,
+  }, {
+    // Edge-cached for 30s — public salon data changes rarely, repeat visitors skip the DB.
+    // Owner previews of inactive salons must never be cached (they'd leak to the public).
+    headers: { 'Cache-Control': ownerPreview ? 'private, no-store' : 'public, s-maxage=30, stale-while-revalidate=300' },
   });
 }

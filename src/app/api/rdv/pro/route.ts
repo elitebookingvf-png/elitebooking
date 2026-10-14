@@ -14,8 +14,13 @@ export async function GET(req: NextRequest) {
   if (!salonId) return NextResponse.json({ error: '403' }, { status: 403 });
   const { searchParams } = new URL(req.url);
   const date = searchParams.get('date');
+  const from = searchParams.get('from');
+  const to   = searchParams.get('to');
   let query = supabase.from('rdvs').select('*').eq('salon_id', salonId).order('date').order('start_time');
   if (date) query = query.eq('date', date);
+  // Optional window — lets the agenda fetch only what it renders instead of all history
+  if (from) query = query.gte('date', from);
+  if (to)   query = query.lte('date', to);
   const { data } = await query;
   return NextResponse.json(data ?? []);
 }

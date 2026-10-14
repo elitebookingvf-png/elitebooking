@@ -551,8 +551,11 @@ export function ProRdvList() {
     fetch('/api/services').then(r => r.json()).then(d => setServices(Array.isArray(d.services) ? d.services : []))
     fetch('/api/staff').then(r => r.json()).then(d => setStaff2(Array.isArray(d) ? d : []))
     fetch('/api/users/me').then(r => r.json()).then(d => { if (d?.salon?.pin) setPin(d.salon.pin) })
-    const interval = setInterval(loadRdvs, 30000)
-    return () => clearInterval(interval)
+    // Poll only while the tab is visible
+    const tick = () => { if (document.visibilityState === 'visible') loadRdvs() }
+    const interval = setInterval(tick, 30000)
+    document.addEventListener('visibilitychange', tick)
+    return () => { clearInterval(interval); document.removeEventListener('visibilitychange', tick) }
   }, [])
 
   async function changeStatus(id: string, status: string) {

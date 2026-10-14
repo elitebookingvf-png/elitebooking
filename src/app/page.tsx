@@ -5,6 +5,10 @@ import NavBar from '@/components/NavBar';
 import { createAdminClient } from '@/lib/supabase/server';
 import { PUBLIC_SALON_COLS } from '@/lib/utils';
 
+// ISR: served from cache, refreshed in the background at most once a minute —
+// new salons appear without a redeploy, and visitors never wait on the DB.
+export const revalidate = 60;
+
 async function getFeaturedSalons() {
   try {
     const supabase = createAdminClient();
@@ -18,7 +22,7 @@ async function getFeaturedSalons() {
 async function getStats() {
   try {
     const supabase = createAdminClient();
-    const { count } = await supabase.from('salons').select('*', { count: 'exact', head: true }).eq('active', true);
+    const { count } = await supabase.from('salons').select('id', { count: 'exact', head: true }).eq('active', true);
     return { salons: count ?? 0 };
   } catch {
     return { salons: 0 };

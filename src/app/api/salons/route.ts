@@ -16,7 +16,10 @@ export async function GET(req: NextRequest) {
   const limit = Math.min(Math.max(parseInt(searchParams.get('limit') || '50', 10) || 50, 1), 100);
   const { data, error } = await query.order('rating', { ascending: false }).limit(limit);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(data);
+  // Edge-cached for 30s — search results change rarely, repeat queries skip the DB
+  return NextResponse.json(data, {
+    headers: { 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=300' },
+  });
 }
 
 export async function PUT(req: NextRequest) {
