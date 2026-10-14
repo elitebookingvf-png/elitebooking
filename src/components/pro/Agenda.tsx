@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { toISO, tMin, dayKeyForISO, formatPrice } from '@/lib/utils'
+import { toISO, tMin, minToTime, dayKeyForISO, formatPrice } from '@/lib/utils'
 import ClientSearch from '@/components/ClientSearch'
 import PhoneSearch from '@/components/PhoneSearch'
 
@@ -732,7 +732,17 @@ export function ProAgenda({ salon }: { salon: any }) {
                         r.staff_id === st.id && r.date === iso &&
                         r.start_time.startsWith(`${String(h).padStart(2,'0')}:`)
                       )
-                      const clickable = works && !blkd
+                      // RDVs that started earlier and still cover this hour
+                      const covering = rdvs.filter(r =>
+                        r.staff_id === st.id && r.date === iso && r.status !== 'cancelled' &&
+                        tMin(r.start_time) < h*60 && tMin(r.start_time) + (r.duration||0) > h*60
+                      )
+                      // Whole hour already booked — nothing can start here
+                      const fullyCovered = rdvs.some(r =>
+                        r.staff_id === st.id && r.date === iso && r.status !== 'cancelled' &&
+                        tMin(r.start_time) <= h*60 && tMin(r.start_time) + (r.duration||0) >= h*60+60
+                      )
+                      const clickable = works && !blkd && !fullyCovered
                       return (
                         <td key={st.id}
                           onClick={() => { if(clickable && !cellRdvs.length) { setAddRdvDate(iso); setAddRdvTime(`${String(h).padStart(2,'0')}:00`); setAddRdvStaffId(st.id); setShowAddRdv(true) } }}
@@ -743,13 +753,20 @@ export function ProAgenda({ salon }: { salon: any }) {
                             <div key={r.id} onClick={e => { e.stopPropagation(); setSelectedRdv(r) }}
                               style={{background: r.status==='completed'?'#3B82F6':r.status==='no-show'?'#F59E0B':r.status==='cancelled'?'#EB5757':'#27AE60',
                                 color:'#fff',borderRadius:8,padding:'6px 8px',fontSize:'0.75rem',marginBottom:4,cursor:'pointer'}}>
-                              <div style={{fontWeight:700}}>{r.start_time} {r.service_name?.substring(0,12)}</div>
+                              <div style={{fontWeight:700}}>{r.start_time} – {minToTime(tMin(r.start_time)+(r.duration||0))} {r.service_name?.substring(0,12)}</div>
                               <div style={{opacity:0.85}}>{r.client_name} · {r.duration}min</div>
                             </div>
                           ))}
-                          {blkd && !cellRdvs.length && <div style={{fontSize:'0.72rem',color:'#f59e0b',padding:4}}>🔒 Bloqué</div>}
+                          {covering.map(r => (
+                            <div key={'cov'+r.id} onClick={e => { e.stopPropagation(); setSelectedRdv(r) }}
+                              style={{background: r.status==='completed'?'#3B82F6':'#27AE60',
+                                opacity:0.55,color:'#fff',borderRadius:8,padding:'4px 8px',fontSize:'0.72rem',marginBottom:4,cursor:'pointer'}}>
+                              ⋮ {r.service_name?.substring(0,14)} — jusqu'à {minToTime(tMin(r.start_time)+(r.duration||0))}
+                            </div>
+                          ))}
+                          {blkd && !cellRdvs.length && !covering.length && <div style={{fontSize:'0.72rem',color:'#f59e0b',padding:4}}>🔒 Bloqué</div>}
                           {!works && <div style={{fontSize:'0.72rem',color:'#ccc',padding:4}}>{isOpen?'Repos':'Fermé'}</div>}
-                          {clickable && !cellRdvs.length && <div style={{fontSize:'0.65rem',color:'#ccc',textAlign:'center',marginTop:4}}>+ RDV</div>}
+                          {clickable && !cellRdvs.length && !covering.length && <div style={{fontSize:'0.65rem',color:'#ccc',textAlign:'center',marginTop:4}}>+ RDV</div>}
                         </td>
                       )
                     })}
@@ -769,6 +786,9 @@ export function ProAgenda({ salon }: { salon: any }) {
           ) : HOURS.map(h => {
             const hStr = String(h).padStart(2,'0')
             const dayRdvs = rdvs.filter(r => r.date===iso && r.start_time.startsWith(hStr+':') && r.status!=='cancelled')
+            // RDVs started earlier still covering this hour
+            const covering = rdvs.filter(r => r.date===iso && r.status!=='cancelled' &&
+              tMin(r.start_time) < h*60 && tMin(r.start_time) + (r.duration||0) > h*60)
             const blkd = blocks.some(b => b.date===iso && tMin(b.start_time)<=h*60 && tMin(b.end_time)>h*60)
             return (
               <div key={h} style={{display:'flex',borderBottom:'1px solid #f3f3f3',minHeight:56,background:blkd?'#fffbeb':'#fff'}}>
@@ -779,16 +799,23 @@ export function ProAgenda({ salon }: { salon: any }) {
                 </div>
                 <div style={{flex:1,padding:8,display:'flex',flexWrap:'wrap',gap:8,cursor:!blkd&&!dayRdvs.length?'pointer':'default'}}
                   onClick={() => { if(!blkd && !dayRdvs.length) { setAddRdvDate(iso); setAddRdvTime(`${hStr}:00`); setAddRdvStaffId(undefined); setShowAddRdv(true) } }}>
+                  {covering.map(r => (
+                    <div key={'cov'+r.id} onClick={e => { e.stopPropagation(); setSelectedRdv(r) }}
+                      style={{background: r.status==='completed'?'#3B82F6':'#27AE60',
+                        opacity:0.55,color:'#fff',borderRadius:8,padding:'4px 12px',fontSize:'0.75rem',cursor:'pointer',alignSelf:'center'}}>
+                      ⋮ {r.staff_name} · {r.service_name?.substring(0,14)} — jusqu'à {minToTime(tMin(r.start_time)+(r.duration||0))}
+                    </div>
+                  ))}
                   {dayRdvs.map(r => (
                     <div key={r.id} onClick={e => { e.stopPropagation(); setSelectedRdv(r) }}
                       style={{background: r.status==='completed'?'#3B82F6':r.status==='no-show'?'#F59E0B':r.status==='cancelled'?'#EB5757':'#27AE60',
                         color:'#fff',borderRadius:8,padding:'6px 12px',fontSize:'0.78rem',cursor:'pointer'}}>
-                      <div style={{fontWeight:700}}>{r.start_time} — {r.service_name}</div>
+                      <div style={{fontWeight:700}}>{r.start_time} – {minToTime(tMin(r.start_time)+(r.duration||0))} — {r.service_name}</div>
                       <div style={{opacity:0.85}}>{r.client_name} · {r.staff_name} · {formatPrice(r.price,r.price_type)}</div>
                     </div>
                   ))}
                   {blkd && <div style={{fontSize:'0.75rem',color:'#f59e0b',padding:4}}>🔒 Créneau bloqué</div>}
-                  {!blkd && !dayRdvs.length && <div style={{fontSize:'0.72rem',color:'#ddd',padding:4,alignSelf:'center'}}>+ RDV</div>}
+                  {!blkd && !dayRdvs.length && !covering.length && <div style={{fontSize:'0.72rem',color:'#ddd',padding:4,alignSelf:'center'}}>+ RDV</div>}
                 </div>
               </div>
             )
@@ -831,9 +858,18 @@ export function ProAgenda({ salon }: { salon: any }) {
                       const di = toISO(d)
                       const hStr = String(h).padStart(2,'0')
                       const dayRdvs = rdvs.filter(r => r.date===di && r.start_time.startsWith(hStr+':') && r.status!=='cancelled')
+                      const covering = rdvs.filter(r => r.date===di && r.status!=='cancelled' &&
+                        tMin(r.start_time) < h*60 && tMin(r.start_time) + (r.duration||0) > h*60)
                       const blkd = blocks.some(b => b.date===di && tMin(b.start_time)<=h*60 && tMin(b.end_time)>h*60)
                       return (
                         <td key={di} style={{border:'1px solid #eee',padding:4,verticalAlign:'top',minHeight:48,background:blkd?'#fffbeb':'#fff'}}>
+                          {covering.map(r => (
+                            <div key={'cov'+r.id} onClick={() => setSelectedRdv(r)}
+                              style={{background: r.status==='completed'?'#3B82F6':'#27AE60',
+                                opacity:0.45,color:'#fff',borderRadius:6,padding:'2px 6px',fontSize:'0.65rem',marginBottom:2,cursor:'pointer'}}>
+                              ⋮ {r.staff_name?.split(' ')[0]} → {minToTime(tMin(r.start_time)+(r.duration||0))}
+                            </div>
+                          ))}
                           {dayRdvs.map(r => (
                             <div key={r.id} onClick={() => setSelectedRdv(r)}
                               style={{background: r.status==='completed'?'#3B82F6':r.status==='no-show'?'#F59E0B':r.status==='cancelled'?'#EB5757':'#27AE60',
@@ -842,7 +878,7 @@ export function ProAgenda({ salon }: { salon: any }) {
                               <div style={{opacity:0.85}}>{r.client_name}</div>
                             </div>
                           ))}
-                          {blkd && !dayRdvs.length && <div style={{fontSize:'0.65rem',color:'#f59e0b',padding:2}}>🔒</div>}
+                          {blkd && !dayRdvs.length && !covering.length && <div style={{fontSize:'0.65rem',color:'#f59e0b',padding:2}}>🔒</div>}
                         </td>
                       )
                     })}

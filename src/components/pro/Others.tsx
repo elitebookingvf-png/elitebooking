@@ -4,6 +4,15 @@ import { formatPrice, CATEGORIES, CITIES, toISO, tMin } from '@/lib/utils'
 import ClientSearch from '@/components/ClientSearch'
 import PhoneSearch from '@/components/PhoneSearch'
 
+// fetch wrapper: throws the server's error message instead of
+// silently swallowing failed mutations
+async function apiFetch(url: string, opts?: RequestInit): Promise<any> {
+  const res = await fetch(url, opts)
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error((data as any)?.error || `Erreur ${res.status}`)
+  return data
+}
+
 // ─── Shared Add-RDV modal (multi-prestations) ────────────────
 type ProCartItem = {
   service_id: string; service_name: string; duration: number; price: number; price_type: string
@@ -332,9 +341,12 @@ function ClientFicheModal({ clientKey, clientRdvs, isBlocked, onToggleBlock, onC
   async function saveInfo() {
     if (!editName.trim()) return
     setSaving2(true)
-    await fetch('/api/rdv/pro', { method: 'PATCH', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ client_name: sample?.client_name || 'Client', new_client_name: editName, client_phone: editPhone }) })
-    setSaving2(false); setSaved2(true); setTimeout(() => setSaved2(false), 2000)
+    try {
+      await apiFetch('/api/rdv/pro', { method: 'PATCH', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ client_name: sample?.client_name || 'Client', new_client_name: editName, client_phone: editPhone }) })
+      setSaved2(true); setTimeout(() => setSaved2(false), 2000)
+    } catch (e: any) { alert(e.message || 'Erreur') }
+    finally { setSaving2(false) }
   }
   const sorted  = [...clientRdvs].sort((a: any,b: any) => b.date.localeCompare(a.date) || b.start_time.localeCompare(a.start_time))
   const total   = clientRdvs.filter((r: any) => r.status !== 'cancelled').reduce((s: number, r: any) => s + (Number(r.price)||0), 0)
@@ -544,12 +556,14 @@ export function ProRdvList() {
   }, [])
 
   async function changeStatus(id: string, status: string) {
-    await fetch(`/api/rdv/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status }),
-    })
-    setRdvs(prev => prev.map(r => r.id === id ? { ...r, status } : r))
+    try {
+      await apiFetch(`/api/rdv/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      })
+      setRdvs(prev => prev.map(r => r.id === id ? { ...r, status } : r))
+    } catch (e: any) { alert(e.message || 'Erreur') }
   }
 
   function requirePin(label: string, cb: () => void) { pinCbRef2.current = cb; setPinLabel2(label) }
@@ -665,21 +679,27 @@ export function ProServices() {
 
   const save = async () => {
     setSaving(true)
-    const method = editing?.id ? 'PUT' : 'POST'
-    const payload: any = { ...form, price: +form.price, duration: +form.duration }
-    if (editing?.id) payload.id = editing.id
-    await fetch('/api/services', { method, headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) })
-    setSaving(false); setEditing(null); load()
+    try {
+      const method = editing?.id ? 'PUT' : 'POST'
+      const payload: any = { ...form, price: +form.price, duration: +form.duration }
+      if (editing?.id) payload.id = editing.id
+      await apiFetch('/api/services', { method, headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) })
+      setEditing(null); load()
+    } catch (e: any) { alert(e.message || 'Erreur') }
+    finally { setSaving(false) }
   }
 
   const remove = (id: string) => { setPendingDelete({ id, type: 'service' }) }
 
   const saveCat = async () => {
     setSaving(true)
-    const method = editingCat?.id ? 'PUT' : 'POST'
-    const body = { ...catForm, resourceType:'category', id: editingCat?.id }
-    await fetch('/api/services', { method, headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) })
-    setSaving(false); setEditingCat(null); load()
+    try {
+      const method = editingCat?.id ? 'PUT' : 'POST'
+      const body = { ...catForm, resourceType:'category', id: editingCat?.id }
+      await apiFetch('/api/services', { method, headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) })
+      setEditingCat(null); load()
+    } catch (e: any) { alert(e.message || 'Erreur') }
+    finally { setSaving(false) }
   }
 
   const removeCat = (id: string) => { setPendingDelete({ id, type: 'category' }) }
@@ -693,9 +713,11 @@ export function ProServices() {
           onSuccess={async () => {
             const { id, type } = pendingDelete
             setPendingDelete(null)
-            await fetch('/api/services', { method:'DELETE', headers:{'Content-Type':'application/json'},
-              body: JSON.stringify(type === 'category' ? { id, resourceType:'category' } : { id }) })
-            load()
+            try {
+              await apiFetch('/api/services', { method:'DELETE', headers:{'Content-Type':'application/json'},
+                body: JSON.stringify(type === 'category' ? { id, resourceType:'category' } : { id }) })
+              load()
+            } catch (e: any) { alert(e.message || 'Erreur') }
           }}
           onClose={() => setPendingDelete(null)}
         />
@@ -859,15 +881,20 @@ export function ProStaff() {
 
   const save = async () => {
     setSaving(true)
-    const method = editing?.id ? 'PUT' : 'POST'
-    await fetch('/api/staff', { method, headers:{'Content-Type':'application/json'}, body: JSON.stringify({ ...form, id: editing?.id }) })
-    setSaving(false); setEditing(null); load()
+    try {
+      const method = editing?.id ? 'PUT' : 'POST'
+      await apiFetch('/api/staff', { method, headers:{'Content-Type':'application/json'}, body: JSON.stringify({ ...form, id: editing?.id }) })
+      setEditing(null); load()
+    } catch (e: any) { alert(e.message || 'Erreur') }
+    finally { setSaving(false) }
   }
 
   const remove = async (id: string) => {
     if (!confirm('Supprimer ?')) return
-    await fetch('/api/staff', { method:'DELETE', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id }) })
-    load()
+    try {
+      await apiFetch('/api/staff', { method:'DELETE', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id }) })
+      load()
+    } catch (e: any) { alert(e.message || 'Erreur') }
   }
 
   return (
@@ -1114,21 +1141,26 @@ export function ProSchedule() {
 
   const saveSchedule = async () => {
     setSaving(true)
-    await fetch('/api/schedule', { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(schedule) })
-    setSaving(false)
+    try { await apiFetch('/api/schedule', { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(schedule) }) }
+    catch (e: any) { alert(e.message || 'Erreur') }
+    finally { setSaving(false) }
   }
 
   const saveBlock = async () => {
     if (!bForm.date) return
-    await fetch('/api/blocks', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(bForm) })
-    setBForm(f => ({...f, label:'', date:'', staff_id:''}))
-    load()
+    try {
+      await apiFetch('/api/blocks', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(bForm) })
+      setBForm(f => ({...f, label:'', date:'', staff_id:''}))
+      load()
+    } catch (e: any) { alert(e.message || 'Erreur') }
   }
 
   const delBlock = async (id: string) => {
     if (!confirm('Supprimer ce blocage ?')) return
-    await fetch('/api/blocks', { method:'DELETE', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id }) })
-    load()
+    try {
+      await apiFetch('/api/blocks', { method:'DELETE', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id }) })
+      load()
+    } catch (e: any) { alert(e.message || 'Erreur') }
   }
 
   const future = blocks.filter(b => b.date >= today).sort((a,b) => a.date.localeCompare(b.date))
@@ -1242,10 +1274,11 @@ export function ProSalonSettings({ salon, setSalon }: { salon: any; setSalon: (s
 
   const save = async () => {
     setSaving(true); setOk(false)
-    const res = await fetch('/api/salons', { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(form) })
-    const updated = await res.json()
-    if (res.ok) { setSalon(updated); setOk(true); setTimeout(()=>setOk(false),2000) }
-    setSaving(false)
+    try {
+      const updated = await apiFetch('/api/salons', { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(form) })
+      setSalon(updated); setOk(true); setTimeout(()=>setOk(false),2000)
+    } catch (e: any) { alert(e.message || 'Erreur') }
+    finally { setSaving(false) }
   }
 
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement|HTMLSelectElement|HTMLTextAreaElement>) =>
@@ -1308,10 +1341,13 @@ export function ProProfile({ salon, setSalon }: { salon: any; setSalon: (s:any)=
 
   const save = async () => {
     setSaving(true); setOk(false)
-    const body: any = { firstname:form.firstname, lastname:form.lastname, phone:form.phone }
-    if (form.password) body.password = form.password
-    await fetch('/api/users/me', { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) })
-    setSaving(false); setOk(true); setTimeout(()=>setOk(false),2000)
+    try {
+      const body: any = { firstname:form.firstname, lastname:form.lastname, phone:form.phone }
+      if (form.password) body.password = form.password
+      await apiFetch('/api/users/me', { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) })
+      setOk(true); setTimeout(()=>setOk(false),2000)
+    } catch (e: any) { alert(e.message || 'Erreur') }
+    finally { setSaving(false) }
   }
 
   return (

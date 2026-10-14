@@ -1,6 +1,9 @@
 // src/lib/utils.ts
 
 /** Convertit 'HH:MM' en minutes depuis minuit */
+export const minToTime = (m: number): string =>
+  `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+
 export const tMin = (t: string): number => {
   const [h, m] = t.split(':').map(Number);
   return h * 60 + m;
