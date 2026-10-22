@@ -866,7 +866,7 @@ export function ProServices() {
 // ─── Staff ───────────────────────────────────────────────────
 const DAY_OPTIONS = ['Lu','Ma','Me','Je','Ve','Sa','Di']
 const TIME_OPTIONS: string[] = []
-for(let h=0;h<24;h++) for(let m=0;m<60;m+=30) TIME_OPTIONS.push(`${String(h).padStart(2,'0')}:${m===0?'00':'30'}`)
+for(let h=0;h<24;h++) for(let m=0;m<60;m+=5) TIME_OPTIONS.push(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`)
 
 export function ProStaff() {
   const [staff, setStaff]   = useState<any[]>([])
@@ -1124,7 +1124,7 @@ export function ProClients() {
 const SCHED_KEYS  = ['di','lu','ma','me','je','ve','sa']
 const SCHED_LABELS = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi']
 const BLOCK_TIMES: string[] = []
-for(let h=0;h<24;h++) for(let m=0;m<60;m+=30) BLOCK_TIMES.push(`${String(h).padStart(2,'0')}:${m===0?'00':'30'}`)
+for(let h=0;h<24;h++) for(let m=0;m<60;m+=5) BLOCK_TIMES.push(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`)
 
 export function ProSchedule() {
   const [schedule, setSchedule]   = useState<any>({})

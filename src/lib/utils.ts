@@ -56,13 +56,16 @@ export function isSlotFree(
   });
 }
 
-/** Génère les créneaux de 30 en 30 minutes entre open et close (supporte 24h) */
+/** Granularité des créneaux de réservation, en minutes */
+export const SLOT_STEP = 5;
+
+/** Génère les créneaux de SLOT_STEP en SLOT_STEP minutes entre open et close (supporte 24h) */
 export function generateSlots(openStr: string, closeStr: string, duration: number): string[] {
   const open  = tMin(openStr);
   let close   = tMin(closeStr);
   if (close <= open) close = 1440; // minuit = fin de journée
   const slots: string[] = [];
-  for (let t = open; t + duration <= close; t += 30) {
+  for (let t = open; t + duration <= close; t += SLOT_STEP) {
     const h = Math.floor(t / 60) % 24;
     slots.push(
       String(h).padStart(2, '0') + ':' +
