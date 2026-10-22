@@ -30,7 +30,8 @@ export async function computeAvailability(
   }
   if (!salonId) return { slots: [], error: 'Salon introuvable' };
 
-  const [{ data: service }, { data: staff }, { data: schedule }, { data: rdvs }, { data: blocks }] = await Promise.all([
+  const [{ data: salon }, { data: service }, { data: staff }, { data: schedule }, { data: rdvs }, { data: blocks }] = await Promise.all([
+    supabase.from('salons').select('active').eq('id', salonId).single(),
     supabase.from('services').select('duration, active').eq('id', serviceId).single(),
     supabase.from('staff').select('days, start_time, end_time, active').eq('id', staffId).single(),
     supabase.from('schedules').select('*').eq('salon_id', salonId).single(),
@@ -38,7 +39,7 @@ export async function computeAvailability(
     supabase.from('blocks').select('start_time, end_time, staff_id').eq('salon_id', salonId).eq('date', date),
   ]);
 
-  if (!service?.active || !staff?.active || !schedule) return { slots: [] };
+  if (!salon || salon.active === false || !service?.active || !staff?.active || !schedule) return { slots: [] };
 
   const dayKey = dayKeyForISO(date).toLowerCase();
   if ((schedule as any)[`${dayKey}_open`] === false) return { slots: [], closed: true };

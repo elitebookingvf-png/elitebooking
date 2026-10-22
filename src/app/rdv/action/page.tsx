@@ -76,7 +76,7 @@ function RdvActionInner() {
       </div>
       <p style={p}>Pour modifier votre rendez-vous, veuillez contacter directement le salon ou vous connecter à votre espace.</p>
       <div style={{display:'flex',gap:12,marginTop:8}}>
-        <a href="/" style={btnPrimary}>Se connecter</a>
+        <a href="/auth" style={btnPrimary}>Se connecter</a>
         <button onClick={doCancel} style={btnDanger}>Annuler le RDV</button>
       </div>
     </div></div>

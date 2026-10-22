@@ -18,9 +18,14 @@ export async function PUT(req: NextRequest) {
   const salonId = await getProSalonId(supabase, userId);
   if (!salonId) return NextResponse.json({ error: '403' }, { status: 403 });
   const body = await req.json();
-  // Never let the payload retarget another salon or the row id
-  const { id: _omit, salon_id: _omit2, ...rest } = body;
-  const { data, error } = await supabase.from('schedules').update(rest).eq('salon_id', salonId).select().single();
+  // Whitelist day fields only — never let the payload retarget the row
+  // (id, salon_id, timestamps) or inject unknown columns.
+  const update: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(body)) {
+    if (/^(lu|ma|me|je|ve|sa|di)_(open|start|end)$/.test(k)) update[k] = v;
+  }
+  if (!Object.keys(update).length) return NextResponse.json({ error: 'Rien à mettre à jour' }, { status: 400 });
+  const { data, error } = await supabase.from('schedules').update(update).eq('salon_id', salonId).select().single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(data);
 }

@@ -1,6 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient, getUserIdFromCookies, getProSalonId } from '@/lib/supabase/server';
 
+// Keep only staff ids that actually belong to this salon — drops blanks,
+// deleted staff, and ids pointing at other salons.
+async function filterOwnStaff(supabase: any, salonId: string, ids: unknown[]): Promise<string[]> {
+  const clean = ids.filter((x): x is string => typeof x === 'string' && x.length > 0);
+  if (!clean.length) return [];
+  const { data } = await supabase.from('staff').select('id').eq('salon_id', salonId).in('id', clean);
+  const own = new Set((data ?? []).map((s: any) => s.id));
+  return clean.filter(id => own.has(id));
+}
+
 export async function GET(req: NextRequest) {
   const userId = await getUserIdFromCookies();
   if (!userId) return NextResponse.json({ error: '401' }, { status: 401 });
@@ -30,7 +40,7 @@ export async function POST(req: NextRequest) {
   const { resourceType: _, id: _omit, salon_id: _omit2, ...svcData } = body;
   // Empty strings are not valid uuids — normalize nullable refs
   if ('cat_id' in svcData) svcData.cat_id = svcData.cat_id || null;
-  if (Array.isArray(svcData.staff_ids)) svcData.staff_ids = svcData.staff_ids.filter(Boolean);
+  if (Array.isArray(svcData.staff_ids)) svcData.staff_ids = await filterOwnStaff(supabase, salonId, svcData.staff_ids);
   const { data, error } = await supabase.from('services').insert({ ...svcData, salon_id: salonId }).select().single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(data, { status: 201 });
@@ -47,7 +57,7 @@ export async function PUT(req: NextRequest) {
   const { id, resourceType: _, salon_id: _omit, ...rest } = body;
   // Empty strings are not valid uuids — normalize nullable refs
   if ('cat_id' in rest) rest.cat_id = rest.cat_id || null;
-  if (Array.isArray(rest.staff_ids)) rest.staff_ids = rest.staff_ids.filter(Boolean);
+  if (Array.isArray(rest.staff_ids)) rest.staff_ids = await filterOwnStaff(supabase, salonId, rest.staff_ids);
   const { data, error } = await (supabase.from(table as any) as any).update(rest).eq('id', id).eq('salon_id', salonId).select().single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   if (!data) return NextResponse.json({ error: 'Not found' }, { status: 404 });

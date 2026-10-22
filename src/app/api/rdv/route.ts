@@ -28,6 +28,9 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json();
   const items: any[] = Array.isArray(body.items) ? body.items : [body];
+  if (!items.length || items.length > 10) {
+    return NextResponse.json({ error: 'Nombre de prestations invalide' }, { status: 400 });
+  }
   const groupId = items.length > 1 ? uuid() : null;
 
   // Charger les RDV existants pour vérifier les conflits staff + client
@@ -92,7 +95,7 @@ export async function POST(req: NextRequest) {
       tMinUtil(r.start_time) + r.duration > newStart
     );
     if (clientConflict) return NextResponse.json({ error: `Vous avez déjà un rendez-vous à ce créneau` }, { status: 409 });
-    const rdv = { client_id: userId, client_name: clientName, salon_id: item.salon_id, salon_name: salon.name, service_id: item.service_id, service_name: service.name, staff_id: item.staff_id, staff_name: `${staff.firstname} ${staff.lastname}`, date: item.date, start_time: item.start_time, duration: service.duration, price: service.price, price_type: service.price_type, status: 'confirmed', notes: item.notes ?? null, group_id: groupId, source: 'client' };
+    const rdv = { client_id: userId, client_name: clientName, salon_id: item.salon_id, salon_name: salon.name, service_id: item.service_id, service_name: service.name, staff_id: item.staff_id, staff_name: `${staff.firstname} ${staff.lastname}`, date: item.date, start_time: item.start_time, duration: service.duration, price: service.price, price_type: service.price_type, status: 'confirmed', notes: typeof item.notes === 'string' ? item.notes.slice(0, 500) : null, group_id: groupId, source: 'client' };
     toInsert.push(rdv);
     tempCart.push({ salon_id: item.salon_id, staff_id: item.staff_id, client_id: userId, date: item.date, start_time: item.start_time, duration: service.duration, status: 'confirmed' });
   }

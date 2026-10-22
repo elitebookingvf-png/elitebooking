@@ -29,7 +29,7 @@ function base(content: string) {
   <div style="padding:32px">${content}</div>
   <div style="background:#f7f7f7;padding:14px 32px;text-align:center;font-size:12px;color:#aaa;border-top:1px solid #eee">
     &copy; ${new Date().getFullYear()} EliteBooking &middot; Maroc &middot;
-    <a href="${APP}" style="color:#C17B4E;text-decoration:none">elitebooking-lac.vercel.app</a>
+    <a href="${APP}" style="color:#C17B4E;text-decoration:none">${APP.replace(/^https?:\/\//, '')}</a>
   </div>
 </div></body></html>`;
 }
@@ -84,7 +84,7 @@ export async function sendRdvConfirmationEmail(to: string, rdvId: string, params
       ${btn(modifyUrl, '✏️ Modifier', '#eeeeee', '#333333')}
       ${btn(cancelUrl, '✕ Annuler', '#EB5757', '#ffffff')}
     </p>
-    <p style="font-size:12px;color:#aaa">Ces liens sont valables 48h avant votre rendez-vous.</p>
+    <p style="font-size:12px;color:#aaa">Ces liens sont valables jusqu'au début de votre rendez-vous.</p>
   `);
   await send(to, `RDV confirmé — ${params.salonName} le ${params.date} à ${params.time}`, html);
 }

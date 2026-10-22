@@ -26,6 +26,11 @@ export async function POST(req: NextRequest) {
   const { id: _omit, salon_id: _omit2, ...rest } = body;
   // Empty string is not a valid uuid — "" means "all staff"
   if ('staff_id' in rest) rest.staff_id = rest.staff_id || null;
+  // A block targeting another salon's staff would silently apply to nobody
+  if (rest.staff_id) {
+    const { data: st } = await supabase.from('staff').select('id').eq('id', rest.staff_id).eq('salon_id', salonId).maybeSingle();
+    if (!st) return NextResponse.json({ error: 'Employé invalide' }, { status: 400 });
+  }
   const { data, error } = await supabase.from('blocks').insert({ ...rest, salon_id: salonId }).select().single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(data, { status: 201 });

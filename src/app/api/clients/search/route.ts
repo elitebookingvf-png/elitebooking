@@ -12,7 +12,9 @@ export async function GET(req: NextRequest) {
   if (!salonId) return NextResponse.json({ error: '403' }, { status: 401 });
 
   const { searchParams } = new URL(req.url);
-  const query = searchParams.get('q')?.trim();
+  // Strip PostgREST metachars — q is interpolated into .or() filters, and a
+  // crafted value (e.g. containing ',') could inject extra conditions.
+  const query = searchParams.get('q')?.trim().replace(/[%,()_\\"]/g, '');
   if (!query || query.length < 2) {
     return NextResponse.json({ clients: [] });
   }

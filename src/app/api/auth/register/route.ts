@@ -9,6 +9,8 @@ export async function POST(req: NextRequest) {
     if (!firstname || !lastname || !email || !password) {
       return NextResponse.json({ error: 'Champs obligatoires manquants' }, { status: 400 });
     }
+    // Whitelist — the body must not write arbitrary values into profiles.type
+    const role = type === 'pro' ? 'pro' : 'client';
 
     const supabase      = createClient();
     const adminSupabase = createAdminClient();
@@ -23,7 +25,7 @@ export async function POST(req: NextRequest) {
       email,
       password,
       options: {
-        data: { firstname, lastname, type: type || 'client' },
+        data: { firstname, lastname, type: role },
       },
     });
     if (authError) return NextResponse.json({ error: authError.message }, { status: 400 });
@@ -33,7 +35,7 @@ export async function POST(req: NextRequest) {
 
     // 2. Update profile — trigger already created the row, just patch phone & type
     const { error: profileErr } = await (adminSupabase.from('profiles') as any)
-      .update({ firstname, lastname, phone: phone || null, type: type || 'client' })
+      .update({ firstname, lastname, phone: phone || null, type: role })
       .eq('id', userId);
     if (profileErr) {
       console.error('[register] profile update error:', profileErr);
@@ -41,7 +43,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 3. Si pro → créer salon + schedule + lier profil
-    if (type === 'pro') {
+    if (role === 'pro') {
       const resolvedSalonName = salonName || 'Mon Salon';
       const resolvedCity      = salonCity || city || 'Casablanca';
       const resolvedCategory  = salonCategory || category || 'coiffure';
@@ -88,7 +90,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Send welcome email (fire-and-forget)
-    sendWelcomeEmail(email, firstname, type || 'client').catch(console.error);
+    sendWelcomeEmail(email, firstname, role).catch(console.error);
 
     return NextResponse.json({ ok: true }, { status: 201 });
   } catch (e: any) {
