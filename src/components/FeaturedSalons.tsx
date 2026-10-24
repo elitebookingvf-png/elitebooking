@@ -34,7 +34,7 @@ export default function FeaturedSalons({ salons, cities }: { salons: any[]; citi
 
   return (
     <div>
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end',marginBottom:32,paddingTop:80}}>
+      <div className="featured-header" style={{marginBottom:32,paddingTop:80}}>
         <div>
           <div style={{fontSize:'0.72rem',fontWeight:700,letterSpacing:'0.12em',textTransform:'uppercase',color:'#111',marginBottom:12}}>À la une</div>
           <h2 className="serif" style={{fontSize:'clamp(1.8rem,3vw,2.6rem)'}}>

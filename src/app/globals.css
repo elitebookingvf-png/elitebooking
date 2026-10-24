@@ -19,8 +19,15 @@
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: 'DM Sans', system-ui, sans-serif; color: var(--black); background: #fff; -webkit-font-smoothing: antialiased; }
+html { scroll-behavior: smooth; }
+body { font-family: 'DM Sans', system-ui, sans-serif; color: var(--black); background: #fff; -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent; }
 .serif { font-family: 'DM Serif Display', Georgia, serif; }
+
+/* Anchor targets clear the 64px sticky nav */
+[id] { scroll-margin-top: 80px; }
+
+/* Keyboard focus */
+:focus-visible { outline: 2px solid var(--black); outline-offset: 2px; border-radius: 4px; }
 
 /* Cards */
 .card { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 20px; }
@@ -60,7 +67,7 @@ body { font-family: 'DM Sans', system-ui, sans-serif; color: var(--black); backg
 
 /* Time slots */
 .slots-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 6px; }
-.slot-btn { padding: 8px 10px; text-align: center; border: 1.5px solid var(--border); border-radius: 8px; font-size: 0.8rem; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+.slot-btn { padding: 8px 10px; min-height: 40px; display: flex; align-items: center; justify-content: center; text-align: center; border: 1.5px solid var(--border); border-radius: 8px; font-size: 0.8rem; font-weight: 500; cursor: pointer; transition: all 0.15s; user-select: none; }
 .slot-btn:hover { border-color: var(--gold); color: var(--gold); }
 .slot-btn.selected { background: #111; color: #fff; border-color: #111; }
 .slot-btn.unavailable { background: var(--grey); color: #ccc; cursor: not-allowed; text-decoration: line-through; pointer-events: none; }
@@ -215,6 +222,16 @@ body { font-family: 'DM Sans', system-ui, sans-serif; color: var(--black); backg
 /* Horizontal scroll wrapper for wide tables on mobile */
 .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
+/* ── Mobile nav ── */
+.nav-mobile-toggle { display: none; background: none; border: 1px solid var(--border); border-radius: 10px; width: 42px; height: 42px; align-items: center; justify-content: center; cursor: pointer; color: var(--black); }
+.nav-mobile-menu { display: none; }
+
+/* Featured section header wraps cleanly on small screens */
+.featured-header { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+
+/* Search page filter row → 2-col grid on mobile, inputs full width */
+.search-filters { display: flex; gap: 8px; flex-wrap: wrap; }
+
 /* Responsive */
 @media (max-width: 900px) {
   .kpi-grid { grid-template-columns: 1fr 1fr; }
@@ -226,6 +243,24 @@ body { font-family: 'DM Sans', system-ui, sans-serif; color: var(--black); backg
   .footer-grid { grid-template-columns: 1fr 1fr !important; }
   .pro-schedule-grid { grid-template-columns: 1fr !important; }
   .nav-links-desktop { display: none !important; }
+
+  /* Mobile nav: hamburger + dropdown panel */
+  .nav-mobile-toggle { display: flex; }
+  .nav-mobile-menu { display: flex; flex-direction: column; gap: 4px; position: absolute; top: 64px; left: 0; right: 0; background: #fff; border-bottom: 1px solid var(--border); padding: 12px 16px 16px; box-shadow: 0 24px 48px rgba(0,0,0,0.08); }
+  .nav-mobile-menu a, .nav-mobile-menu button { padding: 12px 10px; border-radius: 10px; font-size: 0.9rem; color: var(--black); text-decoration: none; font-weight: 500; }
+  .nav-mobile-menu a:active { background: var(--grey); }
+
+  /* Stats bar: tighter rhythm */
+  .stats-bar { gap: 28px !important; }
+
+  /* Booking touch targets */
+  .day-toggle { min-height: 42px; }
+  .staff-item { min-height: 88px; }
+
+  /* Search filters: 2-col grid */
+  .search-filters { display: grid; grid-template-columns: 1fr 1fr; }
+  .search-filters > * { max-width: none !important; width: 100%; }
+  .search-filters > input { grid-column: 1 / -1; }
 
   /* Home page → stack grids */
   .pro-section-grid { grid-template-columns: 1fr !important; }
@@ -258,4 +293,9 @@ body { font-family: 'DM Sans', system-ui, sans-serif; color: var(--black); backg
   .featured-grid { grid-template-columns: 1fr !important; }
   /* Reduce large inline section paddings on mobile */
   [style*="padding:80px 40px"] { padding: 48px 20px !important; }
+
+  /* Comfortable tap zones on phones */
+  .hero-tag { padding: 10px 16px !important; }
+  .cat-pill { width: calc(33.33% - 7px) !important; min-width: 100px; flex-grow: 1; }
+  .booking-widget { position: static !important; }
 }

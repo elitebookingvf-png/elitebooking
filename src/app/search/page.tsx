@@ -63,7 +63,7 @@ function SearchResults() {
         <Link href="/" className="serif text-xl font-bold" style={{textDecoration:'none',color:'#111'}}>
           Elite<em style={{fontStyle:'italic'}}>Booking</em>
         </Link>
-        <div className="flex-1 flex gap-2 flex-wrap" style={{maxWidth:820,minWidth:200}}>
+        <div className="flex-1 search-filters" style={{maxWidth:820,minWidth:200}}>
           <input value={q} onChange={e => setQ(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && search()}
             className="form-control flex-1" placeholder="Rechercher un salon…" />
