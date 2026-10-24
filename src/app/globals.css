@@ -30,7 +30,7 @@ body { font-family: 'DM Sans', system-ui, sans-serif; color: var(--black); backg
 :focus-visible { outline: 2px solid var(--black); outline-offset: 2px; border-radius: 4px; }
 
 /* Cards */
-.card { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 20px; }
+.card { background: #fff; border: 1px solid var(--border); border-radius: 16px; padding: 22px; transition: box-shadow 0.2s ease, transform 0.2s ease; }
 
 /* Buttons */
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 20px; border-radius: 10px; font-size: 0.88rem; font-weight: 600; cursor: pointer; transition: all 0.18s; border: none; text-decoration: none; font-family: inherit; }
@@ -73,7 +73,8 @@ body { font-family: 'DM Sans', system-ui, sans-serif; color: var(--black); backg
 .slot-btn.unavailable { background: var(--grey); color: #ccc; cursor: not-allowed; text-decoration: line-through; pointer-events: none; }
 
 /* RDV pills (agenda — positionnement absolu) */
-.rdv-card { position: absolute; left: 4px; right: 4px; border-radius: 8px; padding: 5px 8px; color: #fff; cursor: pointer; z-index: 2; box-sizing: border-box; overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,0.15); display: flex; flex-direction: column; justify-content: space-between; transition: opacity 0.15s; }
+.rdv-card { position: absolute; left: 4px; right: 4px; border-radius: 10px; padding: 6px 9px; color: #fff; cursor: pointer; z-index: 2; box-sizing: border-box; overflow: hidden; box-shadow: 0 3px 10px rgba(0,0,0,0.18); display: flex; flex-direction: column; justify-content: space-between; transition: opacity 0.15s, transform 0.15s; }
+.rdv-card:hover { transform: translateY(-1px); }
 .rdv-card:hover { opacity: 0.88; }
 .rdv-card .client-name { font-weight: 700; font-size: 0.82rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .rdv-card .svc-name    { font-size: 0.7rem; opacity: 0.9; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -136,10 +137,14 @@ body { font-family: 'DM Sans', system-ui, sans-serif; color: var(--black); backg
 
 /* KPI cards */
 .kpi-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-bottom: 28px; }
-.kpi-card { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 20px; }
-.kpi-val { font-family: 'DM Serif Display', Georgia, serif; font-size: 1.8rem; color: var(--black); display: block; margin-bottom: 2px; }
-.kpi-label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
-.kpi-change { font-size: 0.75rem; margin-top: 6px; font-weight: 500; }
+.kpi-card { background: #fff; border: 1px solid var(--border); border-radius: 16px; padding: 24px; }
+.kpi-card { transition: box-shadow 0.2s ease, transform 0.2s ease; }
+.kpi-card:hover { box-shadow: 0 8px 28px rgba(0,0,0,0.07); transform: translateY(-2px); }
+
+/* Section header inside pro pages */
+.pro-page-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 28px; }
+.pro-page-title { font-family: 'DM Serif Display', Georgia, serif; font-size: 1.9rem; letter-spacing: -0.01em; }
+.pro-page-sub { font-size: 0.8rem; color: var(--muted); margin-top: 4px; }
 
 /* Data table */
 .data-table { width: 100%; border-collapse: collapse; }
@@ -267,7 +272,7 @@ body { font-family: 'DM Sans', system-ui, sans-serif; color: var(--black); backg
   .stats-bar { padding: 32px 20px !important; }
 
   /* Pro dashboard → drawer layout */
-  .pro-topbar { display: flex; align-items: center; justify-content: space-between; position: fixed; top: 0; left: 0; right: 0; height: 56px; padding: 0 16px; background: #fff; border-bottom: 1px solid #efefef; z-index: 25; }
+  .pro-topbar { display: flex; align-items: center; justify-content: space-between; position: fixed; top: 0; left: 0; right: 0; height: 56px; padding: 0 16px; background: #0e0e0e; border-bottom: 1px solid rgba(255,255,255,0.08); z-index: 25; }
   .pro-aside { transform: translateX(-100%); transition: transform 0.25s ease; box-shadow: 0 0 50px rgba(0,0,0,0.18); }
   .pro-aside.open { transform: translateX(0); }
   .pro-aside-close { display: block; }

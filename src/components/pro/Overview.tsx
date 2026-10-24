@@ -108,81 +108,89 @@ export function ProOverview({ salon }: { salon: any }) {
         />
       )}
 
-      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:32,flexWrap:'wrap',gap:12}}>
-        <div>
-          <h1 className="serif" style={{fontSize:'2rem'}}>{salon.name}</h1>
-          <p style={{color:'#aaa',fontSize:'0.85rem',marginTop:4}}>{salon.category} · {salon.city}</p>
-        </div>
-        <Link href={`/salon/${salon.id}`} className="btn btn-secondary btn-sm" style={{textDecoration:'none'}}>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:28,flexWrap:'wrap',gap:12}}>
+        <p style={{color:'#888',fontSize:'0.88rem'}}>
+          <span className="serif" style={{fontStyle:'italic',fontSize:'1.05rem',color:'#111'}}>{salon.name}</span>
+          {' '}· {salon.category} · {salon.city}
+        </p>
+        <Link href={`/salon/${salon.id}`} style={{fontSize:'0.8rem',color:'#111',textDecoration:'none',borderBottom:'1px solid #111',paddingBottom:1,fontWeight:600}}>
           Voir ma page publique →
         </Link>
       </div>
 
       <div className="kpi-grid" style={{marginBottom:32}}>
         {/* Total RDV */}
-        <div className="card">
-          <div style={{fontSize:'2rem',fontWeight:700}}>{rdvs.length}</div>
-          <div style={{fontSize:'0.85rem',color:'#666',marginTop:4}}>Total RDV</div>
-          <div style={{fontSize:'0.75rem',color:'#111',marginTop:2}}>Tous statuts</div>
+        <div className="card kpi-card">
+          <div className="serif" style={{fontSize:'2.2rem',lineHeight:1}}>{rdvs.length}</div>
+          <div style={{fontSize:'0.68rem',color:'#999',marginTop:10,textTransform:'uppercase',letterSpacing:'0.1em',fontWeight:700}}>Total RDV</div>
+          <div style={{fontSize:'0.75rem',color:'#bbb',marginTop:4}}>Tous statuts</div>
         </div>
 
         {/* Revenue — PIN protected */}
-        <div className="card" style={{cursor: revenueVisible ? 'default' : 'pointer', position:'relative'}}
+        <div className="card kpi-card" style={{cursor: revenueVisible ? 'default' : 'pointer', position:'relative'}}
           onClick={() => { if (!revenueVisible) setShowPin(true) }}>
           {revenueVisible ? (
             <>
-              <div style={{fontSize:'2rem',fontWeight:700}}>{revenue.toLocaleString('fr-FR')}</div>
-              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginTop:4}}>
-                <div style={{fontSize:'0.85rem',color:'#666'}}>Revenus MAD</div>
+              <div className="serif" style={{fontSize:'2.2rem',lineHeight:1}}>{revenue.toLocaleString('fr-FR')}</div>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginTop:10}}>
+                <div style={{fontSize:'0.68rem',color:'#999',textTransform:'uppercase',letterSpacing:'0.1em',fontWeight:700}}>Revenus MAD</div>
                 <button onClick={e => { e.stopPropagation(); setRevenueVisible(false) }}
                   style={{color:'#aaa',background:'none',border:'none',cursor:'pointer'}}>
                   <Icon name="lock" size={11}/>
                 </button>
               </div>
-              <div style={{fontSize:'0.75rem',color:'#111',marginTop:2}}>Confirmés uniquement</div>
+              <div style={{fontSize:'0.75rem',color:'#bbb',marginTop:4}}>Confirmés uniquement</div>
             </>
           ) : (
             <>
-              <div style={{fontSize:'2rem',fontWeight:700,letterSpacing:4,color:'#ccc'}}>●●●●</div>
-              <div style={{display:'flex',alignItems:'center',gap:6,marginTop:4}}>
-                <div style={{fontSize:'0.85rem',color:'#666'}}>Revenus MAD</div>
+              <div className="serif" style={{fontSize:'2.2rem',letterSpacing:4,color:'#ccc',lineHeight:1}}>●●●●</div>
+              <div style={{display:'flex',alignItems:'center',gap:6,marginTop:10}}>
+                <div style={{fontSize:'0.68rem',color:'#999',textTransform:'uppercase',letterSpacing:'0.1em',fontWeight:700}}>Revenus MAD</div>
                 <Icon name="lock" size={10}/>
               </div>
-              <div style={{fontSize:'0.75rem',color:'#aaa',marginTop:2}}>Cliquez pour révéler</div>
+              <div style={{fontSize:'0.75rem',color:'#bbb',marginTop:4}}>Cliquez pour révéler</div>
             </>
           )}
         </div>
 
         {/* RDV aujourd'hui */}
-        <div className="card">
-          <div style={{fontSize:'2rem',fontWeight:700}}>{todayRdvs.length}</div>
-          <div style={{fontSize:'0.85rem',color:'#666',marginTop:4}}>RDV aujourd'hui</div>
-          <div style={{fontSize:'0.75rem',color:'#111',marginTop:2}}>
+        <div className="card kpi-card">
+          <div className="serif" style={{fontSize:'2.2rem',lineHeight:1}}>{todayRdvs.length}</div>
+          <div style={{fontSize:'0.68rem',color:'#999',marginTop:10,textTransform:'uppercase',letterSpacing:'0.1em',fontWeight:700}}>RDV aujourd'hui</div>
+          <div style={{fontSize:'0.75rem',color:'#bbb',marginTop:4,textTransform:'capitalize'}}>
             {new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'short'})}
           </div>
         </div>
 
         {/* Note moyenne */}
-        <div className="card">
-          <div style={{fontSize:'2rem',fontWeight:700}}>{rating.toFixed(1)}★</div>
-          <div style={{fontSize:'0.85rem',color:'#666',marginTop:4}}>Note moyenne</div>
-          <div style={{fontSize:'0.75rem',color:'#111',marginTop:2}}>{salon.category} · {salon.city}</div>
+        <div className="card kpi-card">
+          <div className="serif" style={{fontSize:'2.2rem',lineHeight:1,display:'flex',alignItems:'center',gap:8}}>
+            {rating.toFixed(1)}<Icon name="star" size={20} strokeWidth={1.5}/>
+          </div>
+          <div style={{fontSize:'0.68rem',color:'#999',marginTop:10,textTransform:'uppercase',letterSpacing:'0.1em',fontWeight:700}}>Note moyenne</div>
+          <div style={{fontSize:'0.75rem',color:'#bbb',marginTop:4}}>{salon.review_count || 0} avis</div>
         </div>
       </div>
 
-      <div className="card">
-        <h3 style={{fontWeight:600,fontSize:'1.1rem',marginBottom:16}}>Prochains rendez-vous</h3>
+      <div className="card" style={{padding:'24px 26px'}}>
+        <h3 className="serif" style={{fontSize:'1.3rem',marginBottom:6}}><em style={{fontStyle:'italic'}}>Prochains rendez-vous</em></h3>
         {upcoming.length === 0 ? (
-          <p style={{color:'#aaa',fontSize:'0.85rem',textAlign:'center',padding:'16px 0'}}>Aucun RDV à venir</p>
+          <p style={{color:'#aaa',fontSize:'0.85rem',textAlign:'center',padding:'24px 0'}}>Aucun RDV à venir</p>
         ) : (
           <div style={{display:'flex',flexDirection:'column'}}>
             {upcoming.map(r => (
-              <div key={r.id} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 0',borderBottom:'1px solid #f3f3f3'}}>
-                <div>
-                  <div style={{fontSize:'0.88rem',fontWeight:500}}>{r.client_name}</div>
-                  <div style={{fontSize:'0.78rem',color:'#aaa',marginTop:2}}>{r.service_name} · {r.staff_name} · {r.date} à {r.start_time}</div>
+              <div key={r.id} style={{display:'flex',alignItems:'center',gap:16,padding:'13px 0',borderBottom:'1px solid #f3f3f3'}}>
+                <div style={{background:'#111',color:'#fff',borderRadius:10,padding:'7px 11px',fontSize:'0.75rem',fontWeight:700,textAlign:'center',lineHeight:1.25,flexShrink:0,minWidth:64}}>
+                  <div style={{fontSize:'0.6rem',opacity:0.55,textTransform:'uppercase',letterSpacing:'0.06em'}}>
+                    {new Date(r.date+'T12:00').toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'})}
+                  </div>
+                  <div>{r.start_time}</div>
                 </div>
-                <span style={{fontWeight:700,color:'#111',fontSize:'0.88rem'}}>{formatPrice(r.total, 'fixe')}</span>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:'0.9rem',fontWeight:600}}>{r.client_name}</div>
+                  <div style={{fontSize:'0.78rem',color:'#aaa',marginTop:2}}>{r.service_name} · {r.staff_name}</div>
+                </div>
+                <span className="serif" style={{color:'#111',fontSize:'1.05rem',flexShrink:0}}>{formatPrice(r.total, 'fixe')}</span>
               </div>
             ))}
           </div>

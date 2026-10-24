@@ -105,6 +105,18 @@ const SECTIONS = [
   },
 ]
 
+const TAB_META: Record<string, { title: string; sub: string }> = {
+  overview: { title: "Vue d'ensemble",  sub: 'Votre activité en un coup d’œil' },
+  agenda:   { title: 'Agenda',          sub: 'Vos journées, employé par employé' },
+  rdv:      { title: 'Rendez-vous',     sub: 'Toutes vos réservations' },
+  services: { title: 'Prestations',     sub: 'Votre carte de soins et tarifs' },
+  staff:    { title: 'Employés',        sub: 'Votre équipe et leurs horaires' },
+  clients:  { title: 'Clients',         sub: 'Votre fichier clientèle' },
+  schedule: { title: 'Horaires',        sub: 'Ouverture, fermeture et blocages' },
+  salon:    { title: 'Mon salon',       sub: 'Votre vitrine publique' },
+  profile:  { title: 'Profil',          sub: 'Vos informations personnelles' },
+}
+
 export default function ProPage() {
   const router = useRouter()
   const [tab, setTab]       = useState('overview')
@@ -165,9 +177,9 @@ export default function ProPage() {
       {/* Mobile top bar — only visible on small screens */}
       <header className="pro-topbar">
         <button onClick={() => setSidebarOpen(true)} aria-label="Menu"
-          style={{background:'none',border:'none',fontSize:'1.5rem',cursor:'pointer',lineHeight:1,padding:4,color:'#111'}}>☰</button>
-        <div className="serif" style={{fontSize:'1.05rem',fontWeight:700,color:'#111'}}>
-          Elite<em style={{color:'#111',fontStyle:'italic'}}>Booking</em>
+          style={{background:'none',border:'none',fontSize:'1.5rem',cursor:'pointer',lineHeight:1,padding:4,color:'#fff'}}>☰</button>
+        <div className="serif" style={{fontSize:'1.05rem',fontWeight:700,color:'#fff'}}>
+          Elite<em style={{fontStyle:'italic'}}>Booking</em>
         </div>
         <div style={{width:32}} />
       </header>
@@ -175,31 +187,30 @@ export default function ProPage() {
       {/* Backdrop for mobile drawer */}
       <div className={`pro-backdrop${sidebarOpen ? ' show' : ''}`} onClick={() => setSidebarOpen(false)} />
 
-      {/* Sidebar — white bg + gold active border (drawer on mobile) */}
-      <aside className={`pro-aside${sidebarOpen ? ' open' : ''}`}>
-        <div style={{padding:'20px 24px',borderBottom:'1px solid #efefef',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+      {/* Sidebar — black, luxury feel (drawer on mobile) */}
+      <aside className={`pro-aside${sidebarOpen ? ' open' : ''}`} style={{background:'#0e0e0e',borderRight:'none'}}>
+        <div style={{padding:'22px 24px',borderBottom:'1px solid rgba(255,255,255,0.08)',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
           <div>
-            <div className="serif" style={{fontSize:'1.1rem',fontWeight:700,color:'#111'}}>
-              Elite<em style={{color:'#111',fontStyle:'italic'}}>Booking</em>
+            <div className="serif" style={{fontSize:'1.15rem',fontWeight:700,color:'#fff'}}>
+              Elite<em style={{fontStyle:'italic'}}>Booking</em>
             </div>
-            <div style={{fontSize:'0.72rem',color:'#aaa',marginTop:2}}>Espace Pro</div>
+            <div style={{fontSize:'0.68rem',color:'rgba(255,255,255,0.35)',marginTop:3,textTransform:'uppercase',letterSpacing:'0.12em'}}>Espace Pro</div>
           </div>
           <button onClick={() => setSidebarOpen(false)} className="pro-aside-close" aria-label="Fermer"
-            style={{background:'none',border:'none',fontSize:'1.4rem',cursor:'pointer',color:'#aaa',lineHeight:1}}>✕</button>
+            style={{background:'none',border:'none',fontSize:'1.4rem',cursor:'pointer',color:'rgba(255,255,255,0.6)',lineHeight:1}}>✕</button>
         </div>
 
-        <div style={{flex:1,overflowY:'auto',padding:'16px 0'}}>
+        <div style={{flex:1,overflowY:'auto',padding:'16px 10px'}}>
           {SECTIONS.map(section => (
-            <div key={section.label} style={{marginBottom:20}}>
-              <div style={{fontSize:'0.65rem',fontWeight:700,color:'#bbb',textTransform:'uppercase',letterSpacing:'0.1em',padding:'0 20px',marginBottom:6}}>{section.label}</div>
+            <div key={section.label} style={{marginBottom:22}}>
+              <div style={{fontSize:'0.62rem',fontWeight:700,color:'rgba(255,255,255,0.3)',textTransform:'uppercase',letterSpacing:'0.14em',padding:'0 14px',marginBottom:6}}>{section.label}</div>
               {section.tabs.map(t => (
                 <button key={t.id} onClick={() => { setTab(t.id); setSidebarOpen(false) }}
-                  style={{display:'flex',alignItems:'center',gap:10,
-                    padding:'10px 20px',width:'100%',border:'none',
-                    borderRight: tab===t.id ? '2px solid #111' : '2px solid transparent',
-                    background: tab===t.id ? '#f0f0f0' : 'transparent',
-                    color: tab===t.id ? '#111' : '#555',
-                    fontSize:'0.85rem',fontWeight:500,textAlign:'left',cursor:'pointer',transition:'all 0.15s'}}>
+                  style={{display:'flex',alignItems:'center',gap:11,
+                    padding:'10px 14px',width:'100%',border:'none',borderRadius:10,margin:'1px 0',
+                    background: tab===t.id ? '#fff' : 'transparent',
+                    color: tab===t.id ? '#111' : 'rgba(255,255,255,0.55)',
+                    fontSize:'0.85rem',fontWeight: tab===t.id ? 600 : 500,textAlign:'left',cursor:'pointer',transition:'all 0.15s'}}>
                   <span style={{width:18,display:'flex',alignItems:'center',justifyContent:'center'}}><Icon name={t.icon as IconName} size={15} /></span>{t.label}
                 </button>
               ))}
@@ -207,18 +218,26 @@ export default function ProPage() {
           ))}
         </div>
 
-        <div style={{padding:16,borderTop:'1px solid #efefef'}}>
-          <div style={{fontSize:'0.85rem',fontWeight:600,color:'#111'}}>{salon.name}</div>
-          <div style={{fontSize:'0.72rem',color:'#aaa',marginTop:2}}>{salon.category} · {salon.city}</div>
+        <div style={{padding:18,borderTop:'1px solid rgba(255,255,255,0.08)'}}>
+          <div style={{fontSize:'0.85rem',fontWeight:600,color:'#fff'}}>{salon.name}</div>
+          <div style={{fontSize:'0.72rem',color:'rgba(255,255,255,0.35)',marginTop:3}}>{salon.category} · {salon.city}</div>
           <button onClick={signOut}
-            style={{fontSize:'0.75rem',color:'#EB5757',background:'none',border:'none',cursor:'pointer',marginTop:8,padding:0}}>
-            Déconnexion
+            style={{fontSize:'0.75rem',color:'rgba(255,255,255,0.45)',background:'none',border:'none',cursor:'pointer',marginTop:10,padding:0}}>
+            Déconnexion →
           </button>
         </div>
       </aside>
 
       {/* Main */}
       <main className="pro-content">
+        <div className="pro-page-header">
+          <div>
+            <h1 className="pro-page-title"><em style={{fontStyle:'italic'}}>{TAB_META[tab]?.title}</em></h1>
+            <div className="pro-page-sub">
+              {TAB_META[tab]?.sub} · {new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}
+            </div>
+          </div>
+        </div>
         {renderTab()}
       </main>
     </div>

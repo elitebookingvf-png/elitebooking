@@ -686,23 +686,23 @@ export function ProAgenda({ salon }: { salon: any }) {
         />
       )}
 
-      {/* Header */}
+      {/* Toolbar */}
       <div style={{display:'flex',flexWrap:'wrap',alignItems:'center',justifyContent:'space-between',gap:12,marginBottom:24}}>
-        <h1 className="serif" style={{fontSize:'2rem'}}>Agenda</h1>
+        <div className="serif" style={{fontSize:'1.35rem',textTransform:'capitalize'}}>
+          <em style={{fontStyle:'italic'}}>{periodLabel()}</em>
+        </div>
         <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',maxWidth:'100%'}}>
-          <div style={{display:'flex',background:'#f3f3f3',borderRadius:12,padding:4,gap:4}}>
+          <div style={{display:'flex',background:'#fff',border:'1px solid #eaeaea',borderRadius:12,padding:4,gap:2}}>
             {(['day','week','month'] as View[]).map(v => (
               <button key={v} onClick={() => setView(v)}
-                style={{padding:'6px 14px',borderRadius:8,fontSize:'0.82rem',fontWeight:500,border:'none',cursor:'pointer',
-                  background: view===v?'#fff':'transparent',
-                  boxShadow: view===v?'0 1px 4px rgba(0,0,0,0.1)':'none',
-                  color: view===v?'#111':'#888'}}>
+                style={{padding:'7px 16px',borderRadius:9,fontSize:'0.82rem',fontWeight:500,border:'none',cursor:'pointer',transition:'all 0.15s',
+                  background: view===v?'#111':'transparent',
+                  color: view===v?'#fff':'#888'}}>
                 {v==='day'?'Jour':v==='week'?'Semaine':'Mois'}
               </button>
             ))}
           </div>
           <button onClick={() => navigate(-1)} className="btn btn-secondary" style={{padding:'6px 12px'}}>‹</button>
-          <span style={{fontSize:'0.85rem',fontWeight:500,minWidth:120,textAlign:'center',textTransform:'capitalize'}}>{periodLabel()}</span>
           <button onClick={() => navigate(1)} className="btn btn-secondary" style={{padding:'6px 12px'}}>›</button>
           <button onClick={() => setDate(new Date())} className="btn btn-secondary" style={{fontSize:'0.82rem'}}>Aujourd'hui</button>
           <button onClick={() => { setAddRdvDate(iso); setAddRdvTime(undefined); setAddRdvStaffId(undefined); setShowAddRdv(true) }} className="btn btn-primary" style={{fontSize:'0.82rem'}}>+ Ajouter un RDV</button>
@@ -717,12 +717,12 @@ export function ProAgenda({ salon }: { salon: any }) {
           ) : staff.length === 0 ? (
             <div className="card" style={{textAlign:'center',padding:'40px',color:'#aaa'}}>Aucun employé enregistré</div>
           ) : (
-            <table style={{width:'100%',borderCollapse:'collapse',minWidth:80+staff.length*140}}>
+            <table style={{width:'100%',borderCollapse:'collapse',minWidth:80+staff.length*140,background:'#fff',borderRadius:16,overflow:'hidden',boxShadow:'0 1px 0 #eee, 0 8px 28px rgba(0,0,0,0.04)'}}>
               <thead>
-                <tr style={{background:'#f7f7f7'}}>
-                  <th style={{width:56,border:'1px solid #eee',padding:8,fontSize:'0.75rem',color:'#aaa'}}></th>
+                <tr style={{background:'#fff'}}>
+                  <th style={{width:56,border:'1px solid #f0f0f0',borderBottom:'2px solid #111',padding:8,fontSize:'0.75rem',color:'#aaa'}}></th>
                   {staff.map(st => (
-                    <th key={st.id} style={{border:'1px solid #eee',padding:12,minWidth:140}}>
+                    <th key={st.id} style={{border:'1px solid #f0f0f0',borderBottom:'2px solid #111',padding:'14px 12px',minWidth:140}}>
                       <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
                         <div style={{width:36,height:36,borderRadius:'50%',background:'#111',color:'#fff',
                           display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700,fontSize:'0.82rem'}}>
@@ -738,7 +738,7 @@ export function ProAgenda({ salon }: { salon: any }) {
               <tbody>
                 {HOURS.map(h => (
                   <tr key={h}>
-                    <td style={{border:'1px solid #eee',padding:8,fontSize:'0.75rem',color:'#aaa',textAlign:'center',background:'#f7f7f7',fontWeight:500}}>
+                    <td style={{border:'1px solid #f0f0f0',padding:8,fontSize:'0.72rem',color:'#aaa',textAlign:'center',background:'#fafafa',fontWeight:500,fontVariantNumeric:'tabular-nums',letterSpacing:'0.03em'}}>
                       {String(h).padStart(2,'0')}:00
                     </td>
                     {staff.map(st => {
@@ -762,7 +762,7 @@ export function ProAgenda({ salon }: { salon: any }) {
                       return (
                         <td key={st.id}
                           onClick={() => { if(clickable && !cellRdvs.length) { setAddRdvDate(iso); setAddRdvTime(`${String(h).padStart(2,'0')}:00`); setAddRdvStaffId(st.id); setShowAddRdv(true) } }}
-                          style={{border:'1px solid #eee',padding:6,verticalAlign:'top',minHeight:56,
+                          style={{border:'1px solid #f0f0f0',padding:6,verticalAlign:'top',minHeight:56,
                             background: !works?'#f7f7f7':blkd?'#f7f7f7':'#fff',
                             cursor: clickable && !cellRdvs.length ? 'pointer' : 'default'}}>
                           {cellRdvs.map(r => (
