@@ -93,17 +93,62 @@ export const CITIES = [
 ];
 
 export const CATEGORIES = [
-  { id: 'hammam',    label: 'Hammam & Spa',         emoji: '🛁' },
-  { id: 'coiffure',  label: 'Coiffure',              emoji: '✂️' },
-  { id: 'onglerie',  label: 'Onglerie',              emoji: '💅' },
-  { id: 'massage',   label: 'Massage',               emoji: '💆' },
-  { id: 'esthetic',  label: 'Esthétique',            emoji: '✨' },
-  { id: 'barbier',   label: 'Barbier',               emoji: '💈' },
-  { id: 'medecine',  label: 'Médecine esthétique',   emoji: '🩺' },
-  { id: 'domicile',  label: 'À domicile',            emoji: '🏠' },
-  { id: 'bienetre',  label: 'Bien-être',             emoji: '🧘' },
-  { id: 'autre',     label: 'Autre',                 emoji: '⭐' },
+  { id: 'hammam',    label: 'Hammam & Spa',         emoji: '🛁', icon: 'spa' },
+  { id: 'coiffure',  label: 'Coiffure',              emoji: '✂️', icon: 'scissors' },
+  { id: 'onglerie',  label: 'Onglerie',              emoji: '💅', icon: 'nails' },
+  { id: 'massage',   label: 'Massage',               emoji: '💆', icon: 'massage' },
+  { id: 'esthetic',  label: 'Esthétique',            emoji: '✨', icon: 'sparkle' },
+  { id: 'barbier',   label: 'Barbier',               emoji: '💈', icon: 'razor' },
+  { id: 'medecine',  label: 'Médecine esthétique',   emoji: '🩺', icon: 'stethoscope' },
+  { id: 'domicile',  label: 'À domicile',            emoji: '🏠', icon: 'home' },
+  { id: 'bienetre',  label: 'Bien-être',             emoji: '🧘', icon: 'leaf' },
+  { id: 'autre',     label: 'Autre',                 emoji: '⭐', icon: 'star' },
 ] as const;
+
+// ─── Géolocalisation ─────────────────────────────────────────
+// Salons have a `city` but no coordinates — we geolocate at city level
+// using fixed centroids (no geocoding service needed).
+export const CITY_COORDS: Record<string, { lat: number; lng: number }> = {
+  'Casablanca': { lat: 33.5731, lng: -7.5898 },
+  'Rabat':      { lat: 34.0209, lng: -6.8416 },
+  'Marrakech':  { lat: 31.6295, lng: -7.9811 },
+  'Fès':        { lat: 34.0181, lng: -5.0078 },
+  'Tanger':     { lat: 35.7595, lng: -5.8340 },
+  'Agadir':     { lat: 30.4278, lng: -9.5981 },
+  'Meknès':     { lat: 33.8935, lng: -5.5473 },
+  'Oujda':      { lat: 34.6814, lng: -1.9086 },
+  'Tétouan':    { lat: 35.5889, lng: -5.3626 },
+  'Salé':       { lat: 34.0531, lng: -6.7985 },
+};
+
+export function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371, rad = (d: number) => (d * Math.PI) / 180;
+  const dLat = rad(lat2 - lat1), dLng = rad(lng2 - lng1);
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(rad(lat1)) * Math.cos(rad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+/** Distance (km) between a position and a city's centroid, null if unknown city */
+export function distanceToCity(city: string, lat: number, lng: number): number | null {
+  const c = CITY_COORDS[city];
+  return c ? haversineKm(lat, lng, c.lat, c.lng) : null;
+}
+
+/** Nearest known city to a position */
+export function nearestCity(lat: number, lng: number): { city: string; km: number } | null {
+  let best: { city: string; km: number } | null = null;
+  for (const [city, c] of Object.entries(CITY_COORDS)) {
+    const km = haversineKm(lat, lng, c.lat, c.lng);
+    if (!best || km < best.km) best = { city, km };
+  }
+  return best;
+}
+
+/** 'À moins d'1 km' · '≈ 12 km' · '≈ 240 km' */
+export function formatKm(km: number): string {
+  if (km < 1) return "À moins d'1 km";
+  return `≈ ${Math.round(km)} km`;
+}
 
 export const DAY_KEYS = ['Di', 'Lu', 'Ma', 'Me', 'Je', 'Ve', 'Sa'] as const;
 export type DayKey = typeof DAY_KEYS[number];

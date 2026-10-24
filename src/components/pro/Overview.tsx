@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { toISO, formatPrice } from '@/lib/utils'
+import Icon from '@/components/Icon'
 
 function PinModal({ action, pin, onSuccess, onClose }: {
   action: string; pin: string; onSuccess: () => void; onClose: () => void
@@ -23,7 +24,7 @@ function PinModal({ action, pin, onSuccess, onClose }: {
   return (
     <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.55)',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center'}}>
       <div style={{background:'#fff',borderRadius:20,padding:'32px 28px',width:320,boxShadow:'0 20px 60px rgba(0,0,0,0.2)',textAlign:'center'}}>
-        <div style={{fontSize:'2rem',marginBottom:8}}>🔒</div>
+        <div style={{marginBottom:10,display:'flex',justifyContent:'center'}}><Icon name="lock" size={32} strokeWidth={1.4}/></div>
         <div className="serif" style={{fontSize:'1.3rem',marginBottom:4}}>Code PIN requis</div>
         <div style={{fontSize:'0.82rem',color:'#aaa',marginBottom:20}}>{action}</div>
         <div style={{display:'flex',gap:10,justifyContent:'center',marginBottom:20}}>
@@ -122,7 +123,7 @@ export function ProOverview({ salon }: { salon: any }) {
         <div className="card">
           <div style={{fontSize:'2rem',fontWeight:700}}>{rdvs.length}</div>
           <div style={{fontSize:'0.85rem',color:'#666',marginTop:4}}>Total RDV</div>
-          <div style={{fontSize:'0.75rem',color:'#27AE60',marginTop:2}}>Tous statuts</div>
+          <div style={{fontSize:'0.75rem',color:'#111',marginTop:2}}>Tous statuts</div>
         </div>
 
         {/* Revenue — PIN protected */}
@@ -134,18 +135,18 @@ export function ProOverview({ salon }: { salon: any }) {
               <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginTop:4}}>
                 <div style={{fontSize:'0.85rem',color:'#666'}}>Revenus MAD</div>
                 <button onClick={e => { e.stopPropagation(); setRevenueVisible(false) }}
-                  style={{fontSize:'0.72rem',color:'#aaa',background:'none',border:'none',cursor:'pointer'}}>
-                  🔒
+                  style={{color:'#aaa',background:'none',border:'none',cursor:'pointer'}}>
+                  <Icon name="lock" size={11}/>
                 </button>
               </div>
-              <div style={{fontSize:'0.75rem',color:'#27AE60',marginTop:2}}>Confirmés uniquement</div>
+              <div style={{fontSize:'0.75rem',color:'#111',marginTop:2}}>Confirmés uniquement</div>
             </>
           ) : (
             <>
               <div style={{fontSize:'2rem',fontWeight:700,letterSpacing:4,color:'#ccc'}}>●●●●</div>
               <div style={{display:'flex',alignItems:'center',gap:6,marginTop:4}}>
                 <div style={{fontSize:'0.85rem',color:'#666'}}>Revenus MAD</div>
-                <span style={{fontSize:'0.72rem',color:'#aaa'}}>🔒</span>
+                <Icon name="lock" size={10}/>
               </div>
               <div style={{fontSize:'0.75rem',color:'#aaa',marginTop:2}}>Cliquez pour révéler</div>
             </>
@@ -156,7 +157,7 @@ export function ProOverview({ salon }: { salon: any }) {
         <div className="card">
           <div style={{fontSize:'2rem',fontWeight:700}}>{todayRdvs.length}</div>
           <div style={{fontSize:'0.85rem',color:'#666',marginTop:4}}>RDV aujourd'hui</div>
-          <div style={{fontSize:'0.75rem',color:'#27AE60',marginTop:2}}>
+          <div style={{fontSize:'0.75rem',color:'#111',marginTop:2}}>
             {new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'short'})}
           </div>
         </div>
@@ -165,7 +166,7 @@ export function ProOverview({ salon }: { salon: any }) {
         <div className="card">
           <div style={{fontSize:'2rem',fontWeight:700}}>{rating.toFixed(1)}★</div>
           <div style={{fontSize:'0.85rem',color:'#666',marginTop:4}}>Note moyenne</div>
-          <div style={{fontSize:'0.75rem',color:'#27AE60',marginTop:2}}>{salon.category} · {salon.city}</div>
+          <div style={{fontSize:'0.75rem',color:'#111',marginTop:2}}>{salon.category} · {salon.city}</div>
         </div>
       </div>
 
@@ -181,7 +182,7 @@ export function ProOverview({ salon }: { salon: any }) {
                   <div style={{fontSize:'0.88rem',fontWeight:500}}>{r.client_name}</div>
                   <div style={{fontSize:'0.78rem',color:'#aaa',marginTop:2}}>{r.service_name} · {r.staff_name} · {r.date} à {r.start_time}</div>
                 </div>
-                <span style={{fontWeight:700,color:'#C17B4E',fontSize:'0.88rem'}}>{formatPrice(r.total, 'fixe')}</span>
+                <span style={{fontWeight:700,color:'#111',fontSize:'0.88rem'}}>{formatPrice(r.total, 'fixe')}</span>
               </div>
             ))}
           </div>

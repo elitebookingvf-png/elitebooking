@@ -1,6 +1,16 @@
 'use client'
 import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
+import Icon from '@/components/Icon'
+import type { IconName } from '@/components/Icon'
+
+function BigIcon({ name, danger }: { name: IconName; danger?: boolean }) {
+  return (
+    <div style={{width:64,height:64,borderRadius:'50%',border:`2px solid ${danger?'#C62828':'#111'}`,color:danger?'#C62828':'#111',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 16px'}}>
+      <Icon name={name} size={28} strokeWidth={1.8} />
+    </div>
+  )
+}
 
 function RdvActionInner() {
   const params  = useSearchParams()
@@ -31,7 +41,7 @@ function RdvActionInner() {
   )
   if (status === 'done') return (
     <div style={wrap}><div style={card}>
-      <div style={{fontSize:'3rem',textAlign:'center',marginBottom:16}}>✅</div>
+      <BigIcon name="check" />
       <h2 style={h2}>Action effectuée</h2>
       <p style={p}>{msg}</p>
       <a href="/" style={btnPrimary}>Retour à l'accueil</a>
@@ -39,7 +49,7 @@ function RdvActionInner() {
   )
   if (status === 'error') return (
     <div style={wrap}><div style={card}>
-      <div style={{fontSize:'3rem',textAlign:'center',marginBottom:16}}>❌</div>
+      <BigIcon name="x" danger />
       <h2 style={h2}>Erreur</h2>
       <p style={p}>{msg}</p>
       <a href="/" style={btnPrimary}>Retour à l'accueil</a>
@@ -50,7 +60,7 @@ function RdvActionInner() {
 
   if (action === 'cancel') return (
     <div style={wrap}><div style={card}>
-      <div style={{fontSize:'3rem',textAlign:'center',marginBottom:16}}>🗓️</div>
+      <BigIcon name="calendar" />
       <h2 style={h2}>Annuler votre rendez-vous ?</h2>
       <div style={rdvCard}>
         <b>{rdv?.salon_name}</b><br/>
@@ -67,7 +77,7 @@ function RdvActionInner() {
 
   if (action === 'modify') return (
     <div style={wrap}><div style={card}>
-      <div style={{fontSize:'3rem',textAlign:'center',marginBottom:16}}>✏️</div>
+      <BigIcon name="calendar" />
       <h2 style={h2}>Modifier votre rendez-vous</h2>
       <div style={rdvCard}>
         <b>{rdv?.salon_name}</b><br/>
@@ -98,6 +108,6 @@ const card: React.CSSProperties = { background:'#fff', borderRadius:20, padding:
 const h2:   React.CSSProperties = { margin:'0 0 12px', fontSize:'1.3rem', fontWeight:800, textAlign:'center' }
 const p:    React.CSSProperties = { margin:'0 0 16px', fontSize:'0.9rem', lineHeight:1.6, color:'#555', textAlign:'center' }
 const rdvCard: React.CSSProperties = { background:'#f9f9f9', borderRadius:12, padding:'14px 18px', margin:'16px 0', fontSize:'0.9rem', lineHeight:1.8, color:'#444' }
-const btnPrimary: React.CSSProperties  = { display:'block', textAlign:'center', background:'#C17B4E', color:'#fff', borderRadius:10, padding:'12px 20px', fontWeight:700, fontSize:'0.9rem', textDecoration:'none', border:'none', cursor:'pointer', flex:1 }
+const btnPrimary: React.CSSProperties  = { display:'block', textAlign:'center', background:'#111', color:'#fff', borderRadius:10, padding:'12px 20px', fontWeight:700, fontSize:'0.9rem', textDecoration:'none', border:'none', cursor:'pointer', flex:1 }
 const btnSecondary: React.CSSProperties = { display:'block', textAlign:'center', background:'#f0f0f0', color:'#333', borderRadius:10, padding:'12px 20px', fontWeight:700, fontSize:'0.9rem', textDecoration:'none', flex:1 }
 const btnDanger: React.CSSProperties   = { background:'#EB5757', color:'#fff', borderRadius:10, padding:'12px 20px', fontWeight:700, fontSize:'0.9rem', border:'none', cursor:'pointer', flex:1 }

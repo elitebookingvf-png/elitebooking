@@ -22,7 +22,7 @@ export default function ToastContainer() {
   useEffect(() => { _addToast = add; return () => { _addToast = null } }, [add])
 
   const icons: Record<ToastType, string> = { success: '✓', error: '✕', info: 'ℹ' }
-  const colors: Record<ToastType, string> = { success: '#27ae60', error: '#e74c3c', info: '#2980b9' }
+  const colors: Record<ToastType, string> = { success: '#111', error: '#C62828', info: '#555' }
 
   return (
     <div style={{position:'fixed',bottom:24,right:24,zIndex:9999,display:'flex',flexDirection:'column',gap:8}}>

@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { toISO, tMin, minToTime, dayKeyForISO, formatPrice } from '@/lib/utils'
 import ClientSearch from '@/components/ClientSearch'
 import PhoneSearch from '@/components/PhoneSearch'
+import Icon from '@/components/Icon'
 
 type View = 'day' | 'staff' | 'week' | 'month'
 
@@ -32,7 +33,7 @@ function RdvDetailModal({ rdv, allRdvs, onClose, onStatusChange, pin }: {
   const [editSaving, setEditSaving] = useState(false)
   const [editError, setEditError] = useState('')
   
-  const statusColor: Record<string,string> = { confirmed:'#27AE60', completed:'#3B82F6', cancelled:'#EB5757', 'no-show':'#F59E0B' }
+  const statusColor: Record<string,string> = { confirmed:'#111', completed:'#777', cancelled:'#bbb', 'no-show':'#C62828' }
   const statusLabel: Record<string,string> = { confirmed:'Confirmé', completed:'Terminé', cancelled:'Annulé', 'no-show':'Pas venu' }
   async function doSetStatus(status: string) {
     setSaving(true)
@@ -131,7 +132,7 @@ function RdvDetailModal({ rdv, allRdvs, onClose, onStatusChange, pin }: {
             style={{width:'100%',minHeight:100,borderRadius:10,border:'1px solid #eee',padding:10,fontSize:'0.85rem',resize:'vertical',fontFamily:'inherit',boxSizing:'border-box'}} />
           <a href={`https://wa.me/${waPhone}?text=${encodeURIComponent(waMsg)}`} target="_blank" rel="noopener noreferrer"
             onClick={() => setWaModal(false)}
-            style={{display:'block',textAlign:'center',marginTop:12,background:'#25D366',color:'#fff',borderRadius:12,padding:'10px',fontWeight:700,fontSize:'0.88rem',textDecoration:'none'}}>
+            style={{display:'block',textAlign:'center',marginTop:12,background:'#111',color:'#fff',borderRadius:12,padding:'10px',fontWeight:700,fontSize:'0.88rem',textDecoration:'none'}}>
             Envoyer via WhatsApp
           </a>
         </div>
@@ -168,7 +169,7 @@ function RdvDetailModal({ rdv, allRdvs, onClose, onStatusChange, pin }: {
             {editMode ? (
               <div style={{display:'flex',flexDirection:'column',gap:12,overflow:'visible'}}>
                 <div style={{display:'flex',gap:8,alignItems:'flex-start'}}>
-                  <span style={{fontSize:'1.1rem',marginTop:8}}>👤</span>
+                  <span style={{marginTop:8}}><Icon name="user" size={16}/></span>
                   <div style={{flex:1}}>
                     <label style={{fontSize:'0.75rem',color:'#666',marginBottom:4,display:'block'}}>Nom du client</label>
                     <ClientSearch
@@ -181,7 +182,7 @@ function RdvDetailModal({ rdv, allRdvs, onClose, onStatusChange, pin }: {
                   </div>
                 </div>
                 <div style={{display:'flex',gap:8,alignItems:'flex-start'}}>
-                  <span style={{fontSize:'1.1rem',marginTop:8}}>📞</span>
+                  <span style={{marginTop:8}}><Icon name="chat" size={16}/></span>
                   <div style={{flex:1}}>
                     <label style={{fontSize:'0.75rem',color:'#666',marginBottom:4,display:'block'}}>Téléphone</label>
                     <PhoneSearch
@@ -204,7 +205,7 @@ function RdvDetailModal({ rdv, allRdvs, onClose, onStatusChange, pin }: {
                   <button 
                     onClick={saveClientChanges} 
                     disabled={editSaving}
-                    style={{flex:1,padding:'8px',borderRadius:8,border:'none',background:'#C17B4E',color:'#fff',cursor:'pointer',fontSize:'0.85rem',fontWeight:600}}
+                    style={{flex:1,padding:'8px',borderRadius:8,border:'none',background:'#111',color:'#fff',cursor:'pointer',fontSize:'0.85rem',fontWeight:600}}
                   >
                     {editSaving ? 'Enregistrement...' : 'Enregistrer'}
                   </button>
@@ -212,31 +213,31 @@ function RdvDetailModal({ rdv, allRdvs, onClose, onStatusChange, pin }: {
               </div>
             ) : (
               <div style={{display:'flex',gap:8,alignItems:'flex-start'}}>
-                <span style={{fontSize:'1.1rem'}}>👤</span>
+                <Icon name="user" size={16}/>
                 <div style={{flex:1}}>
                   <div style={{fontWeight:700,fontSize:'1.1rem'}}>{rdv.client_name || 'Client'}</div>
-                  {rdv.client_phone && <div style={{fontSize:'0.82rem',color:'#666',marginTop:2}}>📞 {rdv.client_phone}</div>}
+                  {rdv.client_phone && <div style={{fontSize:'0.82rem',color:'#666',marginTop:2}}>{rdv.client_phone}</div>}
                 </div>
                 <button 
                   onClick={() => setEditMode(true)}
                   style={{padding:'6px 12px',borderRadius:6,border:'1px solid #ddd',background:'#fff',cursor:'pointer',fontSize:'0.8rem',color:'#666'}}
                 >
-                  ✏️ Modifier
+                  Modifier
                 </button>
               </div>
             )}
             <div style={{display:'flex',gap:8}}>
-              <span style={{fontSize:'1.1rem'}}>🗓️</span>
+              <Icon name="calendar" size={16}/>
               <div><div style={{fontWeight:600}}>{new Date(rdv.date).toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})} a {rdv.start_time}</div><div style={{fontSize:'0.78rem',color:'#aaa'}}>{rdv.duration} min</div></div>
             </div>
             {!isGroup ? (
               <div style={{display:'flex',gap:8}}>
-                <span style={{fontSize:'1.1rem'}}>✂</span>
-                <div><div style={{fontWeight:600}}>{rdv.service_name}</div><div style={{fontSize:'0.78rem',color:'#C17B4E',fontWeight:700}}>{formatPrice(rdv.price, rdv.price_type)}</div></div>
+                <Icon name="scissors" size={16}/>
+                <div><div style={{fontWeight:600}}>{rdv.service_name}</div><div style={{fontSize:'0.78rem',color:'#111',fontWeight:700}}>{formatPrice(rdv.price, rdv.price_type)}</div></div>
               </div>
             ) : (
               <div style={{display:'flex',gap:8}}>
-                <span style={{fontSize:'1.1rem'}}>✂</span>
+                <Icon name="scissors" size={16}/>
                 <div style={{flex:1}}>
                   <div style={{fontSize:'0.72rem',color:'#aaa',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:6}}>{groupRdvs.length} prestations</div>
                   {groupRdvs.map(g => (
@@ -247,7 +248,7 @@ function RdvDetailModal({ rdv, allRdvs, onClose, onStatusChange, pin }: {
                   ))}
                   <div style={{display:'flex',justifyContent:'space-between',marginTop:8,paddingTop:8,fontWeight:700}}>
                     <span>Total</span>
-                    <span style={{color:'#C17B4E'}}>{formatPrice(groupTotal, 'fixe')}</span>
+                    <span style={{color:'#111'}}>{formatPrice(groupTotal, 'fixe')}</span>
                   </div>
                 </div>
               </div>
@@ -257,34 +258,34 @@ function RdvDetailModal({ rdv, allRdvs, onClose, onStatusChange, pin }: {
           </div>
           {waPhone && (
             <button onClick={() => setWaModal(true)}
-              style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,background:'#25D366',color:'#fff',
+              style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,background:'#111',color:'#fff',
                 borderRadius:12,padding:'10px 16px',marginBottom:16,fontSize:'0.88rem',fontWeight:600,border:'none',cursor:'pointer',width:'100%'}}>
-              💬 Envoyer un message WhatsApp
+              Envoyer un message WhatsApp
             </button>
           )}
           {rdv.status === 'confirmed' && (
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
               <button disabled={saving} onClick={() => doSetStatus('completed')}
-                style={{padding:'10px',borderRadius:12,border:'2px solid #3B82F6',background:'#EFF6FF',color:'#3B82F6',fontWeight:700,cursor:'pointer',fontSize:'0.85rem'}}>
-                ✅ Venu
+                style={{padding:'10px',borderRadius:12,border:'2px solid #777',background:'#f0f0f0',color:'#777',fontWeight:700,cursor:'pointer',fontSize:'0.85rem'}}>
+                ✓ Venu
               </button>
               <button disabled={saving} onClick={() => doSetStatus('no-show')}
-                style={{padding:'10px',borderRadius:12,border:'2px solid #F59E0B',background:'#FFFBEB',color:'#F59E0B',fontWeight:700,cursor:'pointer',fontSize:'0.85rem'}}>
-                ❌ Pas venu
+                style={{padding:'10px',borderRadius:12,border:'2px solid #C62828',background:'#f7f7f7',color:'#C62828',fontWeight:700,cursor:'pointer',fontSize:'0.85rem'}}>
+                Pas venu
               </button>
               <button disabled={saving} onClick={() => requirePin('Annuler ce RDV', 'cancelled')}
                 style={{padding:'10px',borderRadius:12,border:'2px solid #EB5757',background:'#FEF2F2',color:'#EB5757',fontWeight:700,cursor:'pointer',fontSize:'0.85rem'}}>
-                🚫 Annuler
+                Annuler
               </button>
               <button disabled={saving} onClick={() => requirePinDelete('Supprimer ce RDV')}
                 style={{padding:'10px',borderRadius:12,border:'2px solid #111',background:'#111',color:'#fff',fontWeight:700,cursor:'pointer',fontSize:'0.85rem'}}>
-                🗑 Supprimer
+                Supprimer
               </button>
             </div>
           )}
           {rdv.status !== 'confirmed' && rdv.status !== 'deleted' && (
             <button disabled={saving} onClick={() => doSetStatus('confirmed')}
-              style={{width:'100%',padding:'10px',borderRadius:12,border:'2px solid #27AE60',background:'#F0FDF4',color:'#27AE60',fontWeight:700,cursor:'pointer',fontSize:'0.85rem'}}>
+              style={{width:'100%',padding:'10px',borderRadius:12,border:'2px solid #111',background:'#f0f0f0',color:'#111',fontWeight:700,cursor:'pointer',fontSize:'0.85rem'}}>
               Remettre en confirmé
             </button>
           )}
@@ -505,7 +506,7 @@ function AddRdvModal({ staff, services, salonId, onClose, onSaved, defaultDate, 
                 onChange={e=>setForm(f=>({...f,date:e.target.value,start_time:''}))} />
             </div>
             <div className="form-group" style={{marginBottom:0}}>
-              <label>Heure {cartEndTime && slots.includes(cartEndTime) && <span style={{color:'#C17B4E',fontSize:'0.75rem'}}>({cartEndTime} suggéré)</span>}</label>
+              <label>Heure {cartEndTime && slots.includes(cartEndTime) && <span style={{color:'#111',fontSize:'0.75rem'}}>({cartEndTime} suggéré)</span>}</label>
               <select className="form-control" value={form.start_time}
                 onChange={e=>setForm(f=>({...f,start_time:e.target.value}))}>
                 <option value="">— Choisir —</option>
@@ -516,7 +517,7 @@ function AddRdvModal({ staff, services, salonId, onClose, onSaved, defaultDate, 
           {selectedSvc && form.start_time && (
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:12,padding:'10px 12px',background:'#fff',borderRadius:8}}>
               <span style={{fontSize:'0.85rem',color:'#555'}}>{selectedSvc.name} · {selectedSvc.duration} min</span>
-              <span style={{fontWeight:700,color:'#C17B4E'}}>{formatPrice(selectedSvc.price, selectedSvc.price_type)}</span>
+              <span style={{fontWeight:700,color:'#111'}}>{formatPrice(selectedSvc.price, selectedSvc.price_type)}</span>
             </div>
           )}
           <button onClick={addToCart} disabled={!form.service_id || !form.start_time}
@@ -527,23 +528,23 @@ function AddRdvModal({ staff, services, salonId, onClose, onSaved, defaultDate, 
         
         {/* Cart */}
         {cart.length > 0 && (
-          <div style={{background:'#f0fdf4',borderRadius:12,padding:16,marginBottom:20,border:'1px solid #bbf7d0'}}>
-            <div style={{fontSize:'0.85rem',fontWeight:600,color:'#166534',marginBottom:12}}>Panier ({cart.length} prestation{cart.length>1?'s':''})</div>
+          <div style={{background:'#f0f0f0',borderRadius:12,padding:16,marginBottom:20,border:'1px solid #e0e0e0'}}>
+            <div style={{fontSize:'0.85rem',fontWeight:600,color:'#111',marginBottom:12}}>Panier ({cart.length} prestation{cart.length>1?'s':''})</div>
             {cart.map((item, idx) => (
-              <div key={item.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 0',borderBottom:idx<cart.length-1?'1px solid #bbf7d0':'none'}}>
+              <div key={item.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 0',borderBottom:idx<cart.length-1?'1px solid #e0e0e0':'none'}}>
                 <div>
                   <div style={{fontWeight:600,fontSize:'0.9rem'}}>{item.start_time} · {item.service_name}</div>
                   <div style={{fontSize:'0.78rem',color:'#666'}}>{item.staff_name} · {item.duration} min</div>
                 </div>
                 <div style={{display:'flex',alignItems:'center',gap:12}}>
-                  <span style={{fontWeight:700,color:'#C17B4E'}}>{formatPrice(item.price, item.price_type)}</span>
-                  <button onClick={()=>removeFromCart(item.id)} style={{background:'none',border:'none',color:'#ef4444',cursor:'pointer',fontSize:'1.1rem'}}>×</button>
+                  <span style={{fontWeight:700,color:'#111'}}>{formatPrice(item.price, item.price_type)}</span>
+                  <button onClick={()=>removeFromCart(item.id)} style={{background:'none',border:'none',color:'#C62828',cursor:'pointer',fontSize:'1.1rem'}}>×</button>
                 </div>
               </div>
             ))}
-            <div style={{display:'flex',justifyContent:'space-between',marginTop:12,paddingTop:12,borderTop:'2px solid #bbf7d0',fontWeight:700,fontSize:'1.1rem'}}>
+            <div style={{display:'flex',justifyContent:'space-between',marginTop:12,paddingTop:12,borderTop:'2px solid #e0e0e0',fontWeight:700,fontSize:'1.1rem'}}>
               <span>Total</span>
-              <span style={{color:'#C17B4E'}}>{formatPrice(cartTotal, 'fixe')}</span>
+              <span style={{color:'#111'}}>{formatPrice(cartTotal, 'fixe')}</span>
             </div>
           </div>
         )}
@@ -712,7 +713,7 @@ export function ProAgenda({ salon }: { salon: any }) {
       {view === 'staff' && (
         <div style={{overflowX:'auto'}}>
           {!isOpen ? (
-            <div className="card" style={{textAlign:'center',padding:'40px',color:'#aaa'}}>🔒 Salon fermé ce jour</div>
+            <div className="card" style={{textAlign:'center',padding:'40px',color:'#aaa'}}><Icon name="lock" size={22} style={{display:'block',margin:'0 auto 8px'}}/>Salon fermé ce jour</div>
           ) : staff.length === 0 ? (
             <div className="card" style={{textAlign:'center',padding:'40px',color:'#aaa'}}>Aucun employé enregistré</div>
           ) : (
@@ -723,7 +724,7 @@ export function ProAgenda({ salon }: { salon: any }) {
                   {staff.map(st => (
                     <th key={st.id} style={{border:'1px solid #eee',padding:12,minWidth:140}}>
                       <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
-                        <div style={{width:36,height:36,borderRadius:'50%',background:'#C17B4E',color:'#fff',
+                        <div style={{width:36,height:36,borderRadius:'50%',background:'#111',color:'#fff',
                           display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700,fontSize:'0.82rem'}}>
                           {st.firstname[0]}{st.lastname[0]}
                         </div>
@@ -762,11 +763,11 @@ export function ProAgenda({ salon }: { salon: any }) {
                         <td key={st.id}
                           onClick={() => { if(clickable && !cellRdvs.length) { setAddRdvDate(iso); setAddRdvTime(`${String(h).padStart(2,'0')}:00`); setAddRdvStaffId(st.id); setShowAddRdv(true) } }}
                           style={{border:'1px solid #eee',padding:6,verticalAlign:'top',minHeight:56,
-                            background: !works?'#f7f7f7':blkd?'#fffbeb':'#fff',
+                            background: !works?'#f7f7f7':blkd?'#f7f7f7':'#fff',
                             cursor: clickable && !cellRdvs.length ? 'pointer' : 'default'}}>
                           {cellRdvs.map(r => (
                             <div key={r.id} onClick={e => { e.stopPropagation(); setSelectedRdv(r) }}
-                              style={{background: r.status==='completed'?'#3B82F6':r.status==='no-show'?'#F59E0B':r.status==='cancelled'?'#EB5757':'#27AE60',
+                              style={{background: r.status==='completed'?'#777':r.status==='no-show'?'#C62828':r.status==='cancelled'?'#bbb':'#111',
                                 color:'#fff',borderRadius:8,padding:'6px 8px',fontSize:'0.75rem',marginBottom:4,cursor:'pointer'}}>
                               <div style={{fontWeight:700}}>{r.start_time} – {minToTime(tMin(r.start_time)+(r.duration||0))} {r.service_name?.substring(0,12)}</div>
                               <div style={{opacity:0.85}}>{r.client_name} · {r.duration}min</div>
@@ -774,12 +775,12 @@ export function ProAgenda({ salon }: { salon: any }) {
                           ))}
                           {covering.map(r => (
                             <div key={'cov'+r.id} onClick={e => { e.stopPropagation(); setSelectedRdv(r) }}
-                              style={{background: r.status==='completed'?'#3B82F6':'#27AE60',
+                              style={{background: r.status==='completed'?'#777':'#111',
                                 opacity:0.55,color:'#fff',borderRadius:8,padding:'4px 8px',fontSize:'0.72rem',marginBottom:4,cursor:'pointer'}}>
                               ⋮ {r.service_name?.substring(0,14)} — jusqu'à {minToTime(tMin(r.start_time)+(r.duration||0))}
                             </div>
                           ))}
-                          {blkd && !cellRdvs.length && !covering.length && <div style={{fontSize:'0.72rem',color:'#f59e0b',padding:4}}>🔒 Bloqué</div>}
+                          {blkd && !cellRdvs.length && !covering.length && <div style={{fontSize:'0.72rem',color:'#111',padding:4,display:'flex',alignItems:'center',gap:4}}><Icon name="lock" size={11}/> Bloqué</div>}
                           {!works && <div style={{fontSize:'0.72rem',color:'#ccc',padding:4}}>{isOpen?'Repos':'Fermé'}</div>}
                           {clickable && !cellRdvs.length && !covering.length && <div style={{fontSize:'0.65rem',color:'#ccc',textAlign:'center',marginTop:4}}>+ RDV</div>}
                         </td>
@@ -797,7 +798,7 @@ export function ProAgenda({ salon }: { salon: any }) {
       {view === 'day' && (
         <div className="card" style={{padding:0,overflow:'hidden'}}>
           {!isOpen ? (
-            <div style={{padding:40,textAlign:'center',color:'#aaa'}}>🔒 Salon fermé ce jour</div>
+            <div style={{padding:40,textAlign:'center',color:'#aaa'}}><Icon name="lock" size={22} style={{display:'block',margin:'0 auto 8px'}}/>Salon fermé ce jour</div>
           ) : HOURS.map(h => {
             const hStr = String(h).padStart(2,'0')
             const dayRdvs = rdvs.filter(r => r.date===iso && r.start_time.startsWith(hStr+':') && r.status!=='cancelled')
@@ -806,7 +807,7 @@ export function ProAgenda({ salon }: { salon: any }) {
               tMin(r.start_time) < h*60 && tMin(r.start_time) + (r.duration||0) > h*60)
             const blkd = blocks.some(b => b.date===iso && tMin(b.start_time)<=h*60 && tMin(b.end_time)>h*60)
             return (
-              <div key={h} style={{display:'flex',borderBottom:'1px solid #f3f3f3',minHeight:56,background:blkd?'#fffbeb':'#fff'}}>
+              <div key={h} style={{display:'flex',borderBottom:'1px solid #f3f3f3',minHeight:56,background:blkd?'#f7f7f7':'#fff'}}>
                 <div style={{width:56,flexShrink:0,fontSize:'0.75rem',color:'#aaa',fontWeight:500,
                   display:'flex',alignItems:'flex-start',justifyContent:'center',paddingTop:8,
                   borderRight:'1px solid #f3f3f3',background:'#f7f7f7'}}>
@@ -816,20 +817,20 @@ export function ProAgenda({ salon }: { salon: any }) {
                   onClick={() => { if(!blkd && !dayRdvs.length) { setAddRdvDate(iso); setAddRdvTime(`${hStr}:00`); setAddRdvStaffId(undefined); setShowAddRdv(true) } }}>
                   {covering.map(r => (
                     <div key={'cov'+r.id} onClick={e => { e.stopPropagation(); setSelectedRdv(r) }}
-                      style={{background: r.status==='completed'?'#3B82F6':'#27AE60',
+                      style={{background: r.status==='completed'?'#777':'#111',
                         opacity:0.55,color:'#fff',borderRadius:8,padding:'4px 12px',fontSize:'0.75rem',cursor:'pointer',alignSelf:'center'}}>
                       ⋮ {r.staff_name} · {r.service_name?.substring(0,14)} — jusqu'à {minToTime(tMin(r.start_time)+(r.duration||0))}
                     </div>
                   ))}
                   {dayRdvs.map(r => (
                     <div key={r.id} onClick={e => { e.stopPropagation(); setSelectedRdv(r) }}
-                      style={{background: r.status==='completed'?'#3B82F6':r.status==='no-show'?'#F59E0B':r.status==='cancelled'?'#EB5757':'#27AE60',
+                      style={{background: r.status==='completed'?'#777':r.status==='no-show'?'#C62828':r.status==='cancelled'?'#bbb':'#111',
                         color:'#fff',borderRadius:8,padding:'6px 12px',fontSize:'0.78rem',cursor:'pointer'}}>
                       <div style={{fontWeight:700}}>{r.start_time} – {minToTime(tMin(r.start_time)+(r.duration||0))} — {r.service_name}</div>
                       <div style={{opacity:0.85}}>{r.client_name} · {r.staff_name} · {formatPrice(r.price,r.price_type)}</div>
                     </div>
                   ))}
-                  {blkd && <div style={{fontSize:'0.75rem',color:'#f59e0b',padding:4}}>🔒 Créneau bloqué</div>}
+                  {blkd && <div style={{fontSize:'0.75rem',color:'#111',padding:4,display:'flex',alignItems:'center',gap:4}}><Icon name="lock" size={12}/> Créneau bloqué</div>}
                   {!blkd && !dayRdvs.length && !covering.length && <div style={{fontSize:'0.72rem',color:'#ddd',padding:4,alignSelf:'center'}}>+ RDV</div>}
                 </div>
               </div>
@@ -856,8 +857,8 @@ export function ProAgenda({ salon }: { salon: any }) {
                     const isT = di === todayISO
                     return (
                       <th key={di} style={{border:'1px solid #eee',padding:'8px 4px',minWidth:120}}>
-                        <div style={{fontSize:'0.75rem',fontWeight:600,color:isT?'#C17B4E':'#555'}}>{DAY_LABELS[i]}</div>
-                        <div style={{fontSize:'0.8rem',fontWeight:isT?700:400,color:isT?'#C17B4E':'#333'}}>{d.getDate()}</div>
+                        <div style={{fontSize:'0.75rem',fontWeight:600,color:isT?'#111':'#555'}}>{DAY_LABELS[i]}</div>
+                        <div style={{fontSize:'0.8rem',fontWeight:isT?700:400,color:isT?'#111':'#333'}}>{d.getDate()}</div>
                       </th>
                     )
                   })}
@@ -877,23 +878,23 @@ export function ProAgenda({ salon }: { salon: any }) {
                         tMin(r.start_time) < h*60 && tMin(r.start_time) + (r.duration||0) > h*60)
                       const blkd = blocks.some(b => b.date===di && tMin(b.start_time)<=h*60 && tMin(b.end_time)>h*60)
                       return (
-                        <td key={di} style={{border:'1px solid #eee',padding:4,verticalAlign:'top',minHeight:48,background:blkd?'#fffbeb':'#fff'}}>
+                        <td key={di} style={{border:'1px solid #eee',padding:4,verticalAlign:'top',minHeight:48,background:blkd?'#f7f7f7':'#fff'}}>
                           {covering.map(r => (
                             <div key={'cov'+r.id} onClick={() => setSelectedRdv(r)}
-                              style={{background: r.status==='completed'?'#3B82F6':'#27AE60',
+                              style={{background: r.status==='completed'?'#777':'#111',
                                 opacity:0.45,color:'#fff',borderRadius:6,padding:'2px 6px',fontSize:'0.65rem',marginBottom:2,cursor:'pointer'}}>
                               ⋮ {r.staff_name?.split(' ')[0]} → {minToTime(tMin(r.start_time)+(r.duration||0))}
                             </div>
                           ))}
                           {dayRdvs.map(r => (
                             <div key={r.id} onClick={() => setSelectedRdv(r)}
-                              style={{background: r.status==='completed'?'#3B82F6':r.status==='no-show'?'#F59E0B':r.status==='cancelled'?'#EB5757':'#27AE60',
+                              style={{background: r.status==='completed'?'#777':r.status==='no-show'?'#C62828':r.status==='cancelled'?'#bbb':'#111',
                                 color:'#fff',borderRadius:6,padding:'3px 6px',fontSize:'0.68rem',marginBottom:2,cursor:'pointer'}}>
                               <div style={{fontWeight:700}}>{r.start_time} {r.service_name?.substring(0,10)}</div>
                               <div style={{opacity:0.85}}>{r.client_name}</div>
                             </div>
                           ))}
-                          {blkd && !dayRdvs.length && !covering.length && <div style={{fontSize:'0.65rem',color:'#f59e0b',padding:2}}>🔒</div>}
+                          {blkd && !dayRdvs.length && !covering.length && <div style={{color:'#111',padding:2}}><Icon name="lock" size={10}/></div>}
                         </td>
                       )
                     })}
@@ -927,12 +928,12 @@ export function ProAgenda({ salon }: { salon: any }) {
                 const isT=di===toISO(new Date())
                 cells.push(
                   <div key={d}
-                    style={{minHeight:80,borderRadius:12,padding:8,border:`1px solid ${isT?'#C17B4E':'#eee'}`,
-                      background:isT?'#fdf8f4':'#fff',cursor:'pointer',transition:'all 0.15s'}}
+                    style={{minHeight:80,borderRadius:12,padding:8,border:`1px solid ${isT?'#111':'#eee'}`,
+                      background:isT?'#fafafa':'#fff',cursor:'pointer',transition:'all 0.15s'}}
                     onClick={()=>{setDate(new Date(di+'T12:00'));setView('day')}}>
-                    <div style={{fontSize:'0.85rem',fontWeight:600,marginBottom:4,color:isT?'#C17B4E':'#333'}}>{d}</div>
+                    <div style={{fontSize:'0.85rem',fontWeight:600,marginBottom:4,color:isT?'#111':'#333'}}>{d}</div>
                     {dr.slice(0,2).map(r=>(
-                      <div key={r.id} style={{fontSize:'0.68rem',background:'#27AE60',color:'#fff',borderRadius:4,padding:'2px 4px',marginBottom:2,overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis'}}>
+                      <div key={r.id} style={{fontSize:'0.68rem',background:'#111',color:'#fff',borderRadius:4,padding:'2px 4px',marginBottom:2,overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis'}}>
                         {r.start_time} {r.service_name?.substring(0,8)}
                       </div>
                     ))}

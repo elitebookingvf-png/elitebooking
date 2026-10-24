@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { formatPrice } from '@/lib/utils'
+import Icon from '@/components/Icon'
 
 export default function ClientPage() {
   const router = useRouter()
@@ -84,7 +85,7 @@ export default function ClientPage() {
     <div className="min-h-screen" style={{background:'#f7f7f7'}}>
       <nav className="bg-white border-b px-4 h-16 flex items-center justify-between" style={{borderColor:'#eee'}}>
         <Link href="/" className="serif text-xl font-bold" style={{textDecoration:'none',color:'#111'}}>
-          Elite<em style={{color:'#C17B4E',fontStyle:'normal'}}>Booking</em>
+          Elite<em style={{color:'#111',fontStyle:'normal'}}>Booking</em>
         </Link>
         <div className="flex items-center gap-3">
           <span style={{fontSize:'0.85rem',color:'#aaa'}}>
@@ -124,7 +125,7 @@ export default function ClientPage() {
 
             {upcoming.length === 0 && past.length === 0 && (
               <div className="card text-center" style={{padding:'64px 24px'}}>
-                <div style={{fontSize:'3rem',marginBottom:16}}>📅</div>
+                <div style={{marginBottom:16,display:'flex',justifyContent:'center'}}><Icon name="calendar" size={44} strokeWidth={1.2} /></div>
                 <h2 className="serif" style={{fontSize:'1.6rem',marginBottom:8}}>Aucun rendez-vous</h2>
                 <p style={{color:'#aaa',marginBottom:24}}>Réservez votre premier soin</p>
                 <Link href="/search" className="btn btn-primary">Trouver un salon →</Link>
@@ -140,12 +141,12 @@ export default function ClientPage() {
                       <div>
                         <div style={{fontWeight:600}}>{r.service_name}</div>
                         <div style={{fontSize:'0.85rem',color:'#aaa',marginTop:2}}>{r.salon_name} · {r.staff_name}</div>
-                        <div style={{fontSize:'0.85rem',color:'#666',marginTop:4}}>
-                          📅 {new Date(r.date+'T12:00').toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'})} à {r.start_time}
+                        <div style={{fontSize:'0.85rem',color:'#666',marginTop:4,display:'flex',alignItems:'center',gap:5}}>
+                          <Icon name="calendar" size={13} /> {new Date(r.date+'T12:00').toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'})} à {r.start_time}
                         </div>
                       </div>
                       <div style={{textAlign:'right',display:'flex',flexDirection:'column',alignItems:'flex-end',gap:6}}>
-                        <span style={{fontWeight:700,color:'#C17B4E'}}>{formatPrice(r.price, r.price_type)}</span>
+                        <span style={{fontWeight:700,color:'#111'}}>{formatPrice(r.price, r.price_type)}</span>
                         <span className="badge badge-green">Confirmé</span>
                         <button onClick={() => cancel(r.id)}
                           style={{fontSize:'0.75rem',color:'#eb5757',background:'none',border:'none',cursor:'pointer'}}>
@@ -209,7 +210,7 @@ export default function ClientPage() {
                 style={{opacity: saving ? 0.6 : 1}}>
                 {saving ? 'Sauvegarde…' : 'Sauvegarder'}
               </button>
-              {saveMsg && <span style={{fontSize:'0.85rem',color: saveMsg.startsWith('✓') ? '#27AE60' : '#eb5757'}}>{saveMsg}</span>}
+              {saveMsg && <span style={{fontSize:'0.85rem',color: saveMsg.startsWith('✓') ? '#111' : '#C62828'}}>{saveMsg}</span>}
             </div>
           </div>
         )}

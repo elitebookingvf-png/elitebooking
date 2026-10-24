@@ -59,7 +59,7 @@ export default function NavBar() {
   return (
     <nav className="app-nav" style={{position:'sticky',top:0,zIndex:100,background:'rgba(255,255,255,0.95)',backdropFilter:'blur(12px)',borderBottom:'1px solid #efefef',padding:'0 40px',height:64,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
       <Link href="/" className="serif" style={{fontSize:'1.45rem',fontWeight:700,textDecoration:'none',color:'#111'}}>
-        Elite<em style={{color:'#C17B4E',fontStyle:'italic'}}>Booking</em>
+        Elite<em style={{fontStyle:'italic'}}>Booking</em>
       </Link>
 
       <div style={{display:'flex',alignItems:'center',gap:28}} className="nav-links-desktop">
@@ -76,7 +76,7 @@ export default function NavBar() {
             <Link href={dashPath}
               style={{display:'flex',alignItems:'center',gap:10,cursor:'pointer',padding:'6px 12px',borderRadius:8,textDecoration:'none',color:'inherit',transition:'background 0.2s'}}
               className="nav-user">
-              <div style={{width:32,height:32,borderRadius:'50%',background:'#C17B4E',color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.8rem',fontWeight:600,flexShrink:0}}>
+              <div style={{width:32,height:32,borderRadius:'50%',background:'#111',color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.75rem',fontWeight:700,flexShrink:0,letterSpacing:'0.03em'}}>
                 {initials || '?'}
               </div>
               <span style={{fontSize:'0.83rem',fontWeight:500}}>{profile.firstname}</span>

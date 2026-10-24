@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { formatPrice, CATEGORIES, CITIES, toISO, tMin } from '@/lib/utils'
 import ClientSearch from '@/components/ClientSearch'
 import PhoneSearch from '@/components/PhoneSearch'
+import Icon from '@/components/Icon'
 
 // fetch wrapper: throws the server's error message instead of
 // silently swallowing failed mutations
@@ -202,17 +203,17 @@ function RdvAddModal({ staff, services, onClose, onSaved, defaultDate }: {
                 <div>
                   <div style={{fontWeight:600,fontSize:'0.85rem'}}>{c.service_name}</div>
                   <div style={{fontSize:'0.75rem',color:'#999',marginTop:2}}>
-                    👤 {c.staff_name} · {new Date(c.date+'T12:00').toLocaleDateString('fr-FR',{day:'numeric',month:'short'})} à {c.start_time} · {c.duration} min
+                    {c.staff_name} · {new Date(c.date+'T12:00').toLocaleDateString('fr-FR',{day:'numeric',month:'short'})} à {c.start_time} · {c.duration} min
                   </div>
                 </div>
                 <div style={{display:'flex',alignItems:'center',gap:10}}>
-                  <span style={{fontSize:'0.8rem',fontWeight:600,color:'#C17B4E'}}>{formatPrice(c.price, c.price_type)}</span>
+                  <span style={{fontSize:'0.8rem',fontWeight:600,color:'#111'}}>{formatPrice(c.price, c.price_type)}</span>
                   <button onClick={()=>removeLine(idx)} style={{background:'none',border:'none',cursor:'pointer',color:'#eb5757',fontSize:'1rem'}}>✕</button>
                 </div>
               </div>
             ))}
             <div style={{display:'flex',justifyContent:'space-between',marginTop:10,paddingTop:10,borderTop:'1px solid #ddd',fontWeight:700,fontSize:'0.85rem'}}>
-              <span>Total</span><span style={{color:'#C17B4E'}}>{formatPrice(cartTotal, 'fixe')}</span>
+              <span>Total</span><span style={{color:'#111'}}>{formatPrice(cartTotal, 'fixe')}</span>
             </div>
           </div>
         )}
@@ -254,7 +255,7 @@ function RdvAddModal({ staff, services, onClose, onSaved, defaultDate }: {
           </div>
           {selectedSvc && form.start_time && (
             <div style={{background:'#fafafa',borderRadius:10,padding:'10px 14px',marginTop:14,fontSize:'0.83rem',color:'#555'}}>
-              {selectedSvc.name} · {selectedSvc.duration} min · <strong style={{color:'#C17B4E'}}>{formatPrice(selectedSvc.price, selectedSvc.price_type)}</strong>
+              {selectedSvc.name} · {selectedSvc.duration} min · <strong style={{color:'#111'}}>{formatPrice(selectedSvc.price, selectedSvc.price_type)}</strong>
             </div>
           )}
           <button onClick={addLine} className="btn btn-secondary" style={{width:'100%',marginTop:14}}>
@@ -299,7 +300,7 @@ function PinModal({ action, pin, onSuccess, onClose }: {
   return (
     <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.55)',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center'}}>
       <div style={{background:'#fff',borderRadius:20,padding:'32px 28px',width:320,boxShadow:'0 20px 60px rgba(0,0,0,0.2)',textAlign:'center'}}>
-        <div style={{fontSize:'2rem',marginBottom:8}}>🔒</div>
+        <div style={{marginBottom:10,display:'flex',justifyContent:'center'}}><Icon name="lock" size={32} strokeWidth={1.4}/></div>
         <div className="serif" style={{fontSize:'1.3rem',marginBottom:4}}>Code PIN requis</div>
         <div style={{fontSize:'0.82rem',color:'#aaa',marginBottom:20}}>{action}</div>
         <div style={{display:'flex',gap:10,justifyContent:'center',marginBottom:20}}>
@@ -352,8 +353,8 @@ function ClientFicheModal({ clientKey, clientRdvs, isBlocked, onToggleBlock, onC
   const total   = clientRdvs.filter((r: any) => r.status !== 'cancelled').reduce((s: number, r: any) => s + (Number(r.price)||0), 0)
   const noShows = clientRdvs.filter((r: any) => r.status === 'no-show').length
   const visits  = clientRdvs.filter((r: any) => r.status === 'completed').length
-  const statusBg: Record<string,string>  = { completed:'#EFF6FF', cancelled:'#FEF2F2', 'no-show':'#FFFBEB', confirmed:'#F0FDF4' }
-  const statusFg: Record<string,string>  = { completed:'#3B82F6', cancelled:'#EB5757', 'no-show':'#F59E0B', confirmed:'#27AE60' }
+  const statusBg: Record<string,string>  = { completed:'#f0f0f0', cancelled:'#FEF2F2', 'no-show':'#f7f7f7', confirmed:'#f0f0f0' }
+  const statusFg: Record<string,string>  = { completed:'#777', cancelled:'#bbb', 'no-show':'#C62828', confirmed:'#111' }
   const statusLbl: Record<string,string> = { completed:'Terminé', cancelled:'Annulé', 'no-show':'Pas venu', confirmed:'Confirmé' }
   return (
     <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.55)',zIndex:300,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}
@@ -363,7 +364,7 @@ function ClientFicheModal({ clientKey, clientRdvs, isBlocked, onToggleBlock, onC
         {/* Header */}
         <div style={{padding:'24px 24px 0',display:'flex',alignItems:'flex-start',justifyContent:'space-between'}}>
           <div style={{display:'flex',gap:14,alignItems:'center'}}>
-            <div style={{width:56,height:56,borderRadius:'50%',background: isBlocked?'#EB5757':'#C17B4E',color:'#fff',
+            <div style={{width:56,height:56,borderRadius:'50%',background: isBlocked?'#EB5757':'#111',color:'#fff',
               display:'flex',alignItems:'center',justifyContent:'center',fontWeight:800,fontSize:'1.3rem',flexShrink:0}}>
               {name[0]?.toUpperCase()}
             </div>
@@ -377,7 +378,7 @@ function ClientFicheModal({ clientKey, clientRdvs, isBlocked, onToggleBlock, onC
                 <input value={editPhone} onChange={e => setEditPhone(e.target.value)}
                   placeholder="+212 6XX XXX XXX" style={{fontSize:'0.82rem',border:'1px solid #eee',borderRadius:8,padding:'3px 8px',width:160,outline:'none'}} />
                 <button onClick={saveInfo} disabled={saving2}
-                  style={{fontSize:'0.72rem',background: saved2?'#27AE60':'#111',color:'#fff',border:'none',borderRadius:8,padding:'4px 10px',cursor:'pointer',fontWeight:600,flexShrink:0}}>
+                  style={{fontSize:'0.72rem',background: saved2?'#111':'#111',color:'#fff',border:'none',borderRadius:8,padding:'4px 10px',cursor:'pointer',fontWeight:600,flexShrink:0}}>
                   {saved2 ? '✓' : 'Enr.'}
                 </button>
               </div>
@@ -389,9 +390,9 @@ function ClientFicheModal({ clientKey, clientRdvs, isBlocked, onToggleBlock, onC
         {/* Stats */}
         <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12,padding:'20px 24px'}}>
           {[
-            { label:'Visites', value: visits, color:'#3B82F6' },
-            { label:'No-shows', value: noShows, color:'#F59E0B' },
-            { label:'Total dépensé', value: total > 0 ? `${total} MAD` : '—', color:'#C17B4E' },
+            { label:'Visites', value: visits, color:'#777' },
+            { label:'No-shows', value: noShows, color:'#C62828' },
+            { label:'Total dépensé', value: total > 0 ? `${total} MAD` : '—', color:'#111' },
           ].map(s => (
             <div key={s.label} style={{background:'#f7f7f7',borderRadius:14,padding:'12px 10px',textAlign:'center'}}>
               <div style={{fontWeight:800,fontSize:'1.15rem',color:s.color}}>{s.value}</div>
@@ -404,15 +405,15 @@ function ClientFicheModal({ clientKey, clientRdvs, isBlocked, onToggleBlock, onC
         <div style={{padding:'0 24px 16px',display:'flex',gap:10}}>
           {waPhone && (
             <a href={`https://wa.me/${waPhone}`} target="_blank" rel="noopener noreferrer"
-              style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:6,background:'#25D366',color:'#fff',
+              style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:6,background:'#111',color:'#fff',
                 borderRadius:12,padding:'10px',fontWeight:700,fontSize:'0.85rem',textDecoration:'none'}}>
-              💬 WhatsApp
+              WhatsApp
             </a>
           )}
           <button onClick={onToggleBlock}
             style={{flex:1,padding:'10px',borderRadius:12,border:'none',cursor:'pointer',fontWeight:700,fontSize:'0.85rem',
-              background: isBlocked?'#F0FDF4':'#FEF2F2', color: isBlocked?'#27AE60':'#EB5757'}}>
-            {isBlocked ? '✓ Débloquer' : '🚫 Bloquer'}
+              background: isBlocked?'#f0f0f0':'#FEF2F2', color: isBlocked?'#111':'#EB5757'}}>
+            {isBlocked ? '✓ Débloquer' : 'Bloquer'}
           </button>
         </div>
 
@@ -427,10 +428,10 @@ function ClientFicheModal({ clientKey, clientRdvs, isBlocked, onToggleBlock, onC
                 background:'#f9f9f9',borderRadius:12,padding:'10px 14px',fontSize:'0.83rem'}}>
                 <div>
                   <div style={{fontWeight:700}}>{r.service_name}</div>
-                  <div style={{color:'#aaa',marginTop:2}}>📅 {r.date} à {r.start_time} · {r.staff_name}</div>
+                  <div style={{color:'#aaa',marginTop:2}}>{r.date} à {r.start_time} · {r.staff_name}</div>
                 </div>
                 <div style={{textAlign:'right',flexShrink:0,marginLeft:12}}>
-                  <div style={{fontWeight:700,color:'#C17B4E'}}>{formatPrice(r.price, r.price_type)}</div>
+                  <div style={{fontWeight:700,color:'#111'}}>{formatPrice(r.price, r.price_type)}</div>
                   <span style={{display:'inline-block',marginTop:3,fontSize:'0.7rem',padding:'2px 7px',borderRadius:8,
                     background: statusBg[r.status]||'#f3f3f3', color: statusFg[r.status]||'#888',fontWeight:600}}>
                     {statusLbl[r.status]||r.status}
@@ -507,7 +508,7 @@ function ClientHistorySection({ rdvs }: { rdvs: any[] }) {
               style={{background: isBlocked?'#fff8f8':'#fff', border:`1px solid ${isBlocked?'#fcd4d4':'#eee'}`,
                 borderRadius:16,padding:'14px 20px',cursor:'pointer',display:'flex',alignItems:'center',gap:14,
                 transition:'box-shadow 0.15s',boxShadow:'0 1px 3px rgba(0,0,0,0.04)'}}>
-              <div style={{width:44,height:44,borderRadius:'50%',background: isBlocked?'#EB5757':'#C17B4E',color:'#fff',
+              <div style={{width:44,height:44,borderRadius:'50%',background: isBlocked?'#EB5757':'#111',color:'#fff',
                 display:'flex',alignItems:'center',justifyContent:'center',fontWeight:800,fontSize:'1rem',flexShrink:0}}>
                 {name[0]?.toUpperCase()}
               </div>
@@ -516,13 +517,13 @@ function ClientHistorySection({ rdvs }: { rdvs: any[] }) {
                   {name}
                   {isBlocked && <span style={{fontSize:'0.65rem',background:'#EB5757',color:'#fff',padding:'1px 6px',borderRadius:6,fontWeight:600}}>Bloqué</span>}
                 </div>
-                {phone && <div style={{fontSize:'0.78rem',color:'#555',marginTop:2}}>📞 {phone}</div>}
+                {phone && <div style={{fontSize:'0.78rem',color:'#555',marginTop:2}}>{phone}</div>}
                 <div style={{fontSize:'0.74rem',color:'#aaa',marginTop:2}}>
                   {clientRdvs.length} RDV{noShows > 0 ? ` · ${noShows} no-show` : ''} · dernier : {sorted[0]?.date}
                 </div>
               </div>
               <div style={{textAlign:'right',flexShrink:0}}>
-                <div style={{fontWeight:700,color:'#C17B4E',fontSize:'0.88rem'}}>{total > 0 ? `${total} MAD` : '—'}</div>
+                <div style={{fontWeight:700,color:'#111',fontSize:'0.88rem'}}>{total > 0 ? `${total} MAD` : '—'}</div>
                 <div style={{fontSize:'0.72rem',color:'#bbb',marginTop:4}}>Voir fiche →</div>
               </div>
             </div>
@@ -624,7 +625,7 @@ export function ProRdvList() {
                 <td style={{padding:'12px 16px',fontSize:'0.85rem',color:'#aaa'}}>{r.staff_name}</td>
                 <td style={{padding:'12px 16px',fontSize:'0.85rem'}}>{r.date}</td>
                 <td style={{padding:'12px 16px',fontSize:'0.85rem'}}>{r.start_time}</td>
-                <td style={{padding:'12px 16px',fontSize:'0.85rem',fontWeight:700,color:'#C17B4E'}}>{formatPrice(r.price,r.price_type)}</td>
+                <td style={{padding:'12px 16px',fontSize:'0.85rem',fontWeight:700,color:'#111'}}>{formatPrice(r.price,r.price_type)}</td>
                 <td style={{padding:'12px 16px'}}>
                   <span className={r.status==='confirmed'?'badge badge-green':r.status==='cancelled'?'badge badge-red':r.status==='completed'?'badge badge-gold':'badge badge-grey'}>
                     {r.status==='confirmed'?'Confirmé':r.status==='cancelled'?'Annulé':r.status==='completed'?'Terminé':'No-show'}
@@ -634,7 +635,7 @@ export function ProRdvList() {
                   {r.status === 'confirmed' && (
                     <div style={{display:'flex',gap:6}}>
                       <button onClick={() => requirePin('Marquer comme terminé', () => changeStatus(r.id,'completed'))}
-                        style={{fontSize:'0.72rem',color:'#27AE60',background:'none',border:'none',cursor:'pointer'}}>✓ Terminé</button>
+                        style={{fontSize:'0.72rem',color:'#111',background:'none',border:'none',cursor:'pointer'}}>✓ Terminé</button>
                       <button onClick={() => changeStatus(r.id,'cancelled')}
                         style={{fontSize:'0.72rem',color:'#EB5757',background:'none',border:'none',cursor:'pointer'}}>✗ Annuler</button>
                     </div>
@@ -663,7 +664,7 @@ export function ProServices() {
   const [editing, setEditing]       = useState<any>(null)
   const [editingCat, setEditingCat] = useState<any>(null)
   const [form, setForm]     = useState({ name:'', price:'', price_type:'fixed', duration:'30', cat_id:'', staff_ids:[] as string[] })
-  const [catForm, setCatForm] = useState({ name:'', color:'#C17B4E' })
+  const [catForm, setCatForm] = useState({ name:'', color:'#111' })
   const [saving, setSaving] = useState(false)
   const [pin, setPin]             = useState('0000')
   const [pendingDelete, setPendingDelete] = useState<{id:string; type:'service'|'category'} | null>(null)
@@ -728,7 +729,7 @@ export function ProServices() {
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:24}}>
         <h1 className="serif" style={{fontSize:'2rem'}}>Prestations</h1>
         <div style={{display:'flex',gap:8}}>
-          <button onClick={() => { setEditingCat({}); setCatForm({name:'',color:'#C17B4E'}) }} className="btn btn-secondary btn-sm">+ Catégorie</button>
+          <button onClick={() => { setEditingCat({}); setCatForm({name:'',color:'#111'}) }} className="btn btn-secondary btn-sm">+ Catégorie</button>
           <button onClick={() => openForm()} className="btn btn-primary btn-sm">+ Prestation</button>
         </div>
       </div>
@@ -739,11 +740,11 @@ export function ProServices() {
           <div key={cat.id} style={{marginBottom:24}}>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
               <div style={{display:'flex',alignItems:'center',gap:8}}>
-                <div style={{width:12,height:12,borderRadius:'50%',background:cat.color||'#C17B4E'}}/>
+                <div style={{width:12,height:12,borderRadius:'50%',background:cat.color||'#111'}}/>
                 <span style={{fontWeight:700,fontSize:'0.85rem',textTransform:'uppercase',letterSpacing:'0.04em',color:cat.color||'#888'}}>{cat.name}</span>
               </div>
               <div style={{display:'flex',gap:8}}>
-                <button onClick={() => { setEditingCat(cat); setCatForm({name:cat.name,color:cat.color||'#C17B4E'}) }}
+                <button onClick={() => { setEditingCat(cat); setCatForm({name:cat.name,color:cat.color||'#111'}) }}
                   style={{fontSize:'0.75rem',color:'#aaa',background:'none',border:'none',cursor:'pointer'}}>Modifier</button>
                 <button onClick={() => removeCat(cat.id)}
                   style={{fontSize:'0.75rem',color:'#EB5757',background:'none',border:'none',cursor:'pointer'}}>Supprimer</button>
@@ -754,10 +755,10 @@ export function ProServices() {
                 <div key={s.id} className="card" style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:12}}>
                   <div>
                     <div style={{fontWeight:600}}>{s.name}</div>
-                    <div style={{fontSize:'0.75rem',color:'#aaa',marginTop:2}}>⏱ {s.duration} min{(() => { const n = (s.staff_ids || []).filter((id: string) => staff.some(st => st.id === id)).length; return n ? ` · ${n} employé(s)` : ' · Tous les employés' })()}</div>
+                    <div style={{fontSize:'0.75rem',color:'#aaa',marginTop:2}}>{s.duration} min{(() => { const n = (s.staff_ids || []).filter((id: string) => staff.some(st => st.id === id)).length; return n ? ` · ${n} employé(s)` : ' · Tous les employés' })()}</div>
                   </div>
                   <div style={{display:'flex',alignItems:'center',gap:16}}>
-                    <span style={{fontWeight:700,color:'#C17B4E'}}>{formatPrice(s.price,s.price_type)}</span>
+                    <span style={{fontWeight:700,color:'#111'}}>{formatPrice(s.price,s.price_type)}</span>
                     <button onClick={() => openForm(s)} style={{fontSize:'0.82rem',color:'#aaa',background:'none',border:'none',cursor:'pointer'}}>Modifier</button>
                     <button onClick={() => remove(s.id)} style={{fontSize:'0.82rem',color:'#EB5757',background:'none',border:'none',cursor:'pointer'}}>Supprimer</button>
                   </div>
@@ -777,10 +778,10 @@ export function ProServices() {
             <div key={s.id} className="card" style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:12,marginBottom:8}}>
               <div>
                 <div style={{fontWeight:600}}>{s.name}</div>
-                <div style={{fontSize:'0.75rem',color:'#aaa',marginTop:2}}>⏱ {s.duration} min</div>
+                <div style={{fontSize:'0.75rem',color:'#aaa',marginTop:2}}>{s.duration} min</div>
               </div>
               <div style={{display:'flex',alignItems:'center',gap:16}}>
-                <span style={{fontWeight:700,color:'#C17B4E'}}>{formatPrice(s.price,s.price_type)}</span>
+                <span style={{fontWeight:700,color:'#111'}}>{formatPrice(s.price,s.price_type)}</span>
                 <button onClick={() => openForm(s)} style={{fontSize:'0.82rem',color:'#aaa',background:'none',border:'none',cursor:'pointer'}}>Modifier</button>
                 <button onClick={() => remove(s.id)} style={{fontSize:'0.82rem',color:'#EB5757',background:'none',border:'none',cursor:'pointer'}}>Supprimer</button>
               </div>
@@ -844,7 +845,7 @@ export function ProServices() {
                       <label key={st.id} style={{display:'flex',alignItems:'center',gap:12,padding:12,border:'1px solid #eee',borderRadius:12,cursor:'pointer'}}>
                         <input type="checkbox" checked={form.staff_ids.includes(st.id)}
                           onChange={e => setForm(f => ({...f,staff_ids: e.target.checked ? [...f.staff_ids,st.id] : f.staff_ids.filter(id=>id!==st.id)}))} />
-                        <div style={{width:28,height:28,borderRadius:'50%',background:'#C17B4E',color:'#fff',fontSize:'0.72rem',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700}}>{(st.firstname||'?')[0]}{(st.lastname||'?')[0]}</div>
+                        <div style={{width:28,height:28,borderRadius:'50%',background:'#111',color:'#fff',fontSize:'0.72rem',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700}}>{(st.firstname||'?')[0]}{(st.lastname||'?')[0]}</div>
                         <div><div style={{fontSize:'0.85rem',fontWeight:500}}>{st.firstname} {st.lastname}</div><div style={{fontSize:'0.75rem',color:'#aaa'}}>{st.role}</div></div>
                       </label>
                     ))}
@@ -909,7 +910,7 @@ export function ProStaff() {
       <div className="auto-grid-md">
         {staff.map(st => (
           <div key={st.id} className="card text-center">
-            <div style={{width:56,height:56,borderRadius:'50%',background:'#C17B4E',color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700,fontSize:'1.1rem',margin:'0 auto 12px'}}>
+            <div style={{width:56,height:56,borderRadius:'50%',background:'#111',color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700,fontSize:'1.1rem',margin:'0 auto 12px'}}>
               {(st.firstname||'?')[0]}{(st.lastname||'?')[0]}
             </div>
             <div style={{fontWeight:600}}>{st.firstname} {st.lastname}</div>
@@ -1040,7 +1041,7 @@ export function ProClients() {
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:24}}>
         <h1 className="serif" style={{fontSize:'2rem'}}>Clients</h1>
         <input value={q} onChange={e => setQ(e.target.value)} className="form-control"
-          style={{maxWidth:220}} placeholder="🔍 Rechercher…" />
+          style={{maxWidth:220}} placeholder="Rechercher…" />
       </div>
 
       {/* KPIs */}
@@ -1077,7 +1078,7 @@ export function ProClients() {
                 display:'flex', alignItems:'center', gap:14,
                 boxShadow:'0 1px 3px rgba(0,0,0,0.04)'}}>
               <div style={{width:44,height:44,borderRadius:'50%',
-                background: isBlocked ? '#EB5757' : '#C17B4E',
+                background: isBlocked ? '#EB5757' : '#111',
                 color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',
                 fontWeight:800,fontSize:'1rem',flexShrink:0}}>
                 {c.name[0]?.toUpperCase()}
@@ -1088,7 +1089,7 @@ export function ProClients() {
                   {isBlocked && <span style={{fontSize:'0.65rem',background:'#EB5757',color:'#fff',padding:'1px 6px',borderRadius:6,fontWeight:600}}>Bloqué</span>}
                 </div>
                 {c.phone
-                  ? <div style={{fontSize:'0.78rem',color:'#555',marginTop:2}}>📞 {c.phone}</div>
+                  ? <div style={{fontSize:'0.78rem',color:'#555',marginTop:2}}>{c.phone}</div>
                   : <div style={{fontSize:'0.75rem',color:'#ccc',marginTop:2}}>Aucun numéro</div>
                 }
                 <div style={{fontSize:'0.74rem',color:'#aaa',marginTop:2}}>
@@ -1096,16 +1097,16 @@ export function ProClients() {
                 </div>
               </div>
               <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:6,flexShrink:0}}>
-                <div style={{fontWeight:700,color:'#C17B4E',fontSize:'0.88rem'}}>
+                <div style={{fontWeight:700,color:'#111',fontSize:'0.88rem'}}>
                   {c.spent > 0 ? `${c.spent.toLocaleString('fr-FR')} MAD` : '—'}
                 </div>
                 <div style={{display:'flex',gap:6,alignItems:'center'}}>
                   {waPhone && (
                     <a href={`https://wa.me/${waPhone}`} target="_blank" rel="noopener noreferrer"
                       onClick={e => e.stopPropagation()}
-                      style={{fontSize:'0.72rem',background:'#25D366',color:'#fff',
+                      style={{fontSize:'0.72rem',background:'#111',color:'#fff',
                         padding:'3px 8px',borderRadius:20,textDecoration:'none',fontWeight:600}}>
-                      💬 WA
+                      WA
                     </a>
                   )}
                   <span style={{fontSize:'0.72rem',color:'#bbb'}}>Voir fiche →</span>
@@ -1189,7 +1190,7 @@ export function ProSchedule() {
                 <label style={{display:'flex',alignItems:'center',gap:8,cursor:'pointer'}}>
                   <input type="checkbox" checked={isOpen}
                     onChange={e => setSchedule((s: any) => ({...s, [`${k}_open`]: e.target.checked}))} />
-                  <span style={{fontSize:'0.75rem',fontWeight:500,color:isOpen?'#27AE60':'#aaa'}}>{isOpen?'Ouvert':'Fermé'}</span>
+                  <span style={{fontSize:'0.75rem',fontWeight:500,color:isOpen?'#111':'#aaa'}}>{isOpen?'Ouvert':'Fermé'}</span>
                 </label>
                 {isOpen && (
                   <div style={{display:'flex',alignItems:'center',gap:8,marginLeft:'auto'}}>
@@ -1212,7 +1213,7 @@ export function ProSchedule() {
         <div style={{display:'flex',flexDirection:'column',gap:16}}>
           {/* Add block */}
           <div className="card">
-            <h2 style={{fontWeight:600,fontSize:'1.1rem',marginBottom:16}}>🔒 Verrouiller un créneau</h2>
+            <h2 style={{fontWeight:600,fontSize:'1.1rem',marginBottom:16}}>Verrouiller un créneau</h2>
             <div className="space-y-3">
               <div className="form-group" style={{marginBottom:0}}><label>Libellé</label><input className="form-control" placeholder="Pause déjeuner…" value={bForm.label} onChange={e=>setBForm(f=>({...f,label:e.target.value}))} /></div>
               <div className="form-row">
@@ -1249,12 +1250,12 @@ export function ProSchedule() {
               <div style={{textAlign:'center',padding:'24px',color:'#aaa',fontSize:'0.82rem',border:'2px dashed #eee',borderRadius:12}}>Aucun blocage</div>
             )}
             {future.map(b => (
-              <div key={b.id} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:12,background:'#fffbeb',borderRadius:12,border:'1px solid #fde68a',marginBottom:8}}>
+              <div key={b.id} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:12,background:'#f7f7f7',borderRadius:12,border:'1px solid #e5e5e5',marginBottom:8}}>
                 <div>
                   <div style={{fontSize:'0.85rem',fontWeight:600}}>{b.label} — {b.date}</div>
                   <div style={{fontSize:'0.75rem',color:'#666'}}>{b.start_time} → {b.end_time}{b.staff_id ? ` · ${staffList.find(s=>s.id===b.staff_id)?.firstname||''}` : ' · Tout le salon'}</div>
                 </div>
-                <button onClick={() => delBlock(b.id)} style={{background:'none',border:'none',cursor:'pointer',fontSize:'1.1rem',color:'#EB5757'}}>🗑</button>
+                <button onClick={() => delBlock(b.id)} style={{background:'none',border:'none',cursor:'pointer',fontSize:'1.1rem',color:'#EB5757'}}>×</button>
               </div>
             ))}
           </div>

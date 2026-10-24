@@ -6,6 +6,8 @@ import { ProOverview } from '@/components/pro/Overview'
 import { ProAgenda }   from '@/components/pro/Agenda'
 import { ProRdvList, ProServices, ProStaff, ProClients, ProSchedule, ProSalonSettings, ProProfile } from '@/components/pro/Others'
 import { CITIES, CATEGORIES } from '@/lib/utils'
+import Icon from '@/components/Icon'
+import type { IconName } from '@/components/Icon'
 
 function CreateSalonScreen({ onCreated, onSignOut }: { onCreated: (s: any) => void; onSignOut: () => void }) {
   const [name, setName]     = useState('')
@@ -48,7 +50,7 @@ function CreateSalonScreen({ onCreated, onSignOut }: { onCreated: (s: any) => vo
           <div className="form-group">
             <label>Catégorie</label>
             <select className="form-control" value={cat} onChange={e=>setCat(e.target.value)}>
-              {CATEGORIES.map(c=><option key={c.id} value={c.id}>{c.emoji} {c.label}</option>)}
+              {CATEGORIES.map(c=><option key={c.id} value={c.id}>{c.label}</option>)}
             </select>
           </div>
           <div className="form-group">
@@ -80,25 +82,25 @@ const SECTIONS = [
   {
     label: 'Principal',
     tabs: [
-      { id:'overview', label:"Vue d'ensemble", icon:'📊' },
-      { id:'agenda',   label:'Agenda',         icon:'📅' },
-      { id:'rdv',      label:'Rendez-vous',    icon:'�️' },
+      { id:'overview', label:"Vue d'ensemble", icon:'chart' },
+      { id:'agenda',   label:'Agenda',         icon:'calendar' },
+      { id:'rdv',      label:'Rendez-vous',    icon:'check' },
     ]
   },
   {
     label: 'Gestion',
     tabs: [
-      { id:'services', label:'Prestations', icon:'✂️' },
-      { id:'staff',    label:'Employés',    icon:'👥' },
-      { id:'clients',  label:'Clients',     icon:'👤' },
-      { id:'schedule', label:'Horaires',    icon:'🕐' },
+      { id:'services', label:'Prestations', icon:'scissors' },
+      { id:'staff',    label:'Employés',    icon:'users' },
+      { id:'clients',  label:'Clients',     icon:'user' },
+      { id:'schedule', label:'Horaires',    icon:'clock' },
     ]
   },
   {
     label: 'Compte',
     tabs: [
-      { id:'salon',   label:'Mon salon', icon:'🏪' },
-      { id:'profile', label:'Profil',    icon:'👤' },
+      { id:'salon',   label:'Mon salon', icon:'home' },
+      { id:'profile', label:'Profil',    icon:'settings' },
     ]
   },
 ]
@@ -165,7 +167,7 @@ export default function ProPage() {
         <button onClick={() => setSidebarOpen(true)} aria-label="Menu"
           style={{background:'none',border:'none',fontSize:'1.5rem',cursor:'pointer',lineHeight:1,padding:4,color:'#111'}}>☰</button>
         <div className="serif" style={{fontSize:'1.05rem',fontWeight:700,color:'#111'}}>
-          Elite<em style={{color:'#C17B4E',fontStyle:'italic'}}>Booking</em>
+          Elite<em style={{color:'#111',fontStyle:'italic'}}>Booking</em>
         </div>
         <div style={{width:32}} />
       </header>
@@ -178,7 +180,7 @@ export default function ProPage() {
         <div style={{padding:'20px 24px',borderBottom:'1px solid #efefef',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
           <div>
             <div className="serif" style={{fontSize:'1.1rem',fontWeight:700,color:'#111'}}>
-              Elite<em style={{color:'#C17B4E',fontStyle:'italic'}}>Booking</em>
+              Elite<em style={{color:'#111',fontStyle:'italic'}}>Booking</em>
             </div>
             <div style={{fontSize:'0.72rem',color:'#aaa',marginTop:2}}>Espace Pro</div>
           </div>
@@ -194,11 +196,11 @@ export default function ProPage() {
                 <button key={t.id} onClick={() => { setTab(t.id); setSidebarOpen(false) }}
                   style={{display:'flex',alignItems:'center',gap:10,
                     padding:'10px 20px',width:'100%',border:'none',
-                    borderRight: tab===t.id ? '2px solid #C17B4E' : '2px solid transparent',
-                    background: tab===t.id ? '#fdf3ec' : 'transparent',
-                    color: tab===t.id ? '#C17B4E' : '#555',
+                    borderRight: tab===t.id ? '2px solid #111' : '2px solid transparent',
+                    background: tab===t.id ? '#f0f0f0' : 'transparent',
+                    color: tab===t.id ? '#111' : '#555',
                     fontSize:'0.85rem',fontWeight:500,textAlign:'left',cursor:'pointer',transition:'all 0.15s'}}>
-                  <span style={{width:18,textAlign:'center',fontSize:'0.95rem'}}>{t.icon}</span>{t.label}
+                  <span style={{width:18,display:'flex',alignItems:'center',justifyContent:'center'}}><Icon name={t.icon as IconName} size={15} /></span>{t.label}
                 </button>
               ))}
             </div>

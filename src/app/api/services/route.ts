@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
   if (!salonId) return NextResponse.json({ error: '403' }, { status: 403 });
   const body = await req.json();
   if (body.resourceType === 'category') {
-    const { data, error } = await supabase.from('service_categories').insert({ salon_id: salonId, name: body.name, color: body.color ?? '#C17B4E', order: body.order ?? 0 }).select().single();
+    const { data, error } = await supabase.from('service_categories').insert({ salon_id: salonId, name: body.name, color: body.color ?? '#111', order: body.order ?? 0 }).select().single();
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json(data, { status: 201 });
   }

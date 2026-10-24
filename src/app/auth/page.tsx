@@ -66,14 +66,14 @@ function AuthForm() {
     <div className="min-h-screen flex flex-col" style={{background:'#f7f7f7'}}>
       <nav className="bg-white border-b px-4 h-16 flex items-center" style={{borderColor:'#eee'}}>
         <Link href="/" className="serif text-xl font-bold" style={{textDecoration:'none',color:'#111'}}>
-          Elite<em style={{color:'#C17B4E',fontStyle:'normal'}}>Booking</em>
+          Elite<em style={{color:'#111',fontStyle:'normal'}}>Booking</em>
         </Link>
       </nav>
 
       <div className="flex-1 flex items-center justify-center p-4">
         <div className="bg-white rounded-3xl shadow-xl p-8 w-full" style={{maxWidth:440}}>
           <h1 className="serif text-3xl mb-2 text-center">
-            {mode === 'login' ? 'Bon retour 👋' : 'Créer un compte'}
+            {mode === 'login' ? 'Bon retour' : 'Créer un compte'}
           </h1>
           <p className="text-sm text-center mb-8" style={{color:'#aaa'}}>
             {mode === 'login' ? 'Connectez-vous à votre espace' : 'Rejoignez EliteBooking'}
@@ -133,8 +133,8 @@ function AuthForm() {
                   <input className="form-control" type="tel" value={form.phone} onChange={set('phone')} />
                 </div>
                 {type === 'pro' && (
-                  <div className="rounded-xl p-4 space-y-3" style={{background:'#fdf8f0',border:'1px solid #f5e6cc'}}>
-                    <p style={{fontSize:'0.75rem',fontWeight:700,color:'#92622a'}}>Informations de votre salon</p>
+                  <div className="rounded-xl p-4 space-y-3" style={{background:'#f7f7f7',border:'1px solid #e5e5e5'}}>
+                    <p style={{fontSize:'0.75rem',fontWeight:700,color:'#888'}}>Informations de votre salon</p>
                     <div className="form-group" style={{marginBottom:0}}>
                       <label>Nom du salon *</label>
                       <input className="form-control" value={form.salonName} onChange={set('salonName')}
@@ -144,7 +144,7 @@ function AuthForm() {
                       <div className="form-group" style={{marginBottom:0}}>
                         <label>Catégorie</label>
                         <select className="form-control" value={form.salonCategory} onChange={set('salonCategory')}>
-                          {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.emoji} {c.label}</option>)}
+                          {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
                         </select>
                       </div>
                       <div className="form-group" style={{marginBottom:0}}>

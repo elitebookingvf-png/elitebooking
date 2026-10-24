@@ -24,12 +24,12 @@ function base(content: string) {
 <body style="margin:0;padding:0;background:#f5f5f5;font-family:Arial,sans-serif;color:#222">
 <div style="max-width:560px;margin:40px auto;background:#fff;border-radius:16px;overflow:hidden">
   <div style="background:#111;padding:28px 32px;text-align:center">
-    <span style="color:#C17B4E;font-size:1.5rem;font-weight:800"><em style="color:#fff;font-style:normal">Elite</em>Booking</span>
+    <span style="color:#111;font-size:1.5rem;font-weight:800"><em style="color:#fff;font-style:normal">Elite</em>Booking</span>
   </div>
   <div style="padding:32px">${content}</div>
   <div style="background:#f7f7f7;padding:14px 32px;text-align:center;font-size:12px;color:#aaa;border-top:1px solid #eee">
     &copy; ${new Date().getFullYear()} EliteBooking &middot; Maroc &middot;
-    <a href="${APP}" style="color:#C17B4E;text-decoration:none">${APP.replace(/^https?:\/\//, '')}</a>
+    <a href="${APP}" style="color:#111;text-decoration:none">${APP.replace(/^https?:\/\//, '')}</a>
   </div>
 </div></body></html>`;
 }
@@ -53,7 +53,7 @@ export async function sendWelcomeEmail(to: string, firstname: string, type: 'cli
       <li>Réserver vos prestations en quelques clics</li>
       <li>Gérer tous vos rendez-vous depuis votre espace</li>
     </ul>`}
-    <p style="margin:20px 0 8px">${btn(APP, isPro ? 'Accéder à mon espace pro' : 'Réserver maintenant', '#C17B4E', '#ffffff')}</p>
+    <p style="margin:20px 0 8px">${btn(APP, isPro ? 'Accéder à mon espace pro' : 'Réserver maintenant', '#111', '#ffffff')}</p>
     <p style="font-size:12px;color:#aaa;margin-top:16px">Si vous n'êtes pas à l'origine de cette inscription, ignorez cet e-mail.</p>
   `);
   await send(to, `Bienvenue sur EliteBooking, ${firstname} !`, html);
@@ -106,7 +106,7 @@ export async function sendNewRdvNotificationEmail(to: string, params: {
       <strong>Heure :</strong> ${params.time}<br/>
       <strong>Durée :</strong> ${params.duration} min
     </div>
-    <p style="margin:20px 0 8px">${btn(`${APP}/pro`, 'Voir l\'agenda', '#C17B4E', '#ffffff')}</p>
+    <p style="margin:20px 0 8px">${btn(`${APP}/pro`, 'Voir l\'agenda', '#111', '#ffffff')}</p>
   `);
   await send(to, `Nouveau RDV — ${params.clientName} le ${params.date} à ${params.time}`, html);
 }

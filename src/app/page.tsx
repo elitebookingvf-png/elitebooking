@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { CATEGORIES, CITIES } from '@/lib/utils';
 import FeaturedSalons from '@/components/FeaturedSalons';
 import NavBar from '@/components/NavBar';
+import Icon from '@/components/Icon';
+import type { IconName } from '@/components/Icon';
 import { createAdminClient } from '@/lib/supabase/server';
 import { PUBLIC_SALON_COLS } from '@/lib/utils';
 
@@ -43,9 +45,9 @@ export default async function HomePage() {
       <div style={{minHeight:'calc(100vh - 64px)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',textAlign:'center',position:'relative',overflow:'hidden',background:'#fff'}}>
         <div style={{position:'absolute',inset:0,background:"linear-gradient(180deg,rgba(255,255,255,0) 0%,rgba(255,255,255,0.65) 55%,#fff 100%),url('https://images.unsplash.com/photo-1560066984-138dadb4c035?w=1600&q=80') center/cover no-repeat",zIndex:0}} />
         <div style={{position:'relative',zIndex:1,maxWidth:700,padding:'0 24px'}}>
-          <span className="hero-eyebrow">🇲🇦 La beauté marocaine</span>
+          <span className="hero-eyebrow">La beauté marocaine</span>
           <h1 className="serif hero-h1">
-            Réservez vos soins<br /><em style={{fontStyle:'italic',color:'#C17B4E'}}>en quelques secondes</em>
+            Réservez vos soins<br /><em style={{fontStyle:'italic',color:'#111'}}>en quelques secondes</em>
           </h1>
           <p className="hero-sub">Coiffeurs, hammams, spas, instituts — les meilleurs établissements du Maroc disponibles en ligne, 24h/24.</p>
 
@@ -70,9 +72,9 @@ export default async function HomePage() {
           <div style={{display:'flex',gap:8,justifyContent:'center',flexWrap:'wrap',marginTop:18}}>
             {CATEGORIES.slice(0,5).map(c => (
               <Link key={c.id} href={`/search?category=${c.id}`}
-                style={{fontSize:'0.78rem',color:'#555',background:'#f5f5f5',borderRadius:20,padding:'6px 14px',textDecoration:'none',transition:'all 0.2s'}}
+                style={{fontSize:'0.78rem',color:'#555',background:'#f5f5f5',borderRadius:20,padding:'6px 14px',textDecoration:'none',transition:'all 0.2s',display:'inline-flex',alignItems:'center',gap:6}}
                 className="hero-tag">
-                {c.emoji} {c.label}
+                <Icon name={c.icon as IconName} size={13} /> {c.label}
               </Link>
             ))}
           </div>
@@ -96,7 +98,7 @@ export default async function HomePage() {
 
       {/* ── CATEGORIES ── */}
       <div style={{padding:'80px 40px',textAlign:'center'}}>
-        <div style={{fontSize:'0.72rem',fontWeight:700,letterSpacing:'0.12em',textTransform:'uppercase',color:'#C17B4E',marginBottom:12}}>Explorer</div>
+        <div style={{fontSize:'0.72rem',fontWeight:700,letterSpacing:'0.12em',textTransform:'uppercase',color:'#111',marginBottom:12}}>Explorer</div>
         <h2 className="serif" style={{fontSize:'clamp(1.8rem,3vw,2.6rem)',marginBottom:40}}>
           Tous vos soins,<br /><em style={{fontStyle:'italic'}}>une seule plateforme</em>
         </h2>
@@ -105,7 +107,7 @@ export default async function HomePage() {
             <Link key={cat.id} href={`/search?category=${cat.id}`}
               style={{display:'flex',flexDirection:'column',alignItems:'center',gap:8,padding:'20px 16px',borderRadius:14,border:'1.5px solid #efefef',width:120,textDecoration:'none',color:'inherit',transition:'all 0.25s',background:'#fff'}}
               className="cat-pill">
-              <span style={{fontSize:'1.7rem'}}>{cat.emoji}</span>
+              <Icon name={cat.icon as IconName} size={26} strokeWidth={1.4} />
               <span style={{fontSize:'0.75rem',fontWeight:500,color:'#333',textAlign:'center'}}>{cat.label}</span>
             </Link>
           ))}
@@ -119,7 +121,7 @@ export default async function HomePage() {
 
       {/* ── HOW IT WORKS ── */}
       <div id="how" style={{padding:'80px 40px',textAlign:'center'}}>
-        <div style={{fontSize:'0.72rem',fontWeight:700,letterSpacing:'0.12em',textTransform:'uppercase',color:'#C17B4E',marginBottom:12}}>Simple & rapide</div>
+        <div style={{fontSize:'0.72rem',fontWeight:700,letterSpacing:'0.12em',textTransform:'uppercase',color:'#111',marginBottom:12}}>Simple & rapide</div>
         <h2 className="serif" style={{fontSize:'clamp(1.8rem,3vw,2.6rem)',marginBottom:52}}>
           Réservez en <em style={{fontStyle:'italic'}}>3 étapes</em>
         </h2>
@@ -144,7 +146,7 @@ export default async function HomePage() {
       <div id="pro-section" style={{background:'#111',color:'#fff',padding:'80px 40px'}}>
         <div className="pro-section-grid" style={{gap:64,alignItems:'center',maxWidth:1000,margin:'0 auto'}}>
           <div>
-            <div style={{fontSize:'0.72rem',fontWeight:700,letterSpacing:'0.12em',textTransform:'uppercase',color:'#C17B4E',marginBottom:12}}>Espace professionnels</div>
+            <div style={{fontSize:'0.72rem',fontWeight:700,letterSpacing:'0.12em',textTransform:'uppercase',color:'#111',marginBottom:12}}>Espace professionnels</div>
             <h2 className="serif" style={{fontSize:'clamp(1.8rem,3vw,2.6rem)',color:'#fff',marginBottom:12}}>
               Développez<br />votre <em style={{fontStyle:'italic'}}>salon</em>
             </h2>
@@ -153,13 +155,13 @@ export default async function HomePage() {
             </p>
             <div style={{display:'flex',flexDirection:'column',gap:0,borderTop:'1px solid rgba(255,255,255,0.1)'}}>
               {[
-                { icon:'📅', t:'Agenda en ligne 24h/24', p:'Vos clients réservent à toute heure, sans appel.' },
-                { icon:'📊', t:'Analytics en temps réel', p:'Suivez revenus, taux de remplissage et clients.' },
-                { icon:'👥', t:'Gestion des employés', p:'Assignez les RDV à vos collaborateurs.' },
-                { icon:'🔔', t:'Rappels automatiques', p:'Réduisez les no-shows grâce aux rappels.' },
+                { icon:'calendar', t:'Agenda en ligne 24h/24', p:'Vos clients réservent à toute heure, sans appel.' },
+                { icon:'chart',    t:'Analytics en temps réel', p:'Suivez revenus, taux de remplissage et clients.' },
+                { icon:'users',    t:'Gestion des employés', p:'Assignez les RDV à vos collaborateurs.' },
+                { icon:'bell',     t:'Rappels automatiques', p:'Réduisez les no-shows grâce aux rappels.' },
               ].map(f => (
                 <div key={f.t} style={{display:'flex',gap:14,padding:'16px 0',borderBottom:'1px solid rgba(255,255,255,0.08)'}}>
-                  <span style={{fontSize:'1.1rem'}}>{f.icon}</span>
+                  <span style={{marginTop:2,flexShrink:0}}><Icon name={f.icon as IconName} size={18} /></span>
                   <div>
                     <div style={{fontSize:'0.88rem',fontWeight:600,marginBottom:2}}>{f.t}</div>
                     <div style={{fontSize:'0.78rem',color:'rgba(255,255,255,0.45)'}}>{f.p}</div>
@@ -172,8 +174,8 @@ export default async function HomePage() {
                 Rejoindre EliteBooking →
               </Link>
               <a href={`https://wa.me/${whatsapp}`} target="_blank" rel="noopener noreferrer"
-                style={{display:'inline-flex',alignItems:'center',gap:8,background:'#25D366',color:'#fff',padding:'12px 22px',borderRadius:12,fontSize:'0.88rem',fontWeight:600,textDecoration:'none'}}>
-                💬 Support WhatsApp
+                style={{display:'inline-flex',alignItems:'center',gap:8,border:'1px solid rgba(255,255,255,0.25)',color:'#fff',padding:'12px 22px',borderRadius:12,fontSize:'0.88rem',fontWeight:600,textDecoration:'none'}}>
+                <Icon name="chat" size={16} /> Support WhatsApp
               </a>
             </div>
           </div>
@@ -187,7 +189,7 @@ export default async function HomePage() {
                 <div key={k.l} style={{background:'rgba(255,255,255,0.05)',borderRadius:10,padding:12}}>
                   <span className="serif" style={{fontSize:'1.4rem',display:'block'}}>{k.v}</span>
                   <span style={{fontSize:'0.6rem',color:'rgba(255,255,255,0.35)',textTransform:'uppercase'}}>{k.l}</span>
-                  <span style={{fontSize:'0.65rem',color:'#6fcf97',display:'block',marginTop:4}}>{k.c}</span>
+                  <span style={{fontSize:'0.65rem',color:'#888',display:'block',marginTop:4}}>{k.c}</span>
                 </div>
               ))}
             </div>
@@ -195,7 +197,7 @@ export default async function HomePage() {
             <div style={{display:'flex',gap:5,alignItems:'flex-end',height:52}}>
               {[{h:'40%',d:'Lu'},{h:'65%',d:'Ma'},{h:'50%',d:'Me'},{h:'85%',d:'Je',gold:true},{h:'95%',d:'Ve'},{h:'70%',d:'Sa'},{h:'25%',d:'Di'}].map(b=>(
                 <div key={b.d} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center'}}>
-                  <div style={{width:'100%',height:b.h,background:b.gold?'#C17B4E':'rgba(255,255,255,0.12)',borderRadius:'3px 3px 0 0'}} />
+                  <div style={{width:'100%',height:b.h,background:b.gold?'#111':'rgba(255,255,255,0.12)',borderRadius:'3px 3px 0 0'}} />
                   <div style={{fontSize:'0.5rem',color:'rgba(255,255,255,0.3)',marginTop:3}}>{b.d}</div>
                 </div>
               ))}
@@ -205,10 +207,10 @@ export default async function HomePage() {
       </div>
 
       {/* ── FREE TRIAL ── */}
-      <div style={{padding:'80px 40px',background:'linear-gradient(135deg,#fff8f2 0%,#fff 60%)'}}>
+      <div style={{padding:'80px 40px',background:'linear-gradient(135deg,#fafafa 0%,#fff 60%)'}}>
         <div style={{maxWidth:900,margin:'0 auto'}}>
           <div style={{textAlign:'center',marginBottom:48}}>
-            <span style={{display:'inline-block',background:'#C17B4E',color:'#fff',fontSize:'0.75rem',fontWeight:700,padding:'5px 14px',borderRadius:20,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:12}}>Offre de lancement</span>
+            <span style={{display:'inline-block',background:'#111',color:'#fff',fontSize:'0.75rem',fontWeight:700,padding:'5px 14px',borderRadius:20,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:12}}>Offre de lancement</span>
             <h2 className="serif" style={{fontSize:'clamp(1.8rem,3vw,2.6rem)',marginBottom:8}}>
               Essai gratuit<br /><em style={{fontStyle:'italic'}}>14 jours</em> pour les professionnels
             </h2>
@@ -217,27 +219,27 @@ export default async function HomePage() {
           </div>
           <div className="featured-grid" style={{gap:16}}>
             {[
-              { icon:'📵', t:'Fini les appels manqués', p:'Vos clients réservent seuls, 24h/24 et 7j/7, même la nuit et le week-end.' },
-              { icon:'💰', t:'Augmentez votre CA', p:'Nos salons partenaires reportent en moyenne +28% de revenus dès le 1er mois.' },
-              { icon:'🗓', t:'Agenda intelligent', p:'Vue par employé, gestion des blocages, horaires d\'ouverture. Tout en un seul endroit.' },
-              { icon:'👥', t:'Fidélisez vos clients', p:'Fiches clients complètes, historique des visites, panier moyen. Connaissez votre clientèle.' },
+              { icon:'bell',     t:'Fini les appels manqués', p:'Vos clients réservent seuls, 24h/24 et 7j/7, même la nuit et le week-end.' },
+              { icon:'chart',    t:'Augmentez votre CA', p:'Nos salons partenaires reportent en moyenne +28% de revenus dès le 1er mois.' },
+              { icon:'calendar', t:'Agenda intelligent', p:'Vue par employé, gestion des blocages, horaires d\'ouverture. Tout en un seul endroit.' },
+              { icon:'users',    t:'Fidélisez vos clients', p:'Fiches clients complètes, historique des visites, panier moyen. Connaissez votre clientèle.' },
             ].map(f => (
-              <div key={f.t} style={{display:'flex',gap:16,alignItems:'flex-start',padding:22,background:'#fff',borderRadius:16,border:'1.5px solid #f0e0d0',boxShadow:'0 2px 12px rgba(193,123,78,0.07)'}}>
-                <div style={{width:40,height:40,borderRadius:12,background:'#fff3eb',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'1.2rem',flexShrink:0}}>{f.icon}</div>
+              <div key={f.t} style={{display:'flex',gap:16,alignItems:'flex-start',padding:22,background:'#fff',borderRadius:16,border:'1.5px solid #e5e5e5',boxShadow:'0 2px 12px rgba(0,0,0,0.06)'}}>
+                <div style={{width:40,height:40,borderRadius:12,border:'1px solid #e5e5e5',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><Icon name={f.icon as IconName} size={19} /></div>
                 <div>
                   <div style={{fontWeight:700,marginBottom:4}}>{f.t}</div>
                   <div style={{fontSize:'0.82rem',color:'#888'}}>{f.p}</div>
                 </div>
               </div>
             ))}
-            <div style={{display:'flex',gap:16,alignItems:'flex-start',padding:22,background:'#fff',borderRadius:16,border:'1.5px solid #f0e0d0',boxShadow:'0 2px 12px rgba(193,123,78,0.07)',gridColumn:'1/-1'}}>
-              <div style={{width:40,height:40,borderRadius:12,background:'#25D366',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'1.2rem',flexShrink:0}}>💬</div>
+            <div style={{display:'flex',gap:16,alignItems:'flex-start',padding:22,background:'#fff',borderRadius:16,border:'1.5px solid #e5e5e5',boxShadow:'0 2px 12px rgba(0,0,0,0.06)',gridColumn:'1/-1'}}>
+              <div style={{width:40,height:40,borderRadius:12,background:'#111',color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><Icon name="chat" size={18} /></div>
               <div style={{flex:1}}>
                 <div style={{fontWeight:700,marginBottom:4}}>Support WhatsApp dédié</div>
                 <div style={{fontSize:'0.82rem',color:'#888'}}>Notre équipe répond en moins d'1h sur WhatsApp. Installation, formation, questions : on est là.</div>
               </div>
               <a href={`https://wa.me/${whatsapp}`} target="_blank" rel="noopener noreferrer"
-                style={{display:'inline-flex',alignItems:'center',gap:8,background:'#25D366',color:'#fff',padding:'10px 18px',borderRadius:10,fontSize:'0.82rem',fontWeight:600,textDecoration:'none',whiteSpace:'nowrap',flexShrink:0}}>
+                style={{display:'inline-flex',alignItems:'center',gap:8,background:'#111',color:'#fff',padding:'10px 18px',borderRadius:10,fontSize:'0.82rem',fontWeight:600,textDecoration:'none',whiteSpace:'nowrap',flexShrink:0}}>
                 Nous contacter
               </a>
             </div>
@@ -247,21 +249,21 @@ export default async function HomePage() {
 
       {/* ── TESTIMONIALS ── */}
       <div style={{padding:'80px 40px'}}>
-        <div style={{fontSize:'0.72rem',fontWeight:700,letterSpacing:'0.12em',textTransform:'uppercase',color:'#C17B4E',marginBottom:12}}>Témoignages</div>
+        <div style={{fontSize:'0.72rem',fontWeight:700,letterSpacing:'0.12em',textTransform:'uppercase',color:'#111',marginBottom:12}}>Témoignages</div>
         <h2 className="serif" style={{fontSize:'clamp(1.8rem,3vw,2.6rem)',marginBottom:44}}>
           Ce que disent <em style={{fontStyle:'italic'}}>nos utilisateurs</em>
         </h2>
         <div className="testi-grid-wrap" style={{gap:18}}>
           {[
-            { stars:'★★★★★', text:'"EliteBooking m\'a changé la vie. Mon agenda est plein, je ne réponds plus au téléphone pour prendre des RDV."', av:'👩', name:'Fatima Z.', role:'Gérante · Beldi Spa, Casa' },
-            { stars:'★★★★★', text:'"Enfin une app 100% marocaine. Je réserve mon hammam en 30 secondes depuis mon canapé. Parfait."', av:'👨', name:'Karim M.', role:'Client · Rabat' },
-            { stars:'★★★★★', text:'"Les analytics m\'ont permis de comprendre mon activité. +30% de CA en 3 mois. Je recommande à 100%."', av:'👩', name:'Nadia B.', role:'Gérante · Riad Wellness, Marrakech' },
+            { stars:'★★★★★', text:'"EliteBooking m\'a changé la vie. Mon agenda est plein, je ne réponds plus au téléphone pour prendre des RDV."', av:'FZ', name:'Fatima Z.', role:'Gérante · Beldi Spa, Casa' },
+            { stars:'★★★★★', text:'"Enfin une app 100% marocaine. Je réserve mon hammam en 30 secondes depuis mon canapé. Parfait."', av:'KM', name:'Karim M.', role:'Client · Rabat' },
+            { stars:'★★★★★', text:'"Les analytics m\'ont permis de comprendre mon activité. +30% de CA en 3 mois. Je recommande à 100%."', av:'NB', name:'Nadia B.', role:'Gérante · Riad Wellness, Marrakech' },
           ].map(t => (
             <div key={t.name} style={{padding:24,border:'1.5px solid #efefef',borderRadius:14,transition:'all 0.3s'}} className="testi-card">
-              <div style={{color:'#C17B4E',fontSize:'0.72rem',marginBottom:12}}>{t.stars}</div>
+              <div style={{color:'#111',fontSize:'0.72rem',marginBottom:12}}>{t.stars}</div>
               <div style={{fontSize:'0.85rem',color:'#333',lineHeight:1.7,marginBottom:18,fontStyle:'italic',fontWeight:300}}>{t.text}</div>
               <div style={{display:'flex',alignItems:'center',gap:10}}>
-                <div style={{width:34,height:34,borderRadius:'50%',background:'#fafafa',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.9rem',flexShrink:0}}>{t.av}</div>
+                <div style={{width:34,height:34,borderRadius:'50%',background:'#111',color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.68rem',fontWeight:700,flexShrink:0,letterSpacing:'0.04em'}}>{t.av}</div>
                 <div>
                   <div style={{fontSize:'0.8rem',fontWeight:600}}>{t.name}</div>
                   <div style={{fontSize:'0.7rem',color:'#888'}}>{t.role}</div>
@@ -287,7 +289,7 @@ export default async function HomePage() {
       {/* ── FOOTER ── */}
       <footer className="footer-grid" style={{padding:'52px 40px 32px',display:'grid',gap:40,borderTop:'1px solid #efefef'}}>
         <div>
-          <div className="serif" style={{fontSize:'1.3rem',marginBottom:10}}>Elite<em style={{fontStyle:'italic',color:'#C17B4E'}}>Booking</em></div>
+          <div className="serif" style={{fontSize:'1.3rem',marginBottom:10}}>Elite<em style={{fontStyle:'italic',color:'#111'}}>Booking</em></div>
           <p style={{fontSize:'0.8rem',color:'#888',lineHeight:1.65,fontWeight:300,maxWidth:220}}>La première plateforme de réservation beauté & bien-être dédiée au Maroc.</p>
         </div>
         <div>
@@ -310,7 +312,7 @@ export default async function HomePage() {
         </div>
       </footer>
       <div style={{textAlign:'center',padding:'20px 40px',borderTop:'1px solid #efefef',fontSize:'0.72rem',color:'#bbb'}}>
-        © {new Date().getFullYear()} EliteBooking · Made in Morocco 🇲🇦
+        © {new Date().getFullYear()} EliteBooking · Made in Morocco
       </div>
 
     </div>

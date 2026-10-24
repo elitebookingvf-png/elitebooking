@@ -134,8 +134,8 @@ export default function ClientSearch({ onClientSelect, onManualInput, placeholde
           onFocus={() => query.length >= 2 && setShowResults(true)}
           style={{ 
             paddingRight: selectedClient ? '40px' : '12px',
-            borderColor: selectedClient ? '#C17B4E' : undefined,
-            backgroundColor: selectedClient ? '#fdf0e6' : undefined
+            borderColor: selectedClient ? '#111' : undefined,
+            backgroundColor: selectedClient ? '#f0f0f0' : undefined
           }}
         />
         {selectedClient && (
@@ -179,7 +179,7 @@ export default function ClientSearch({ onClientSelect, onManualInput, placeholde
         <div style={{
           marginTop: '6px',
           fontSize: '0.75rem',
-          color: '#C17B4E',
+          color: '#111',
           fontWeight: 500,
           display: 'flex',
           alignItems: 'center',
@@ -243,7 +243,7 @@ export default function ClientSearch({ onClientSelect, onManualInput, placeholde
                     fontSize: '0.8rem',
                     color: '#666'
                   }}>
-                    📞 {client.phone}
+                    {client.phone}
                   </div>
                 )}
               </div>
@@ -255,8 +255,8 @@ export default function ClientSearch({ onClientSelect, onManualInput, placeholde
               }}>
                 {client.isRegistered && (
                   <span style={{
-                    background: '#e8f8ee',
-                    color: '#27AE60',
+                    background: '#f0f0f0',
+                    color: '#111',
                     fontSize: '0.65rem',
                     fontWeight: 600,
                     padding: '2px 6px',

@@ -167,9 +167,9 @@ export default function PhoneSearch({
             width: '100%',
             padding: '10px 35px 10px 14px',
             borderRadius: '8px',
-            border: selectedClient?.phone ? '2px solid #C17B4E' : '1px solid #ddd',
+            border: selectedClient?.phone ? '2px solid #111' : '1px solid #ddd',
             fontSize: '0.95rem',
-            backgroundColor: selectedClient?.phone ? '#fdf0e6' : '#fff',
+            backgroundColor: selectedClient?.phone ? '#f0f0f0' : '#fff',
           }}
         />
         {selectedClient && (
@@ -184,7 +184,7 @@ export default function PhoneSearch({
               border: 'none',
               cursor: 'pointer',
               fontSize: '1.2rem',
-              color: '#C17B4E',
+              color: '#111',
               padding: '0',
               width: '24px',
               height: '24px',
@@ -206,7 +206,7 @@ export default function PhoneSearch({
               width: '16px',
               height: '16px',
               border: '2px solid #f3f3f3',
-              borderTop: '2px solid #C17B4E',
+              borderTop: '2px solid #111',
               borderRadius: '50%',
               animation: 'spin 1s linear infinite',
             }}
@@ -263,8 +263,8 @@ export default function PhoneSearch({
                         fontSize: '0.7rem',
                         padding: '2px 6px',
                         borderRadius: '10px',
-                        backgroundColor: '#d4edda',
-                        color: '#155724',
+                        backgroundColor: '#f0f0f0',
+                        color: '#111',
                         fontWeight: 500,
                       }}
                     >
@@ -278,7 +278,7 @@ export default function PhoneSearch({
                         padding: '2px 6px',
                         borderRadius: '10px',
                         backgroundColor: '#e2e3e5',
-                        color: '#383d41',
+                        color: '#555',
                         fontWeight: 500,
                       }}
                     >

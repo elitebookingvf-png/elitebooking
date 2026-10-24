@@ -4,6 +4,8 @@ import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { toISO, formatPrice, CATEGORIES, tMin, DAY_KEYS } from '@/lib/utils'
+import Icon from '@/components/Icon'
+import type { IconName } from '@/components/Icon'
 
 type CartItem = {
   serviceId: string; serviceName: string; servicePrice: number; servicePriceType: string
@@ -157,7 +159,9 @@ export default function SalonPage() {
   if (success) return (
     <div className="min-h-screen flex items-center justify-center">
       <div className="text-center">
-        <div style={{fontSize:'4rem',marginBottom:16}}>🎉</div>
+        <div style={{width:72,height:72,borderRadius:'50%',border:'2px solid #111',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 20px'}}>
+          <Icon name="check" size={34} strokeWidth={2} />
+        </div>
         <h2 className="serif" style={{fontSize:'2rem',marginBottom:8}}>Réservation confirmée !</h2>
         <p style={{color:'#aaa'}}>Redirection vers votre espace…</p>
       </div>
@@ -179,7 +183,7 @@ export default function SalonPage() {
     <div className="min-h-screen" style={{background:'#f7f7f7'}}>
       <nav className="bg-white border-b px-4 h-16 flex items-center gap-4" style={{borderColor:'#eee'}}>
         <Link href="/" className="serif text-xl font-bold" style={{textDecoration:'none',color:'#111'}}>
-          Elite<em style={{color:'#C17B4E',fontStyle:'normal'}}>Booking</em>
+          Elite<em style={{color:'#111',fontStyle:'normal'}}>Booking</em>
         </Link>
         <Link href="/search" style={{fontSize:'0.85rem',color:'#aaa',textDecoration:'none'}}>← Retour</Link>
         {user && <Link href="/client" className="btn btn-secondary btn-sm ml-auto">Mon espace</Link>}
@@ -188,26 +192,26 @@ export default function SalonPage() {
       <div className="max-w-4xl mx-auto px-4 py-10">
         {/* Salon header */}
         <div className="bg-white rounded-3xl overflow-hidden border mb-8" style={{borderColor:'#eee'}}>
-          <div className="h-48 flex items-center justify-center text-7xl"
-            style={{background:'linear-gradient(135deg,#fef3e8,#fde8c8)'}}>
-            {catInfo?.emoji || '🏪'}
+          <div className="h-48 flex items-center justify-center"
+            style={{background:'#f4f4f4',color:'#111'}}>
+            <Icon name={(catInfo?.icon || 'star') as IconName} size={72} strokeWidth={0.9} />
           </div>
           <div className="p-6">
             <h1 className="serif" style={{fontSize:'2rem'}}>{salon.name}</h1>
-            <p style={{color:'#aaa',marginTop:4}}>
-              📍 {salon.city}{salon.address && ` · ${salon.address}`}
-              {salon.phone && ` · 📞 ${salon.phone}`}
+            <p style={{color:'#aaa',marginTop:4,display:'flex',alignItems:'center',gap:5,flexWrap:'wrap'}}>
+              <Icon name="pin" size={13} /> {salon.city}{salon.address && ` · ${salon.address}`}
+              {salon.phone && ` · ${salon.phone}`}
             </p>
             <div className="flex gap-3 mt-3 flex-wrap">
               {salon.whatsapp && (
                 <a href={`https://wa.me/${salon.whatsapp}`} target="_blank" rel="noopener noreferrer"
-                  className="btn btn-sm" style={{background:'#25D366',color:'#fff',border:'none'}}>
-                  💬 WhatsApp
+                  className="btn btn-sm" style={{background:'#111',color:'#fff',border:'none',display:'inline-flex',alignItems:'center',gap:6}}>
+                  <Icon name="chat" size={13} /> WhatsApp
                 </a>
               )}
               {salon.instagram && (
                 <a href={`https://instagram.com/${salon.instagram}`} target="_blank" rel="noopener noreferrer"
-                  className="btn btn-secondary btn-sm">📸 Instagram</a>
+                  className="btn btn-secondary btn-sm">Instagram</a>
               )}
             </div>
           </div>
@@ -229,7 +233,7 @@ export default function SalonPage() {
             {/* ── Error banner ── */}
             {bookingError && (
               <div style={{background:'#fef2f2',border:'1.5px solid #fca5a5',borderRadius:12,padding:'14px 16px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:12}}>
-                <span style={{fontSize:'0.88rem',color:'#dc2626',fontWeight:500}}>⚠️ {bookingError}</span>
+                <span style={{fontSize:'0.88rem',color:'#dc2626',fontWeight:500,display:'inline-flex',alignItems:'center',gap:6}}><Icon name="x" size={13} /> {bookingError}</span>
                 <button onClick={() => setBookingError('')} style={{background:'none',border:'none',cursor:'pointer',color:'#dc2626',fontSize:'1.1rem',lineHeight:1}}>✕</button>
               </div>
             )}
@@ -246,11 +250,11 @@ export default function SalonPage() {
                     <div>
                       <div style={{fontWeight:600,fontSize:'0.88rem'}}>{item.serviceName}</div>
                       <div style={{fontSize:'0.78rem',color:'#aaa',marginTop:2}}>
-                        👤 {item.staffName} · 📅 {new Date(item.date+'T12:00').toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'})} à {item.time}
+                        {item.staffName} · {new Date(item.date+'T12:00').toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'})} à {item.time}
                       </div>
                     </div>
                     <div style={{display:'flex',alignItems:'center',gap:12}}>
-                      <span style={{fontWeight:700,color:'#C17B4E'}}>
+                      <span style={{fontWeight:700,color:'#111'}}>
                         {formatPrice(item.servicePrice, item.servicePriceType)}
                       </span>
                       <button onClick={() => removeFromCart(idx)}
@@ -262,7 +266,7 @@ export default function SalonPage() {
                 ))}
                 <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginTop:16,gap:12,flexWrap:'wrap'}}>
                   <div style={{fontSize:'0.88rem',fontWeight:700}}>
-                    Total : <span style={{color:'#C17B4E'}}>{cartTotal > 0 ? `${cartTotal} MAD` : 'Sur devis'}</span>
+                    Total : <span style={{color:'#111'}}>{cartTotal > 0 ? `${cartTotal} MAD` : 'Sur devis'}</span>
                   </div>
                   <div style={{display:'flex',gap:8}}>
                     <button onClick={() => setStep(1)} className="btn btn-secondary btn-sm">
@@ -290,19 +294,19 @@ export default function SalonPage() {
                   const isOpen = openCat === catId
                   const hasSelected = selectedSvc && svcs.some((s: any) => s.id === selectedSvc.id)
                   return (
-                    <div key={catId} style={{border:isOpen||hasSelected?'2px solid #C17B4E':'2px solid #eee',
+                    <div key={catId} style={{border:isOpen||hasSelected?'2px solid #111':'2px solid #eee',
                       borderRadius:14,overflow:'hidden',transition:'border-color 0.2s'}}>
                       {/* Category header — clickable */}
                       <div onClick={() => setOpenCat(isOpen ? null : catId)}
                         style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,
                           padding:'14px 18px',cursor:'pointer',userSelect:'none',
-                          background:isOpen?'#fdf7f2':'#fff',transition:'background 0.2s'}}>
+                          background:isOpen?'#fafafa':'#fff',transition:'background 0.2s'}}>
                         <div style={{display:'flex',alignItems:'center',gap:10,flex:1,minWidth:0}}>
                           <span style={{width:10,height:10,borderRadius:'50%',flexShrink:0,
-                            background:cat?.color||'#C17B4E'}} />
+                            background:cat?.color||'#111'}} />
                           <span style={{fontWeight:700,fontSize:'0.95rem'}}>{cat?.name || 'Autres prestations'}</span>
                           {hasSelected && !isOpen && (
-                            <span style={{fontSize:'0.75rem',color:'#C17B4E',fontWeight:600,
+                            <span style={{fontSize:'0.75rem',color:'#111',fontWeight:600,
                               whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
                               ✓ {selectedSvc.name}
                             </span>
@@ -325,11 +329,11 @@ export default function SalonPage() {
                                 setTimeout(() => stepStaffRef.current?.scrollIntoView({ behavior:'smooth', block:'start' }), 100)
                               }}
                               className="service-item"
-                              style={{borderColor:selectedSvc?.id===s.id?'#C17B4E':undefined,
-                                background:selectedSvc?.id===s.id?'#fdf0e6':undefined}}>
+                              style={{borderColor:selectedSvc?.id===s.id?'#111':undefined,
+                                background:selectedSvc?.id===s.id?'#f0f0f0':undefined}}>
                               <div style={{flex:1}}>
                                 <div className="service-name">{s.name}</div>
-                                <div style={{fontSize:'0.78rem',color:'#aaa',marginTop:2}}>⏱ {s.duration} min</div>
+                                <div style={{fontSize:'0.78rem',color:'#aaa',marginTop:2,display:'flex',alignItems:'center',gap:4}}><Icon name="clock" size={11} /> {s.duration} min</div>
                               </div>
                               <div className="service-price">{formatPrice(s.price, s.price_type)}</div>
                             </div>
@@ -353,7 +357,7 @@ export default function SalonPage() {
                         borderRadius:12,border:selectedStaff?.id===st.id?'2px solid #111':'2px solid #eee',
                         background:selectedStaff?.id===st.id?'#f7f7f7':'#fff',
                         cursor:'pointer',width:112,transition:'all 0.15s'}}>
-                      <div style={{width:48,height:48,borderRadius:'50%',background:'#C17B4E',color:'#fff',
+                      <div style={{width:48,height:48,borderRadius:'50%',background:'#111',color:'#fff',
                         display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700,fontSize:'1rem'}}>
                         {st.firstname[0]}{st.lastname[0]}
                       </div>
@@ -378,7 +382,7 @@ export default function SalonPage() {
                     return (
                       <div key={iso} onClick={() => { setDate(iso); setStep(4); setTime(''); setTimeout(() => stepTimeRef.current?.scrollIntoView({ behavior:'smooth', block:'start' }), 100) }}
                         className={`slot-btn${selectedDate===iso?' selected':''}`}
-                        style={isToday && selectedDate!==iso ? {borderColor:'#C17B4E',color:'#C17B4E'} : {}}>
+                        style={isToday && selectedDate!==iso ? {borderColor:'#111',color:'#111'} : {}}>
                         {lbl}
                       </div>
                     )
@@ -404,11 +408,11 @@ export default function SalonPage() {
                 {selectedTime && (
                   <div style={{background:'#f7f7f7',border:'1px solid #eee',borderRadius:12,padding:16,marginTop:20}}>
                     <p style={{fontWeight:600,fontSize:'0.88rem',marginBottom:8}}>Récapitulatif</p>
-                    <div style={{fontSize:'0.85rem',color:'#555',display:'flex',flexDirection:'column',gap:4}}>
-                      <div>✅ {selectedSvc.name} — {formatPrice(selectedSvc.price, selectedSvc.price_type)}</div>
-                      <div>👤 {selectedStaff.firstname} {selectedStaff.lastname}</div>
-                      <div>📅 {new Date(selectedDate+'T12:00').toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'})}</div>
-                      <div>🕐 {selectedTime} ({selectedSvc.duration} min)</div>
+                    <div style={{fontSize:'0.85rem',color:'#555',display:'flex',flexDirection:'column',gap:5}}>
+                      <div style={{display:'flex',alignItems:'center',gap:7}}><Icon name="check" size={13} /> {selectedSvc.name} — {formatPrice(selectedSvc.price, selectedSvc.price_type)}</div>
+                      <div style={{display:'flex',alignItems:'center',gap:7}}><Icon name="users" size={13} /> {selectedStaff.firstname} {selectedStaff.lastname}</div>
+                      <div style={{display:'flex',alignItems:'center',gap:7}}><Icon name="calendar" size={13} /> {new Date(selectedDate+'T12:00').toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'})}</div>
+                      <div style={{display:'flex',alignItems:'center',gap:7}}><Icon name="clock" size={13} /> {selectedTime} ({selectedSvc.duration} min)</div>
                     </div>
                     <div style={{display:'flex',gap:8,marginTop:16,flexWrap:'wrap'}}>
                       <button onClick={addToCart} className="btn btn-secondary" style={{flex:1}}>
@@ -451,7 +455,7 @@ export default function SalonPage() {
           <div className="auto-grid-sm">
             {staff.map((st: any) => (
               <div key={st.id} className="card text-center">
-                <div style={{width:64,height:64,borderRadius:'50%',background:'#C17B4E',color:'#fff',
+                <div style={{width:64,height:64,borderRadius:'50%',background:'#111',color:'#fff',
                   display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700,fontSize:'1.2rem',
                   margin:'0 auto 12px'}}>
                   {st.firstname[0]}{st.lastname[0]}
