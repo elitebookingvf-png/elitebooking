@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient, getUserIdFromCookies, getProSalonId } from '@/lib/supabase/server';
-import { isPastSlot } from '@/lib/utils';
+import { isPastSlot, isSlotFree } from '@/lib/utils';
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const userId = await getUserIdFromCookies();
@@ -9,7 +9,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const body = await req.json();
 
   const { data: rdv } = await supabase
-    .from('rdvs').select('id, salon_id, client_id, status, date, start_time')
+    .from('rdvs').select('id, salon_id, client_id, status, date, start_time, staff_id')
     .eq('id', params.id).single();
   if (!rdv) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
@@ -28,6 +28,21 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     if (body.client_name !== undefined) updateData.client_name = body.client_name;
     if (body.client_phone !== undefined) updateData.client_phone = body.client_phone;
     if (body.client_id !== undefined) updateData.client_id = body.client_id;
+    if (body.duration !== undefined) {
+      // Duration edits must not overlap the staff member's other bookings
+      const d = Math.round(Number(body.duration));
+      if (!Number.isFinite(d) || d < 5 || d > 600) {
+        return NextResponse.json({ error: 'Durée invalide (5–600 min)' }, { status: 400 });
+      }
+      const { data: others } = await supabase.from('rdvs')
+        .select('staff_id, date, start_time, duration, status')
+        .eq('salon_id', rdv.salon_id).eq('date', rdv.date)
+        .neq('status', 'cancelled').neq('id', params.id);
+      if (!isSlotFree((others ?? []) as any, rdv.staff_id, rdv.date, rdv.start_time, d)) {
+        return NextResponse.json({ error: 'Cette durée chevauche un autre RDV' }, { status: 409 });
+      }
+      updateData.duration = d;
+    }
   } else {
     // Client: cancel own confirmed booking only, and only if still upcoming
     if (rdv.client_id !== userId) return NextResponse.json({ error: '403' }, { status: 403 });

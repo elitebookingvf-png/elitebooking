@@ -7,8 +7,13 @@ import Icon from '@/components/Icon'
 
 type View = 'day' | 'staff' | 'week' | 'month'
 
-function RdvDetailModal({ rdv, allRdvs, onClose, onStatusChange, pin }: {
-  rdv: any; allRdvs: any[]; onClose: () => void; onStatusChange: (id: string, status: string) => void; pin: string
+// Pixel height of one hour row in the staff/day grids — drives the geometry
+// of appointment cards that span multiple rows (duration → pixels)
+const ROW_H = 56
+const pxForMin = (m: number) => m * ROW_H / 60
+
+function RdvDetailModal({ rdv, allRdvs, onClose, onStatusChange, onUpdated, pin }: {
+  rdv: any; allRdvs: any[]; onClose: () => void; onStatusChange: (id: string, status: string) => void; onUpdated?: (rdv: any) => void; pin: string
 }) {
   // Group = all RDVs sharing the same group_id (multi-prestation booking). Falls back to just this RDV.
   const groupRdvs = (rdv.group_id ? allRdvs.filter(r => r.group_id === rdv.group_id) : [rdv])
@@ -32,6 +37,10 @@ function RdvDetailModal({ rdv, allRdvs, onClose, onStatusChange, pin }: {
   const [selectedClient, setSelectedClient] = useState<any>(null)
   const [editSaving, setEditSaving] = useState(false)
   const [editError, setEditError] = useState('')
+  const [editingDur, setEditingDur] = useState(false)
+  const [editDur, setEditDur]       = useState(rdv.duration || 0)
+  const [durSaving, setDurSaving]   = useState(false)
+  const [durError, setDurError]     = useState('')
   
   const statusColor: Record<string,string> = { confirmed:'#111', completed:'#777', cancelled:'#bbb', 'no-show':'#C62828' }
   const statusLabel: Record<string,string> = { confirmed:'Confirmé', completed:'Terminé', cancelled:'Annulé', 'no-show':'Pas venu' }
@@ -228,7 +237,37 @@ function RdvDetailModal({ rdv, allRdvs, onClose, onStatusChange, pin }: {
             )}
             <div style={{display:'flex',gap:8}}>
               <Icon name="calendar" size={16}/>
-              <div><div style={{fontWeight:600}}>{new Date(rdv.date).toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})} a {rdv.start_time}</div><div style={{fontSize:'0.78rem',color:'#aaa'}}>{rdv.duration} min</div></div>
+              <div style={{flex:1}}>
+                <div style={{fontWeight:600}}>{new Date(rdv.date).toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})} a {rdv.start_time}</div>
+                {editingDur ? (
+                  <div style={{display:'flex',alignItems:'center',gap:6,marginTop:4}}>
+                    <input type="number" min={5} max={600} step={5} value={editDur} autoFocus
+                      onChange={e=>setEditDur(Math.round(Number(e.target.value)||0))}
+                      style={{width:70,padding:'3px 6px',borderRadius:6,border:'1px solid #ddd',fontSize:'0.78rem'}} />
+                    <span style={{fontSize:'0.78rem',color:'#aaa'}}>min</span>
+                    <button disabled={durSaving} onClick={async () => {
+                      setDurError(''); setDurSaving(true)
+                      const res = await fetch(`/api/rdv/${rdv.id}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ duration: editDur }) })
+                      setDurSaving(false)
+                      if (res.ok) { rdv.duration = editDur; onUpdated?.(rdv); setEditingDur(false) }
+                      else { const d = await res.json(); setDurError(d.error || 'Erreur') }
+                    }} style={{padding:'3px 10px',borderRadius:6,border:'none',background:'#111',color:'#fff',cursor:'pointer',fontSize:'0.75rem',fontWeight:600}}>
+                      {durSaving ? '…' : 'OK'}
+                    </button>
+                    <button onClick={() => { setEditingDur(false); setDurError('') }}
+                      style={{padding:'3px 8px',borderRadius:6,border:'1px solid #ddd',background:'#fff',cursor:'pointer',fontSize:'0.75rem',color:'#666'}}>×</button>
+                  </div>
+                ) : (
+                  <div style={{fontSize:'0.78rem',color:'#aaa'}}>
+                    {rdv.duration} min
+                    <button onClick={() => { setEditDur(rdv.duration); setEditingDur(true); setDurError('') }}
+                      style={{marginLeft:8,background:'none',border:'none',cursor:'pointer',fontSize:'0.72rem',color:'#111',textDecoration:'underline',padding:0}}>
+                      modifier
+                    </button>
+                  </div>
+                )}
+                {durError && <div style={{fontSize:'0.75rem',color:'#e53e3e',marginTop:3}}>{durError}</div>}
+              </div>
             </div>
             {!isGroup ? (
               <div style={{display:'flex',gap:8}}>
@@ -682,6 +721,7 @@ export function ProAgenda({ salon }: { salon: any }) {
             }
             setSelectedRdv(null)
           }}
+          onUpdated={(u) => setRdvs(prev => prev.map(r => r.id === u.id ? { ...r, ...u } : r))}
         />
       )}
       {showAddRdv && (
@@ -772,27 +812,27 @@ export function ProAgenda({ salon }: { salon: any }) {
                       return (
                         <td key={st.id}
                           onClick={() => { if(clickable && !cellRdvs.length) { setAddRdvDate(iso); setAddRdvTime(`${String(h).padStart(2,'0')}:00`); setAddRdvStaffId(st.id); setShowAddRdv(true) } }}
-                          style={{border:'1px solid #f0f0f0',padding:6,verticalAlign:'top',minHeight:56,
+                          style={{border:'1px solid #f0f0f0',padding:0,verticalAlign:'top',height:ROW_H,position:'relative',
                             background: !works?'#f7f7f7':blkd?'#f7f7f7':'#fff',
                             cursor: clickable && !cellRdvs.length ? 'pointer' : 'default'}}>
-                          {cellRdvs.map(r => (
-                            <div key={r.id} onClick={e => { e.stopPropagation(); setSelectedRdv(r) }}
-                              style={{background: r.status==='completed'?'#777':r.status==='no-show'?'#C62828':r.status==='cancelled'?'#bbb':'#111',
-                                color:'#fff',borderRadius:8,padding:'6px 8px',fontSize:'0.75rem',marginBottom:4,cursor:'pointer'}}>
-                              <div style={{fontWeight:700}}>{r.start_time} – {minToTime(tMin(r.start_time)+(r.duration||0))} {r.service_name?.substring(0,12)}</div>
-                              <div style={{opacity:0.85}}>{r.client_name} · {r.duration}min</div>
-                            </div>
-                          ))}
-                          {covering.map(r => (
-                            <div key={'cov'+r.id} onClick={e => { e.stopPropagation(); setSelectedRdv(r) }}
-                              style={{background: r.status==='completed'?'#777':'#111',
-                                opacity:0.55,color:'#fff',borderRadius:8,padding:'4px 8px',fontSize:'0.72rem',marginBottom:4,cursor:'pointer'}}>
-                              ⋮ {r.service_name?.substring(0,14)} — jusqu'à {minToTime(tMin(r.start_time)+(r.duration||0))}
-                            </div>
-                          ))}
-                          {blkd && !cellRdvs.length && !covering.length && <div style={{fontSize:'0.72rem',color:'#111',padding:4,display:'flex',alignItems:'center',gap:4}}><Icon name="lock" size={11}/> Bloqué</div>}
-                          {!works && <div style={{fontSize:'0.72rem',color:'#ccc',padding:4}}>{isOpen?'Repos':'Fermé'}</div>}
-                          {clickable && !cellRdvs.length && !covering.length && <div style={{fontSize:'0.65rem',color:'#ccc',textAlign:'center',marginTop:4}}>+ RDV</div>}
+                          {cellRdvs.map(r => {
+                            // Card spans downward exactly its real duration — a 90-min
+                            // booking overflows into the next hour rows
+                            const top  = Math.max(0, tMin(r.start_time) - h*60)
+                            const ht   = Math.max(pxForMin(r.duration || 60) - 3, 16)
+                            return (
+                              <div key={r.id} onClick={e => { e.stopPropagation(); setSelectedRdv(r) }}
+                                style={{position:'absolute',top:pxForMin(top)+1,left:3,right:3,height:ht,zIndex:2,overflow:'hidden',
+                                  background: r.status==='completed'?'#777':r.status==='no-show'?'#C62828':r.status==='cancelled'?'#bbb':'#111',
+                                  color:'#fff',borderRadius:8,padding:'4px 8px',fontSize:'0.72rem',cursor:'pointer'}}>
+                                <div style={{fontWeight:700,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{r.start_time} – {minToTime(tMin(r.start_time)+(r.duration||0))} {r.service_name?.substring(0,12)}</div>
+                                {ht > 32 && <div style={{opacity:0.85,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{r.client_name} · {r.duration}min</div>}
+                              </div>
+                            )
+                          })}
+                          {blkd && !cellRdvs.length && !covering.length && <div style={{fontSize:'0.72rem',color:'#111',padding:6,display:'flex',alignItems:'center',gap:4}}><Icon name="lock" size={11}/> Bloqué</div>}
+                          {!works && <div style={{fontSize:'0.72rem',color:'#ccc',padding:6}}>{isOpen?'Repos':'Fermé'}</div>}
+                          {clickable && !cellRdvs.length && !covering.length && <div style={{fontSize:'0.65rem',color:'#ccc',textAlign:'center',marginTop:24}}>+ RDV</div>}
                         </td>
                       )
                     })}
@@ -816,32 +856,35 @@ export function ProAgenda({ salon }: { salon: any }) {
             const covering = rdvs.filter(r => r.date===iso && r.status!=='cancelled' &&
               tMin(r.start_time) < h*60 && tMin(r.start_time) + (r.duration||0) > h*60)
             const blkd = blocks.some(b => b.date===iso && tMin(b.start_time)<=h*60 && tMin(b.end_time)>h*60)
+            const lanes = Math.max(1, staff.length)
             return (
-              <div key={h} style={{display:'flex',borderBottom:'1px solid #f3f3f3',minHeight:56,background:blkd?'#f7f7f7':'#fff'}}>
+              <div key={h} style={{display:'flex',borderBottom:'1px solid #f3f3f3',height:ROW_H,flexShrink:0,background:blkd?'#f7f7f7':'#fff'}}>
                 <div style={{width:56,flexShrink:0,fontSize:'0.75rem',color:'#aaa',fontWeight:500,
                   display:'flex',alignItems:'flex-start',justifyContent:'center',paddingTop:8,
                   borderRight:'1px solid #f3f3f3',background:'#f7f7f7'}}>
                   {hStr}:00
                 </div>
-                <div style={{flex:1,padding:8,display:'flex',flexWrap:'wrap',gap:8,cursor:!blkd&&!dayRdvs.length?'pointer':'default'}}
+                <div style={{flex:1,position:'relative',cursor:!blkd&&!dayRdvs.length?'pointer':'default'}}
                   onClick={() => { if(!blkd && !dayRdvs.length) { setAddRdvDate(iso); setAddRdvTime(`${hStr}:00`); setAddRdvStaffId(undefined); setShowAddRdv(true) } }}>
-                  {covering.map(r => (
-                    <div key={'cov'+r.id} onClick={e => { e.stopPropagation(); setSelectedRdv(r) }}
-                      style={{background: r.status==='completed'?'#777':'#111',
-                        opacity:0.55,color:'#fff',borderRadius:8,padding:'4px 12px',fontSize:'0.75rem',cursor:'pointer',alignSelf:'center'}}>
-                      ⋮ {r.staff_name} · {r.service_name?.substring(0,14)} — jusqu'à {minToTime(tMin(r.start_time)+(r.duration||0))}
-                    </div>
-                  ))}
-                  {dayRdvs.map(r => (
-                    <div key={r.id} onClick={e => { e.stopPropagation(); setSelectedRdv(r) }}
-                      style={{background: r.status==='completed'?'#777':r.status==='no-show'?'#C62828':r.status==='cancelled'?'#bbb':'#111',
-                        color:'#fff',borderRadius:8,padding:'6px 12px',fontSize:'0.78rem',cursor:'pointer'}}>
-                      <div style={{fontWeight:700}}>{r.start_time} – {minToTime(tMin(r.start_time)+(r.duration||0))} — {r.service_name}</div>
-                      <div style={{opacity:0.85}}>{r.client_name} · {r.staff_name} · {formatPrice(r.price,r.price_type)}</div>
-                    </div>
-                  ))}
-                  {blkd && <div style={{fontSize:'0.75rem',color:'#111',padding:4,display:'flex',alignItems:'center',gap:4}}><Icon name="lock" size={12}/> Créneau bloqué</div>}
-                  {!blkd && !dayRdvs.length && !covering.length && <div style={{fontSize:'0.72rem',color:'#ddd',padding:4,alignSelf:'center'}}>+ RDV</div>}
+                  {dayRdvs.map(r => {
+                    // One lane per staff member; card height = real duration, so
+                    // multi-hour bookings overflow into the rows below
+                    const lane = Math.max(0, staff.findIndex(s => s.id === r.staff_id))
+                    const top  = Math.max(0, tMin(r.start_time) - h*60)
+                    const ht   = Math.max(pxForMin(r.duration || 60) - 3, 16)
+                    return (
+                      <div key={r.id} onClick={e => { e.stopPropagation(); setSelectedRdv(r) }}
+                        style={{position:'absolute',top:pxForMin(top)+1,height:ht,zIndex:2,overflow:'hidden',
+                          left:`calc(${lane*100/lanes}% + 2px)`,width:`calc(${100/lanes}% - 5px)`,
+                          background: r.status==='completed'?'#777':r.status==='no-show'?'#C62828':r.status==='cancelled'?'#bbb':'#111',
+                          color:'#fff',borderRadius:8,padding:'4px 10px',fontSize:'0.74rem',cursor:'pointer'}}>
+                        <div style={{fontWeight:700,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{r.start_time} – {minToTime(tMin(r.start_time)+(r.duration||0))} — {r.service_name}</div>
+                        {ht > 32 && <div style={{opacity:0.85,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{r.client_name} · {r.staff_name} · {formatPrice(r.price,r.price_type)}</div>}
+                      </div>
+                    )
+                  })}
+                  {blkd && <div style={{fontSize:'0.75rem',color:'#111',padding:8,display:'flex',alignItems:'center',gap:4}}><Icon name="lock" size={12}/> Créneau bloqué</div>}
+                  {!blkd && !dayRdvs.length && !covering.length && <div style={{fontSize:'0.72rem',color:'#ddd',padding:8}}>+ RDV</div>}
                 </div>
               </div>
             )
@@ -889,13 +932,6 @@ export function ProAgenda({ salon }: { salon: any }) {
                       const blkd = blocks.some(b => b.date===di && tMin(b.start_time)<=h*60 && tMin(b.end_time)>h*60)
                       return (
                         <td key={di} style={{border:'1px solid #eee',padding:4,verticalAlign:'top',minHeight:48,background:blkd?'#f7f7f7':'#fff'}}>
-                          {covering.map(r => (
-                            <div key={'cov'+r.id} onClick={() => setSelectedRdv(r)}
-                              style={{background: r.status==='completed'?'#777':'#111',
-                                opacity:0.45,color:'#fff',borderRadius:6,padding:'2px 6px',fontSize:'0.65rem',marginBottom:2,cursor:'pointer'}}>
-                              ⋮ {r.staff_name?.split(' ')[0]} → {minToTime(tMin(r.start_time)+(r.duration||0))}
-                            </div>
-                          ))}
                           {dayRdvs.map(r => (
                             <div key={r.id} onClick={() => setSelectedRdv(r)}
                               style={{background: r.status==='completed'?'#777':r.status==='no-show'?'#C62828':r.status==='cancelled'?'#bbb':'#111',
