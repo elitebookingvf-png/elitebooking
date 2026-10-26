@@ -9,12 +9,13 @@ export async function GET(req: NextRequest) {
   const staffId   = searchParams.get('staffId')!;
   const serviceId = searchParams.get('serviceId')!;
   const date      = searchParams.get('date')!;
+  const duration  = Number(searchParams.get('duration')) || undefined;
   if (!staffId || !serviceId || !date) {
     return NextResponse.json({ error: 'Paramètres manquants' }, { status: 400 });
   }
 
   // Admin client: availability must see ALL bookings/blocks, not just the
   // caller's own (rdvs/blocks RLS hides them from anonymous visitors).
-  const result = await computeAvailability(createAdminClient(), { salonId, staffId, serviceId, date });
+  const result = await computeAvailability(createAdminClient(), { salonId, staffId, serviceId, date, duration });
   return NextResponse.json(result);
 }

@@ -69,12 +69,15 @@ export async function POST(req: NextRequest) {
     if (!service.active || !staff.active) {
       return NextResponse.json({ error: 'Prestation indisponible' }, { status: 400 });
     }
+    // Pros may override the prestation's nominal duration per booking (5–600 min)
+    const d = Math.round(Number(item.duration));
+    const duration = Number.isFinite(d) && d >= 5 && d <= 600 ? d : service.duration;
     const allBlocking = [...(existingRdvs ?? []), ...tempCart];
-    if (!isSlotFree(allBlocking as any, item.staff_id, item.date, item.start_time, service.duration)) {
+    if (!isSlotFree(allBlocking as any, item.staff_id, item.date, item.start_time, duration)) {
       return NextResponse.json({ error: `Créneau ${item.start_time} le ${item.date} occupé` }, { status: 409 });
     }
-    toInsert.push({ client_id: item.client_id || null, client_name: item.client_name, client_phone: item.client_phone ?? null, salon_id: salonId, salon_name: salon!.name, service_id: item.service_id, service_name: service.name, staff_id: item.staff_id, staff_name: `${staff.firstname} ${staff.lastname}`, date: item.date, start_time: item.start_time, duration: service.duration, price: item.price ?? service.price, price_type: service.price_type, status: 'confirmed', notes: item.notes ?? null, group_id: groupId, source: 'pro' });
-    tempCart.push({ staff_id: item.staff_id, date: item.date, start_time: item.start_time, duration: service.duration, status: 'confirmed' });
+    toInsert.push({ client_id: item.client_id || null, client_name: item.client_name, client_phone: item.client_phone ?? null, salon_id: salonId, salon_name: salon!.name, service_id: item.service_id, service_name: service.name, staff_id: item.staff_id, staff_name: `${staff.firstname} ${staff.lastname}`, date: item.date, start_time: item.start_time, duration, price: item.price ?? service.price, price_type: service.price_type, status: 'confirmed', notes: item.notes ?? null, group_id: groupId, source: 'pro' });
+    tempCart.push({ staff_id: item.staff_id, date: item.date, start_time: item.start_time, duration, status: 'confirmed' });
   }
   const { data, error } = await supabase.from('rdvs').insert(toInsert).select();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

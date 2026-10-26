@@ -19,7 +19,7 @@ export type AvailabilityResult = {
 
 export async function computeAvailability(
   supabase: any,
-  opts: { salonId?: string; staffId: string; serviceId: string; date: string }
+  opts: { salonId?: string; staffId: string; serviceId: string; date: string; duration?: number }
 ): Promise<AvailabilityResult> {
   const { staffId, serviceId, date } = opts;
   let salonId = opts.salonId || '';
@@ -53,7 +53,10 @@ export async function computeAvailability(
   if (staff.start_time && tMin(staff.start_time) > tMin(openStr))  openStr  = staff.start_time;
   if (staff.end_time   && tMin(staff.end_time)   < tMin(closeStr)) closeStr = staff.end_time;
 
-  const duration = service.duration;
+  // Pros may override the prestation's nominal duration per booking (e.g. a
+  // 30-min brushing that only takes 10 min for short hair). Validated 5–600 min.
+  const reqDur = Math.round(Number(opts.duration));
+  const duration = Number.isFinite(reqDur) && reqDur >= 5 && reqDur <= 600 ? reqDur : service.duration;
   const allSlots = generateSlots(openStr, closeStr, duration);
   let available = allSlots.filter(slot => {
     const ts = tMin(slot), te = ts + duration;

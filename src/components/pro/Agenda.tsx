@@ -355,7 +355,7 @@ function AddRdvModal({ staff, services, salonId, onClose, onSaved, defaultDate, 
   
   const [form, setForm] = useState({
     service_id: '', staff_id: defaultStaffId || 'any',
-    date: defaultDate || today, start_time: defaultTime || ''
+    date: defaultDate || today, start_time: defaultTime || '', duration: 0
   })
   const [slots, setSlots] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
@@ -382,8 +382,9 @@ function AddRdvModal({ staff, services, salonId, onClose, onSaved, defaultDate, 
       salonId, staffId: resolvedStaffId,
       serviceId: form.service_id, date: form.date,
     })
+    if (form.duration > 0) sp.set('duration', String(form.duration))
     fetch('/api/availability?' + sp).then(r => r.json()).then(d => setSlots(Array.isArray(d.slots) ? d.slots : []))
-  }, [form.service_id, form.staff_id, form.date, salonId])
+  }, [form.service_id, form.staff_id, form.date, form.duration, salonId])
 
   // Auto-suggest consecutive slot when cart has items
   useEffect(() => {
@@ -402,7 +403,7 @@ function AddRdvModal({ staff, services, salonId, onClose, onSaved, defaultDate, 
       id: crypto.randomUUID(),
       service_id: form.service_id, staff_id: stf.id, date: form.date, start_time: form.start_time,
       service_name: svc.name, staff_name: `${stf.firstname} ${stf.lastname}`,
-      duration: svc.duration, price: svc.price, price_type: svc.price_type
+      duration: form.duration >= 5 ? form.duration : svc.duration, price: svc.price, price_type: svc.price_type
     }
     setCart([...cart, newItem])
     setForm(f => ({ ...f, service_id: '', start_time: '' }))
@@ -424,7 +425,7 @@ function AddRdvModal({ staff, services, salonId, onClose, onSaved, defaultDate, 
     const items = cart.map(i => ({
       client_name: clientName, client_phone: clientPhone || null,
       service_id: i.service_id, staff_id: i.staff_id,
-      date: i.date, start_time: i.start_time,
+      date: i.date, start_time: i.start_time, duration: i.duration,
       notes: notes || null, status: 'confirmed'
     }))
     
@@ -485,7 +486,10 @@ function AddRdvModal({ staff, services, salonId, onClose, onSaved, defaultDate, 
             <div className="form-group" style={{marginBottom:0}}>
               <label>Prestation</label>
               <select className="form-control" value={form.service_id}
-                onChange={e=>setForm(f=>({...f,service_id:e.target.value,start_time:''}))}>
+                onChange={e=>{
+                  const svc = services.find(s=>s.id===e.target.value)
+                  setForm(f=>({...f,service_id:e.target.value,start_time:'',duration:svc?.duration||0}))
+                }}>
                 <option value="">— Choisir —</option>
                 {services.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}
               </select>
@@ -499,11 +503,17 @@ function AddRdvModal({ staff, services, salonId, onClose, onSaved, defaultDate, 
               </select>
             </div>
           </div>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(120px,1fr))',gap:12}}>
             <div className="form-group" style={{marginBottom:0}}>
               <label>Date</label>
               <input type="date" className="form-control" min={today} value={form.date}
                 onChange={e=>setForm(f=>({...f,date:e.target.value,start_time:''}))} />
+            </div>
+            <div className="form-group" style={{marginBottom:0}}>
+              <label>Durée (min)</label>
+              <input type="number" className="form-control" min={5} max={600} step={5}
+                value={form.duration || ''} placeholder={selectedSvc ? String(selectedSvc.duration) : '—'}
+                onChange={e=>setForm(f=>({...f,duration:Math.max(0,Math.round(Number(e.target.value)||0)),start_time:''}))} />
             </div>
             <div className="form-group" style={{marginBottom:0}}>
               <label>Heure {cartEndTime && slots.includes(cartEndTime) && <span style={{color:'#111',fontSize:'0.75rem'}}>({cartEndTime} suggéré)</span>}</label>
@@ -516,7 +526,7 @@ function AddRdvModal({ staff, services, salonId, onClose, onSaved, defaultDate, 
           </div>
           {selectedSvc && form.start_time && (
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:12,padding:'10px 12px',background:'#fff',borderRadius:8}}>
-              <span style={{fontSize:'0.85rem',color:'#555'}}>{selectedSvc.name} · {selectedSvc.duration} min</span>
+              <span style={{fontSize:'0.85rem',color:'#555'}}>{selectedSvc.name} · {form.duration >= 5 ? form.duration : selectedSvc.duration} min{form.duration >= 5 && form.duration !== selectedSvc.duration ? ' (durée ajustée)' : ''}</span>
               <span style={{fontWeight:700,color:'#111'}}>{formatPrice(selectedSvc.price, selectedSvc.price_type)}</span>
             </div>
           )}

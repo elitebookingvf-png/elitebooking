@@ -30,7 +30,7 @@ function RdvAddModal({ staff, services, onClose, onSaved, defaultDate }: {
   const [notes, setNotes]             = useState('')
   const [cart, setCart]               = useState<ProCartItem[]>([])
   // Current line being configured
-  const [form, setForm] = useState({ service_id: '', staff_id: 'any', date: defaultDate || today, start_time: '' })
+  const [form, setForm] = useState({ service_id: '', staff_id: 'any', date: defaultDate || today, start_time: '', duration: 0 })
   const [slots, setSlots]   = useState<string[]>([])
   const [saving, setSaving] = useState(false)
   const [err, setErr]       = useState('')
@@ -44,12 +44,12 @@ function RdvAddModal({ staff, services, onClose, onSaved, defaultDate }: {
     if (!form.service_id || !form.date) { setSlots([]); return }
     const sid = form.staff_id === 'any' ? (eligibleStaff[0]?.id || '') : form.staff_id
     if (!sid) { setSlots([]); return }
-    fetch(`/api/availability?staffId=${sid}&serviceId=${form.service_id}&date=${form.date}`)
+    fetch(`/api/availability?staffId=${sid}&serviceId=${form.service_id}&date=${form.date}${form.duration > 0 ? '&duration=' + form.duration : ''}`)
       .then(r => r.json()).then(d => {
         const raw: string[] = Array.isArray(d.slots) ? d.slots : []
         // Block times already in the cart on this date (client can't be in two services at once)
         const blocked = cart.filter(c => c.date === form.date)
-        const svcDur = selectedSvc?.duration || 0
+        const svcDur = (form.duration >= 5 ? form.duration : selectedSvc?.duration) || 0
         const filtered = raw.filter(slot => {
           const s = tMin(slot), e = s + svcDur
           return !blocked.some(c => s < tMin(c.start_time) + c.duration && e > tMin(c.start_time))
@@ -62,7 +62,7 @@ function RdvAddModal({ staff, services, onClose, onSaved, defaultDate }: {
           if (next) setForm(f => ({ ...f, start_time: next }))
         }
       })
-  }, [form.service_id, form.staff_id, form.date, cart])
+  }, [form.service_id, form.staff_id, form.date, form.duration, cart])
 
   function addLine() {
     setErr('')
@@ -74,18 +74,19 @@ function RdvAddModal({ staff, services, onClose, onSaved, defaultDate }: {
     const st = staff.find(s => s.id === staffId)
     if (!staffId || !st) { setErr('Aucun employé disponible'); return }
     // Conflict only against same staff on same date
-    const s = tMin(form.start_time), e = s + svc.duration
+    const itemDur = form.duration >= 5 ? form.duration : svc.duration
+    const s = tMin(form.start_time), e = s + itemDur
     const conflict = cart.some(c => c.date === form.date && c.staff_id === staffId && s < tMin(c.start_time) + c.duration && e > tMin(c.start_time))
     if (conflict) { setErr('Ce créneau chevauche une prestation déjà ajoutée pour cet employé'); return }
     const item: ProCartItem = {
-      service_id: svc.id, service_name: svc.name, duration: svc.duration,
+      service_id: svc.id, service_name: svc.name, duration: itemDur,
       price: Number(svc.price) || 0, price_type: svc.price_type,
       staff_id: staffId, staff_name: `${st.firstname} ${st.lastname}`,
       date: form.date, start_time: form.start_time,
     }
     setCart(prev => [...prev, item].sort((a,b) => a.date.localeCompare(b.date) || a.start_time.localeCompare(b.start_time)))
     // Reset service line but keep date for consecutive booking
-    setForm(f => ({ service_id: '', staff_id: 'any', date: f.date, start_time: '' }))
+    setForm(f => ({ service_id: '', staff_id: 'any', date: f.date, start_time: '', duration: 0 }))
     setSlots([])
   }
 
@@ -132,7 +133,7 @@ function RdvAddModal({ staff, services, onClose, onSaved, defaultDate }: {
       const st = staff.find(s => s.id === staffId)
       if (svc && st) {
         finalCart = [...cart, {
-          service_id: svc.id, service_name: svc.name, duration: svc.duration,
+          service_id: svc.id, service_name: svc.name, duration: form.duration >= 5 ? form.duration : svc.duration,
           price: Number(svc.price) || 0, price_type: svc.price_type,
           staff_id: staffId, staff_name: `${st.firstname} ${st.lastname}`,
           date: form.date, start_time: form.start_time,
@@ -150,7 +151,7 @@ function RdvAddModal({ staff, services, onClose, onSaved, defaultDate }: {
           client_name: clientName, 
           client_phone: clientPhone || null,
           service_id: c.service_id, staff_id: c.staff_id,
-          date: c.date, start_time: c.start_time, notes: notes || null,
+          date: c.date, start_time: c.start_time, duration: c.duration, notes: notes || null,
         })),
       }),
     })
@@ -224,7 +225,10 @@ function RdvAddModal({ staff, services, onClose, onSaved, defaultDate }: {
             <div className="form-group" style={{marginBottom:0}}>
               <label>Prestation</label>
               <select className="form-control" value={form.service_id}
-                onChange={e=>setForm(f=>({...f,service_id:e.target.value,start_time:''}))}>
+                onChange={e=>{
+                  const svc = services.find(s=>s.id===e.target.value)
+                  setForm(f=>({...f,service_id:e.target.value,start_time:'',duration:svc?.duration||0}))
+                }}>
                 <option value="">— Choisir —</option>
                 {services.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}
               </select>
@@ -238,11 +242,17 @@ function RdvAddModal({ staff, services, onClose, onSaved, defaultDate }: {
               </select>
             </div>
           </div>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginTop:16}}>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(120px,1fr))',gap:16,marginTop:16}}>
             <div className="form-group" style={{marginBottom:0}}>
               <label>Date</label>
               <input type="date" className="form-control" min={today} value={form.date}
                 onChange={e=>setForm(f=>({...f,date:e.target.value,start_time:''}))} />
+            </div>
+            <div className="form-group" style={{marginBottom:0}}>
+              <label>Durée (min)</label>
+              <input type="number" className="form-control" min={5} max={600} step={5}
+                value={form.duration || ''} placeholder={selectedSvc ? String(selectedSvc.duration) : '—'}
+                onChange={e=>setForm(f=>({...f,duration:Math.max(0,Math.round(Number(e.target.value)||0)),start_time:''}))} />
             </div>
             <div className="form-group" style={{marginBottom:0}}>
               <label>Heure</label>
@@ -255,7 +265,7 @@ function RdvAddModal({ staff, services, onClose, onSaved, defaultDate }: {
           </div>
           {selectedSvc && form.start_time && (
             <div style={{background:'#fafafa',borderRadius:10,padding:'10px 14px',marginTop:14,fontSize:'0.83rem',color:'#555'}}>
-              {selectedSvc.name} · {selectedSvc.duration} min · <strong style={{color:'#111'}}>{formatPrice(selectedSvc.price, selectedSvc.price_type)}</strong>
+              {selectedSvc.name} · {form.duration >= 5 ? form.duration : selectedSvc.duration} min{form.duration >= 5 && form.duration !== selectedSvc.duration ? ' (durée ajustée)' : ''} · <strong style={{color:'#111'}}>{formatPrice(selectedSvc.price, selectedSvc.price_type)}</strong>
             </div>
           )}
           <button onClick={addLine} className="btn btn-secondary" style={{width:'100%',marginTop:14}}>
