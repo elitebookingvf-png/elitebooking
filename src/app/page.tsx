@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { CATEGORIES, CITIES } from '@/lib/utils';
 import FeaturedSalons from '@/components/FeaturedSalons';
+import HeroLocate from '@/components/HeroLocate';
 import NavBar from '@/components/NavBar';
 import Icon from '@/components/Icon';
 import type { IconName } from '@/components/Icon';
@@ -69,7 +70,8 @@ export default async function HomePage() {
             </button>
           </form>
 
-          <div style={{display:'flex',gap:8,justifyContent:'center',flexWrap:'wrap',marginTop:18}}>
+          <div style={{display:'flex',gap:8,justifyContent:'center',flexWrap:'wrap',marginTop:18,alignItems:'center'}}>
+            <HeroLocate />
             {CATEGORIES.slice(0,5).map(c => (
               <Link key={c.id} href={`/search?category=${c.id}`}
                 style={{fontSize:'0.78rem',color:'#555',background:'#f5f5f5',borderRadius:20,padding:'6px 14px',textDecoration:'none',transition:'all 0.2s',display:'inline-flex',alignItems:'center',gap:6}}

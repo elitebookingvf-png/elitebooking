@@ -5,7 +5,7 @@ export type IconName =
   | 'spa' | 'scissors' | 'nails' | 'massage' | 'sparkle' | 'razor'
   | 'stethoscope' | 'home' | 'leaf' | 'star'
   | 'pin' | 'calendar' | 'chart' | 'users' | 'user' | 'bell' | 'chat'
-  | 'search' | 'clock' | 'locate' | 'check' | 'x' | 'arrow' | 'settings' | 'lock';
+  | 'search' | 'clock' | 'locate' | 'check' | 'x' | 'arrow' | 'settings' | 'lock' | 'refresh' | 'eye' | 'eye-off' | 'photo';
 
 const PATHS: Record<IconName, JSX.Element> = {
   // ── Category icons ──────────────────────────────────────────
@@ -140,6 +140,26 @@ const PATHS: Record<IconName, JSX.Element> = {
   check: <path d="M4.5 12.5l5 5L20 7" fill="none"/>,
   x: <path d="M6 6l12 12M18 6L6 18" fill="none"/>,
   arrow: <path d="M4 12h16M13.5 5.5 20 12l-6.5 6.5" fill="none"/>,
+  refresh: <path d="M20.5 12a8.5 8.5 0 1 1-2.49-6M20.5 3v4.5H16" fill="none"/>,
+  eye: (
+    <>
+      <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z" fill="none"/>
+      <circle cx="12" cy="12" r="3" fill="none"/>
+    </>
+  ),
+  'eye-off': (
+    <>
+      <path d="M10.6 6c.46-.08.92-.12 1.4-.12 6 0 9.5 6.12 9.5 6.12a17.7 17.7 0 0 1-2.23 3.03M6.6 6.8C4 8.6 2.5 12 2.5 12s3.5 6.5 9.5 6.5c1.4 0 2.7-.3 3.8-.78" fill="none"/>
+      <path d="M3 3l18 18M9.9 9.98a3 3 0 0 0 4.2 4.2" fill="none"/>
+    </>
+  ),
+  photo: (
+    <>
+      <rect x="3.5" y="5" width="17" height="14" rx="2" fill="none"/>
+      <circle cx="9" cy="10" r="1.8" fill="none"/>
+      <path d="M4.5 17.5l4-4 3 3 4-4 4 4" fill="none"/>
+    </>
+  ),
 };
 
 export default function Icon({

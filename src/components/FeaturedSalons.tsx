@@ -75,7 +75,9 @@ export default function FeaturedSalons({ salons, cities }: { salons: any[]; citi
                 style={{textDecoration:'none',color:'inherit',display:'block',background:'#fff',borderRadius:14,overflow:'hidden',border:'1px solid #efefef',cursor:'pointer',transition:'all 0.3s'}}
                 className="salon-card">
                 <div style={{height:140,display:'flex',alignItems:'center',justifyContent:'center',background:'#f4f4f4',position:'relative',color:'#111'}}>
-                  <Icon name={(cat?.icon || 'star') as IconName} size={44} strokeWidth={1.1} />
+                  {s.cover_image
+                    ? <img src={s.cover_image} alt={s.name} style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover'}}/>
+                    : <Icon name={(cat?.icon || 'star') as IconName} size={44} strokeWidth={1.1} />}
                   <span style={{position:'absolute',top:10,left:10,background:'#fff',borderRadius:6,padding:'3px 9px',fontSize:'0.68rem',fontWeight:600}}>
                     {cat?.label || s.category}
                   </span>

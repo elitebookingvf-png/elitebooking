@@ -32,6 +32,22 @@ function SearchResults() {
 
   useEffect(() => { search() }, [city, category])
 
+  // Arriving from the hero "Autour de moi" — coordinates come in the URL so
+  // we skip a second permission prompt and distance-sort immediately
+  useEffect(() => {
+    if (params.get('near') !== '1' || pos) return
+    const lat = Number(params.get('lat')), lng = Number(params.get('lng'))
+    if (Number.isFinite(lat) && Number.isFinite(lng)) {
+      setPos({ lat, lng })
+      const near = nearestCity(lat, lng)
+      if (near) setCity(near.city)
+      setSort('distance')
+    } else {
+      locate()
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   function locate() {
     if (!navigator.geolocation) { setGeoErr('Géolocalisation non supportée'); return }
     setLocating(true); setGeoErr('')
@@ -104,7 +120,9 @@ function SearchResults() {
                 className="bg-white rounded-2xl overflow-hidden border border-gray-100 hover:shadow-lg transition-all duration-300 block">
                 <div className="h-36 flex items-center justify-center"
                   style={{background:'#f4f4f4',color:'#111',position:'relative'}}>
-                  <Icon name={(cat?.icon || 'star') as IconName} size={44} strokeWidth={1.1} />
+                  {s.cover_image
+                    ? <img src={s.cover_image} alt={s.name} style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover'}}/>
+                    : <Icon name={(cat?.icon || 'star') as IconName} size={44} strokeWidth={1.1} />}
                   {km !== null && (
                     <span style={{position:'absolute',top:10,right:10,background:'#111',color:'#fff',borderRadius:6,padding:'3px 9px',fontSize:'0.68rem',fontWeight:600}}>
                       {formatKm(km)}

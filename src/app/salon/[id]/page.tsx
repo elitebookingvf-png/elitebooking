@@ -193,8 +193,10 @@ export default function SalonPage() {
         {/* Salon header */}
         <div className="bg-white rounded-3xl overflow-hidden border mb-8" style={{borderColor:'#eee'}}>
           <div className="h-48 flex items-center justify-center"
-            style={{background:'#f4f4f4',color:'#111'}}>
-            <Icon name={(catInfo?.icon || 'star') as IconName} size={72} strokeWidth={0.9} />
+            style={{background:'#f4f4f4',color:'#111',position:'relative',overflow:'hidden'}}>
+            {salon.cover_image
+              ? <img src={salon.cover_image} alt={salon.name} style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover'}}/>
+              : <Icon name={(catInfo?.icon || 'star') as IconName} size={72} strokeWidth={0.9} />}
           </div>
           <div className="p-6">
             <h1 className="serif" style={{fontSize:'2rem'}}>{salon.name}</h1>

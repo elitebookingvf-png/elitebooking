@@ -6,7 +6,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: '401' }, { status: 401 });
   const body = await req.json();
-  const allowed = ['blocked_clients', 'name', 'description', 'phone', 'whatsapp', 'instagram', 'address', 'category', 'city', 'active'];
+  const allowed = ['blocked_clients', 'name', 'description', 'phone', 'whatsapp', 'instagram', 'address', 'category', 'city', 'active', 'cover_image'];
   const update: Record<string, unknown> = {};
   for (const key of allowed) { if (key in body) update[key] = body[key]; }
   if (!Object.keys(update).length) return NextResponse.json({ error: 'Nothing to update' }, { status: 400 });

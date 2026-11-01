@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { CATEGORIES, CITIES } from '@/lib/utils'
+import Icon from '@/components/Icon'
 
 function AuthForm() {
   const router = useRouter()
@@ -17,6 +18,7 @@ function AuthForm() {
   })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showPw, setShowPw] = useState(false)
 
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement|HTMLSelectElement|HTMLTextAreaElement>) =>
     setForm(f => ({ ...f, [k]: e.target.value }))
@@ -177,7 +179,13 @@ function AuthForm() {
             </div>
             <div className="form-group" style={{marginBottom:0}}>
               <label>Mot de passe *</label>
-              <input className="form-control" type="password" value={form.password} onChange={set('password')} required minLength={6} />
+              <div style={{position:'relative'}}>
+                <input className="form-control" type={showPw ? 'text' : 'password'} value={form.password} onChange={set('password')} required minLength={6} style={{paddingRight:40}} />
+                <button type="button" onClick={() => setShowPw(v => !v)} aria-label={showPw ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                  style={{position:'absolute',right:10,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',color:'#999',display:'flex',padding:2}}>
+                  <Icon name={showPw ? 'eye-off' : 'eye'} size={17} />
+                </button>
+              </div>
             </div>
 
             <button type="submit" disabled={loading} className="btn btn-primary btn-block btn-lg"

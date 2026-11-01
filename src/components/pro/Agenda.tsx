@@ -12,8 +12,9 @@ type View = 'day' | 'staff' | 'week' | 'month'
 const ROW_H = 56
 const pxForMin = (m: number) => m * ROW_H / 60
 
-function RdvDetailModal({ rdv, allRdvs, onClose, onStatusChange, onUpdated, pin }: {
+function RdvDetailModal({ rdv, allRdvs, onClose, onStatusChange, onUpdated, pin, staff, services, salonId, onAddPresta }: {
   rdv: any; allRdvs: any[]; onClose: () => void; onStatusChange: (id: string, status: string) => void; onUpdated?: (rdv: any) => void; pin: string
+  staff?: any[]; services?: any[]; salonId?: string; onAddPresta?: () => void
 }) {
   // Group = all RDVs sharing the same group_id (multi-prestation booking). Falls back to just this RDV.
   const groupRdvs = (rdv.group_id ? allRdvs.filter(r => r.group_id === rdv.group_id) : [rdv])
@@ -41,6 +42,53 @@ function RdvDetailModal({ rdv, allRdvs, onClose, onStatusChange, onUpdated, pin 
   const [editDur, setEditDur]       = useState(rdv.duration || 0)
   const [durSaving, setDurSaving]   = useState(false)
   const [durError, setDurError]     = useState('')
+
+  // Full-edit mode (service / staff / date / time / duration / price)
+  const [editRdv, setEditRdv]   = useState(false)
+  const [rdvSaving, setRdvSaving] = useState(false)
+  const [rdvError, setRdvError]   = useState('')
+  const [editSlots, setEditSlots] = useState<string[]>([])
+  const [f, setF] = useState({
+    service_id: rdv.service_id || '', staff_id: rdv.staff_id || '',
+    date: rdv.date, start_time: rdv.start_time,
+    duration: rdv.duration || 0, price: rdv.price ?? 0,
+  })
+
+  const fSvc = services?.find(s => s.id === f.service_id)
+  const fStaff = (fSvc?.staff_ids?.length ? (staff ?? []).filter(s => fSvc.staff_ids.includes(s.id)) : (staff ?? []))
+
+  // Slot picker for the edited time — same availability rules as new bookings
+  useEffect(() => {
+    if (!editRdv || !f.staff_id || !f.service_id || !f.date) { setEditSlots([]); return }
+    const sp = new URLSearchParams({ salonId: salonId || '', staffId: f.staff_id, serviceId: f.service_id, date: f.date })
+    if (f.duration > 0) sp.set('duration', String(f.duration))
+    fetch('/api/availability?' + sp).then(r => r.json())
+      .then(d => {
+        const s: string[] = Array.isArray(d.slots) ? d.slots : []
+        // Keep the rdv's own current slot selectable even if its old booking blocks it
+        if (f.date === rdv.date && f.staff_id === rdv.staff_id && f.start_time && !s.includes(f.start_time)) s.unshift(f.start_time)
+        setEditSlots(s)
+      }).catch(() => setEditSlots([]))
+  }, [editRdv, f.staff_id, f.service_id, f.date, f.duration, f.start_time, f.staff_id, salonId])
+
+  async function saveRdv() {
+    setRdvError('')
+    const patch: any = {}
+    if (f.service_id !== rdv.service_id) patch.service_id = f.service_id
+    if (f.staff_id !== rdv.staff_id) patch.staff_id = f.staff_id
+    if (f.date !== rdv.date) patch.date = f.date
+    if (f.start_time !== rdv.start_time) patch.start_time = f.start_time
+    if (f.duration !== rdv.duration) patch.duration = f.duration
+    if (Number(f.price) !== Number(rdv.price)) patch.price = Number(f.price)
+    if (!Object.keys(patch).length) { setEditRdv(false); return }
+    setRdvSaving(true)
+    const res = await fetch(`/api/rdv/${rdv.id}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify(patch) })
+    setRdvSaving(false)
+    if (res.ok) {
+      const updated = await res.json()
+      onUpdated?.(updated); setEditRdv(false); onClose()
+    } else { const d = await res.json(); setRdvError(d.error || 'Erreur') }
+  }
   
   const statusColor: Record<string,string> = { confirmed:'#111', completed:'#777', cancelled:'#bbb', 'no-show':'#C62828' }
   const statusLabel: Record<string,string> = { confirmed:'Confirmé', completed:'Terminé', cancelled:'Annulé', 'no-show':'Pas venu' }
@@ -148,7 +196,7 @@ function RdvDetailModal({ rdv, allRdvs, onClose, onStatusChange, onUpdated, pin 
       )}
       {pinPrompt && !waModal && (
         <div style={{background:'#fff',borderRadius:20,padding:28,width:'100%',maxWidth:340,boxShadow:'0 20px 60px rgba(0,0,0,0.25)',textAlign:'center'}}>
-          <div style={{fontSize:'1.8rem',marginBottom:8}}>🔐</div>
+          <div style={{marginBottom:8}}><Icon name="lock" size={28} strokeWidth={1.4}/></div>
           <div style={{fontWeight:700,marginBottom:4}}>{pinPrompt}</div>
           <div style={{fontSize:'0.8rem',color:'#aaa',marginBottom:16}}>Entrez le code PIN pour confirmer</div>
           <input type="password" maxLength={4} value={pinEntry} onChange={e => setPinEntry(e.target.value)}
@@ -235,7 +283,55 @@ function RdvDetailModal({ rdv, allRdvs, onClose, onStatusChange, onUpdated, pin 
                 </button>
               </div>
             )}
-            <div style={{display:'flex',gap:8}}>
+            {editRdv ? (
+              <div style={{background:'#f7f7f7',borderRadius:12,padding:14,display:'flex',flexDirection:'column',gap:10}}>
+                <div style={{fontSize:'0.72rem',fontWeight:700,color:'#aaa',textTransform:'uppercase',letterSpacing:'0.06em'}}>Modifier le rendez-vous</div>
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+                  <div className="form-group" style={{marginBottom:0}}>
+                    <label>Prestation</label>
+                    <select className="form-control" value={f.service_id} onChange={e=>{
+                      const svc = services?.find(s=>s.id===e.target.value)
+                      setF(x=>({...x,service_id:e.target.value,duration:svc?.duration||x.duration,price:svc?.price??x.price}))
+                    }}>
+                      {(services??[]).map(s=><option key={s.id} value={s.id}>{s.name}</option>)}
+                    </select>
+                  </div>
+                  <div className="form-group" style={{marginBottom:0}}>
+                    <label>Employé</label>
+                    <select className="form-control" value={f.staff_id} onChange={e=>setF(x=>({...x,staff_id:e.target.value,start_time:''}))}>
+                      {fStaff.map(s=><option key={s.id} value={s.id}>{s.firstname} {s.lastname}</option>)}
+                    </select>
+                  </div>
+                  <div className="form-group" style={{marginBottom:0}}>
+                    <label>Date</label>
+                    <input type="date" className="form-control" value={f.date} onChange={e=>setF(x=>({...x,date:e.target.value,start_time:''}))}/>
+                  </div>
+                  <div className="form-group" style={{marginBottom:0}}>
+                    <label>Heure</label>
+                    <select className="form-control" value={f.start_time} onChange={e=>setF(x=>({...x,start_time:e.target.value}))}>
+                      {f.start_time && !editSlots.includes(f.start_time) && <option value={f.start_time}>{f.start_time}</option>}
+                      {editSlots.map(t=><option key={t} value={t}>{t}</option>)}
+                    </select>
+                  </div>
+                  <div className="form-group" style={{marginBottom:0}}>
+                    <label>Durée (min)</label>
+                    <input type="number" className="form-control" min={5} max={600} step={5} value={f.duration}
+                      onChange={e=>setF(x=>({...x,duration:Math.max(0,Math.round(Number(e.target.value)||0))}))}/>
+                  </div>
+                  <div className="form-group" style={{marginBottom:0}}>
+                    <label>Prix</label>
+                    <input type="number" className="form-control" min={0} value={f.price}
+                      onChange={e=>setF(x=>({...x,price:Number(e.target.value)||0}))}/>
+                  </div>
+                </div>
+                {rdvError && <div style={{color:'#e53e3e',fontSize:'0.78rem'}}>{rdvError}</div>}
+                <div style={{display:'flex',gap:8}}>
+                  <button onClick={()=>{setEditRdv(false);setRdvError('')}} style={{flex:1,padding:8,borderRadius:8,border:'1px solid #ddd',background:'#fff',cursor:'pointer',fontSize:'0.83rem'}}>Annuler</button>
+                  <button onClick={saveRdv} disabled={rdvSaving} style={{flex:1,padding:8,borderRadius:8,border:'none',background:'#111',color:'#fff',cursor:'pointer',fontSize:'0.83rem',fontWeight:600}}>{rdvSaving?'Enregistrement…':'Enregistrer'}</button>
+                </div>
+              </div>
+            ) : (<>
+          <div style={{display:'flex',gap:8}}>
               <Icon name="calendar" size={16}/>
               <div style={{flex:1}}>
                 <div style={{fontWeight:600}}>{new Date(rdv.date).toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})} a {rdv.start_time}</div>
@@ -258,13 +354,7 @@ function RdvDetailModal({ rdv, allRdvs, onClose, onStatusChange, onUpdated, pin 
                       style={{padding:'3px 8px',borderRadius:6,border:'1px solid #ddd',background:'#fff',cursor:'pointer',fontSize:'0.75rem',color:'#666'}}>×</button>
                   </div>
                 ) : (
-                  <div style={{fontSize:'0.78rem',color:'#aaa'}}>
-                    {rdv.duration} min
-                    <button onClick={() => { setEditDur(rdv.duration); setEditingDur(true); setDurError('') }}
-                      style={{marginLeft:8,background:'none',border:'none',cursor:'pointer',fontSize:'0.72rem',color:'#111',textDecoration:'underline',padding:0}}>
-                      modifier
-                    </button>
-                  </div>
+                  <div style={{fontSize:'0.78rem',color:'#aaa'}}>{rdv.duration} min</div>
                 )}
                 {durError && <div style={{fontSize:'0.75rem',color:'#e53e3e',marginTop:3}}>{durError}</div>}
               </div>
@@ -292,8 +382,23 @@ function RdvDetailModal({ rdv, allRdvs, onClose, onStatusChange, onUpdated, pin 
                 </div>
               </div>
             )}
-            {rdv.staff_name && <div style={{display:'flex',gap:8}}><span style={{fontSize:'1.1rem'}}>�</span><div style={{fontSize:'0.85rem',color:'#666'}}>Employé : {rdv.staff_name}</div></div>}
-            {rdv.notes && <div style={{background:'#f7f7f7',borderRadius:10,padding:'10px 14px',fontSize:'0.82rem',color:'#555'}}>📝 {rdv.notes}</div>}
+            {rdv.staff_name && <div style={{display:'flex',gap:8,alignItems:'center'}}><Icon name="user" size={14}/><div style={{fontSize:'0.85rem',color:'#666'}}>Employé : {rdv.staff_name}</div></div>}
+            {rdv.notes && <div style={{background:'#f7f7f7',borderRadius:10,padding:'10px 14px',fontSize:'0.82rem',color:'#555'}}>{rdv.notes}</div>}
+            <div style={{display:'flex',gap:8,marginTop:4}}>
+              {staff?.length ? (
+                <button onClick={() => { setF({ service_id: rdv.service_id||'', staff_id: rdv.staff_id||'', date: rdv.date, start_time: rdv.start_time, duration: rdv.duration||0, price: rdv.price??0 }); setRdvError(''); setEditRdv(true) }}
+                  style={{flex:1,padding:'8px',borderRadius:10,border:'1px solid #ddd',background:'#fff',cursor:'pointer',fontSize:'0.82rem',fontWeight:600,color:'#111'}}>
+                  Modifier le RDV
+                </button>
+              ) : null}
+              {onAddPresta && (
+                <button onClick={onAddPresta}
+                  style={{flex:1,padding:'8px',borderRadius:10,border:'1px dashed #bbb',background:'#fff',cursor:'pointer',fontSize:'0.82rem',fontWeight:600,color:'#666'}}>
+                  + Ajouter une prestation
+                </button>
+              )}
+            </div>
+          </>)}
           </div>
           {waPhone && (
             <button onClick={() => setWaModal(true)}
@@ -353,13 +458,14 @@ function suggestNextSlot(currentTime: string, duration: number): string {
   return `${String(nextH).padStart(2,'0')}:${String(nextM).padStart(2,'0')}`
 }
 
-function AddRdvModal({ staff, services, salonId, onClose, onSaved, defaultDate, defaultTime, defaultStaffId }: {
+function AddRdvModal({ staff, services, salonId, onClose, onSaved, defaultDate, defaultTime, defaultStaffId, prefillClient, prefillPhone, groupId }: {
   staff: any[]; services: any[]; salonId: string; onClose: () => void; onSaved: () => void
   defaultDate?: string; defaultTime?: string; defaultStaffId?: string
+  prefillClient?: string; prefillPhone?: string; groupId?: string
 }) {
   const today = toISO(new Date())
-  const [clientName, setClientName] = useState('')
-  const [clientPhone, setClientPhone] = useState('')
+  const [clientName, setClientName] = useState(prefillClient || '')
+  const [clientPhone, setClientPhone] = useState(prefillPhone || '')
   const [selectedClient, setSelectedClient] = useState<any>(null)
   const [notes, setNotes] = useState('')
   const [cart, setCart] = useState<CartItem[]>([])
@@ -467,11 +573,11 @@ function AddRdvModal({ staff, services, salonId, onClose, onSaved, defaultDate, 
       date: i.date, start_time: i.start_time, duration: i.duration,
       notes: notes || null, status: 'confirmed'
     }))
-    
+
     const res = await fetch('/api/rdv/pro', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ items }),
+      body: JSON.stringify({ items, ...(groupId ? { group_id: groupId } : {}) }),
     })
     setSaving(false)
     if (res.ok) { onSaved(); onClose() }
@@ -622,6 +728,7 @@ export function ProAgenda({ salon }: { salon: any }) {
   const [addRdvTime, setAddRdvTime] = useState<string | undefined>()
   const [addRdvStaffId, setAddRdvStaffId] = useState<string | undefined>()
   const [selectedRdv, setSelectedRdv] = useState<any>(null)
+  const [addPrestaCtx, setAddPrestaCtx] = useState<{client:string;phone:string;groupId:string}|null>(null)
   const [pin, setPin] = useState('0000')
 
   // Only fetch the window the agenda can display (month view = widest), not
@@ -668,7 +775,18 @@ export function ProAgenda({ salon }: { salon: any }) {
   const isOpen = schedule ? schedule[`${dayKey}_open`] !== false : true
   const schedStart = schedule ? tMin(schedule[`${dayKey}_start`] || '00:00') : 0
   const schedEnd   = schedule ? tMin(schedule[`${dayKey}_end`]   || '23:30') : 23*60+30
-  const HOURS = Array.from({ length: 24 }, (_, i) => i).filter(h => h*60 >= schedStart && h*60 < schedEnd)
+  // The grid must never hide real bookings: extend the displayed range to
+  // cover appointments outside opening hours (e.g. an 11:30 RDV when the
+  // salon "opens" at 12:00), and floor/ceil so partial hours still render.
+  const weekDates = (() => {
+    if (view !== 'week') return [iso]
+    const m = new Date(date); const dd = m.getDay(); m.setDate(m.getDate() + (dd===0?-6:1-dd))
+    return Array.from({length:7}, (_,i) => { const d = new Date(m); d.setDate(m.getDate()+i); return toISO(d) })
+  })()
+  const visRdvs  = rdvs.filter(r => weekDates.includes(r.date) && r.status !== 'cancelled')
+  const viewStart = Math.floor(Math.min(schedStart, ...visRdvs.map(r => tMin(r.start_time))) / 60) * 60
+  const viewEnd   = Math.ceil(Math.max(schedEnd, ...visRdvs.map(r => tMin(r.start_time) + (r.duration||0))) / 60) * 60
+  const HOURS = Array.from({ length: 24 }, (_, i) => i).filter(h => h*60 >= viewStart && h*60 < viewEnd)
 
   const navigate = (dir: number) => {
     const d = new Date(date)
@@ -722,6 +840,21 @@ export function ProAgenda({ salon }: { salon: any }) {
             setSelectedRdv(null)
           }}
           onUpdated={(u) => setRdvs(prev => prev.map(r => r.id === u.id ? { ...r, ...u } : r))}
+          staff={staff} services={services} salonId={salon.id}
+          onAddPresta={async () => {
+            // Attach the new prestation to this booking's group so it shows
+            // as one multi-prestation RDV; single RDVs get a fresh group first
+            let gid = selectedRdv.group_id
+            if (!gid) {
+              gid = crypto.randomUUID()
+              await fetch(`/api/rdv/${selectedRdv.id}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ group_id: gid }) })
+              setRdvs(prev => prev.map(r => r.id === selectedRdv.id ? { ...r, group_id: gid } : r))
+            }
+            setAddPrestaCtx({ client: selectedRdv.client_name, phone: selectedRdv.client_phone || '', groupId: gid })
+            setAddRdvDate(selectedRdv.date); setAddRdvTime(undefined); setAddRdvStaffId(undefined)
+            setSelectedRdv(null)
+            setShowAddRdv(true)
+          }}
         />
       )}
       {showAddRdv && (
@@ -731,7 +864,10 @@ export function ProAgenda({ salon }: { salon: any }) {
           defaultDate={addRdvDate}
           defaultTime={addRdvTime}
           defaultStaffId={addRdvStaffId}
-          onClose={() => setShowAddRdv(false)}
+          prefillClient={addPrestaCtx?.client}
+          prefillPhone={addPrestaCtx?.phone}
+          groupId={addPrestaCtx?.groupId}
+          onClose={() => { setShowAddRdv(false); setAddPrestaCtx(null) }}
           onSaved={loadRdvs}
         />
       )}
@@ -755,6 +891,7 @@ export function ProAgenda({ salon }: { salon: any }) {
           <button onClick={() => navigate(-1)} className="btn btn-secondary" style={{padding:'6px 12px'}}>‹</button>
           <button onClick={() => navigate(1)} className="btn btn-secondary" style={{padding:'6px 12px'}}>›</button>
           <button onClick={() => setDate(new Date())} className="btn btn-secondary" style={{fontSize:'0.82rem'}}>Aujourd'hui</button>
+          <button onClick={loadRdvs} title="Actualiser" className="btn btn-secondary" style={{padding:'7px 10px',display:'flex',alignItems:'center'}}><Icon name="refresh" size={15}/></button>
           <button onClick={() => { setAddRdvDate(iso); setAddRdvTime(undefined); setAddRdvStaffId(undefined); setShowAddRdv(true) }} className="btn btn-primary" style={{fontSize:'0.82rem'}}>+ Ajouter un RDV</button>
         </div>
       </div>
@@ -849,7 +986,18 @@ export function ProAgenda({ salon }: { salon: any }) {
         <div className="card" style={{padding:0,overflow:'hidden'}}>
           {!isOpen ? (
             <div style={{padding:40,textAlign:'center',color:'#aaa'}}><Icon name="lock" size={22} style={{display:'block',margin:'0 auto 8px'}}/>Salon fermé ce jour</div>
-          ) : HOURS.map(h => {
+          ) : (<>
+          {staff.length > 0 && (
+            <div style={{display:'flex',borderBottom:'2px solid #111',background:'#fff',position:'sticky',top:0,zIndex:3}}>
+              <div style={{width:56,flexShrink:0,borderRight:'1px solid #f3f3f3',background:'#f7f7f7'}}/>
+              {staff.map(st => (
+                <div key={st.id} style={{flex:1,minWidth:0,textAlign:'center',padding:'8px 4px',fontSize:'0.78rem',fontWeight:600,color:'#111',overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis'}}>
+                  {st.firstname}
+                </div>
+              ))}
+            </div>
+          )}
+          {HOURS.map(h => {
             const hStr = String(h).padStart(2,'0')
             const dayRdvs = rdvs.filter(r => r.date===iso && r.start_time.startsWith(hStr+':') && r.status!=='cancelled')
             // RDVs started earlier still covering this hour
@@ -889,6 +1037,7 @@ export function ProAgenda({ salon }: { salon: any }) {
               </div>
             )
           })}
+          </>)}
         </div>
       )}
 
@@ -937,7 +1086,7 @@ export function ProAgenda({ salon }: { salon: any }) {
                               style={{background: r.status==='completed'?'#777':r.status==='no-show'?'#C62828':r.status==='cancelled'?'#bbb':'#111',
                                 color:'#fff',borderRadius:6,padding:'3px 6px',fontSize:'0.68rem',marginBottom:2,cursor:'pointer'}}>
                               <div style={{fontWeight:700}}>{r.start_time} {r.service_name?.substring(0,10)}</div>
-                              <div style={{opacity:0.85}}>{r.client_name}</div>
+                              <div style={{opacity:0.85}}>{r.client_name} · {r.staff_name?.split(' ')[0]}</div>
                             </div>
                           ))}
                           {blkd && !dayRdvs.length && !covering.length && <div style={{color:'#111',padding:2}}><Icon name="lock" size={10}/></div>}
@@ -980,7 +1129,7 @@ export function ProAgenda({ salon }: { salon: any }) {
                     <div style={{fontSize:'0.85rem',fontWeight:600,marginBottom:4,color:isT?'#111':'#333'}}>{d}</div>
                     {dr.slice(0,2).map(r=>(
                       <div key={r.id} style={{fontSize:'0.68rem',background:'#111',color:'#fff',borderRadius:4,padding:'2px 4px',marginBottom:2,overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis'}}>
-                        {r.start_time} {r.service_name?.substring(0,8)}
+                        {r.start_time} {r.service_name?.substring(0,8)} · {r.staff_name?.split(' ')[0]}
                       </div>
                     ))}
                     {dr.length>2&&<div style={{fontSize:'0.68rem',color:'#aaa'}}>+{dr.length-2}</div>}

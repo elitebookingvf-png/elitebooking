@@ -1282,9 +1282,29 @@ export function ProSalonSettings({ salon, setSalon }: { salon: any; setSalon: (s
     address: salon.address||'', phone: salon.phone||'', email: salon.email||'',
     description: salon.description||'', whatsapp: salon.whatsapp||'',
     instagram: salon.instagram||'', pin: salon.pin||'',
+    cover_image: salon.cover_image||'',
   })
   const [saving, setSaving] = useState(false)
   const [ok, setOk]         = useState(false)
+  const [uploading, setUploading] = useState(false)
+
+  // Upload → store the public URL on the salon immediately (independent of
+  // the form's Sauvegarder button so the preview never lies)
+  async function uploadPhoto(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploading(true)
+    try {
+      const fd = new FormData(); fd.append('file', file)
+      const res = await fetch('/api/upload', { method:'POST', body: fd })
+      const d = await res.json()
+      if (!res.ok) throw new Error(d.error || 'Erreur upload')
+      await apiFetch(`/api/salons/${salon.id}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ cover_image: d.url }) })
+      setSalon({ ...salon, cover_image: d.url })
+      setForm(f => ({...f, cover_image: d.url}))
+    } catch (err: any) { alert(err.message || 'Erreur') }
+    finally { setUploading(false); e.target.value = '' }
+  }
 
   const save = async () => {
     setSaving(true); setOk(false)
@@ -1303,6 +1323,20 @@ export function ProSalonSettings({ salon, setSalon }: { salon: any; setSalon: (s
       <h1 className="serif" style={{fontSize:'2rem',marginBottom:32}}>Mon salon</h1>
       <div className="card">
         <div className="space-y-4">
+          <div className="form-group">
+            <label>Photo de l'établissement</label>
+            <div style={{display:'flex',alignItems:'center',gap:14}}>
+              <div style={{width:120,height:80,borderRadius:10,overflow:'hidden',background:'#f0f0f0',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                {form.cover_image
+                  ? <img src={form.cover_image} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+                  : <Icon name="photo" size={26} style={{color:'#ccc'}}/>}
+              </div>
+              <label className="btn btn-secondary" style={{cursor:'pointer',fontSize:'0.82rem',opacity:uploading?0.6:1}}>
+                {uploading ? 'Envoi…' : form.cover_image ? 'Changer la photo' : 'Choisir une photo'}
+                <input type="file" accept="image/*" onChange={uploadPhoto} disabled={uploading} style={{display:'none'}}/>
+              </label>
+            </div>
+          </div>
           <div className="form-group"><label>Nom du salon</label><input className="form-control" value={form.name} onChange={set('name')} /></div>
           <div className="form-row">
             <div className="form-group" style={{marginBottom:0}}><label>Ville</label>
