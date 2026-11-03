@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
       const resolvedCity      = salonCity || city || 'Casablanca';
       const resolvedCategory  = salonCategory || category || 'coiffure';
 
-      const { data: salon, error: salonError } = await (adminSupabase.from('salons') as any).insert({
+      const salonRow: any = {
         owner_id:    userId,
         name:        resolvedSalonName,
         city:        resolvedCity,
@@ -59,7 +59,14 @@ export async function POST(req: NextRequest) {
         rating:      4.5,
         active:      true,
         pin:         '0000',
-      }).select().single();
+      };
+      let { data: salon, error: salonError } = await (adminSupabase.from('salons') as any).insert(salonRow).select().single();
+      // The live DB may predate the `ice` column (added by migration 005) —
+      // retry without it so registration never hard-fails on that field
+      if (salonError && /ice/i.test(salonError.message || '')) {
+        delete salonRow.ice;
+        ({ data: salon, error: salonError } = await (adminSupabase.from('salons') as any).insert(salonRow).select().single());
+      }
 
       if (salonError) {
         console.error('[register] salon insert error:', salonError);
