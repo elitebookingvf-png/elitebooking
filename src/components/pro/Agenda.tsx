@@ -784,9 +784,13 @@ export function ProAgenda({ salon }: { salon: any }) {
     return Array.from({length:7}, (_,i) => { const d = new Date(m); d.setDate(m.getDate()+i); return toISO(d) })
   })()
   const visRdvs  = rdvs.filter(r => weekDates.includes(r.date) && r.status !== 'cancelled')
-  const viewStart = Math.floor(Math.min(schedStart, ...visRdvs.map(r => tMin(r.start_time))) / 60) * 60
-  const viewEnd   = Math.ceil(Math.max(schedEnd, ...visRdvs.map(r => tMin(r.start_time) + (r.duration||0))) / 60) * 60
-  const HOURS = Array.from({ length: 24 }, (_, i) => i).filter(h => h*60 >= viewStart && h*60 < viewEnd)
+  // Rows are 60-min windows anchored at the real opening time — a salon that
+  // opens 9:30 starts its grid at 9:30 (not a phantom 9:00 row). Bookings
+  // outside opening hours still extend the range so nothing is hidden.
+  const viewStart = Math.min(schedStart, ...visRdvs.map(r => tMin(r.start_time)))
+  const viewEnd   = Math.max(schedEnd, ...visRdvs.map(r => tMin(r.start_time) + (r.duration||0)))
+  const ROWS: number[] = []
+  for (let s = viewStart; s < viewEnd; s += 60) ROWS.push(s)
 
   const navigate = (dir: number) => {
     const d = new Date(date)
@@ -807,19 +811,19 @@ export function ProAgenda({ salon }: { salon: any }) {
     return date.toLocaleDateString('fr-FR',{month:'long',year:'numeric'})
   }
 
-  function isBlocked(staffId: string | null, h: number) {
+  function isBlocked(staffId: string | null, rowStart: number) {
     return blocks.some(b => {
       if (b.date !== iso) return false
       const match = !b.staff_id || b.staff_id === staffId
-      return match && tMin(b.start_time) <= h*60 && tMin(b.end_time) > h*60
+      return match && tMin(b.start_time) < rowStart + 60 && tMin(b.end_time) > rowStart
     })
   }
 
-  function staffWorksHour(st: any, h: number) {
+  function staffWorksHour(st: any, rowStart: number) {
     if (!isOpen) return false
     if (st.days?.length && !st.days.includes(staffDay)) return false
-    if (st.start_time && h * 60 < tMin(st.start_time)) return false
-    if (st.end_time   && h * 60 >= tMin(st.end_time)) return false
+    if (st.start_time && rowStart + 60 <= tMin(st.start_time)) return false
+    if (st.end_time   && rowStart >= tMin(st.end_time)) return false
     return true
   }
 
@@ -923,39 +927,39 @@ export function ProAgenda({ salon }: { salon: any }) {
                 </tr>
               </thead>
               <tbody>
-                {HOURS.map(h => (
-                  <tr key={h}>
+                {ROWS.map(rowStart => (
+                  <tr key={rowStart}>
                     <td style={{border:'1px solid #f0f0f0',padding:8,fontSize:'0.72rem',color:'#aaa',textAlign:'center',background:'#fafafa',fontWeight:500,fontVariantNumeric:'tabular-nums',letterSpacing:'0.03em'}}>
-                      {String(h).padStart(2,'0')}:00
+                      {minToTime(rowStart)}
                     </td>
                     {staff.map(st => {
-                      const works = staffWorksHour(st, h)
-                      const blkd  = works && isBlocked(st.id, h)
+                      const works = staffWorksHour(st, rowStart)
+                      const blkd  = works && isBlocked(st.id, rowStart)
                       const cellRdvs = rdvs.filter(r =>
                         r.staff_id === st.id && r.date === iso &&
-                        r.start_time.startsWith(`${String(h).padStart(2,'0')}:`)
+                        tMin(r.start_time) >= rowStart && tMin(r.start_time) < rowStart + 60
                       )
-                      // RDVs that started earlier and still cover this hour
+                      // RDVs that started earlier and still cover this row
                       const covering = rdvs.filter(r =>
                         r.staff_id === st.id && r.date === iso && r.status !== 'cancelled' &&
-                        tMin(r.start_time) < h*60 && tMin(r.start_time) + (r.duration||0) > h*60
+                        tMin(r.start_time) < rowStart && tMin(r.start_time) + (r.duration||0) > rowStart
                       )
-                      // Whole hour already booked — nothing can start here
+                      // Whole row already booked — nothing can start here
                       const fullyCovered = rdvs.some(r =>
                         r.staff_id === st.id && r.date === iso && r.status !== 'cancelled' &&
-                        tMin(r.start_time) <= h*60 && tMin(r.start_time) + (r.duration||0) >= h*60+60
+                        tMin(r.start_time) <= rowStart && tMin(r.start_time) + (r.duration||0) >= rowStart+60
                       )
                       const clickable = works && !blkd && !fullyCovered
                       return (
                         <td key={st.id}
-                          onClick={() => { if(clickable && !cellRdvs.length) { setAddRdvDate(iso); setAddRdvTime(`${String(h).padStart(2,'0')}:00`); setAddRdvStaffId(st.id); setShowAddRdv(true) } }}
+                          onClick={() => { if(clickable && !cellRdvs.length) { setAddRdvDate(iso); setAddRdvTime(minToTime(rowStart)); setAddRdvStaffId(st.id); setShowAddRdv(true) } }}
                           style={{border:'1px solid #f0f0f0',padding:0,verticalAlign:'top',height:ROW_H,position:'relative',
                             background: !works?'#f7f7f7':blkd?'#f7f7f7':'#fff',
                             cursor: clickable && !cellRdvs.length ? 'pointer' : 'default'}}>
                           {cellRdvs.map(r => {
                             // Card spans downward exactly its real duration — a 90-min
-                            // booking overflows into the next hour rows
-                            const top  = Math.max(0, tMin(r.start_time) - h*60)
+                            // booking overflows into the next rows
+                            const top  = Math.max(0, tMin(r.start_time) - rowStart)
                             const ht   = Math.max(pxForMin(r.duration || 60) - 3, 16)
                             return (
                               <div key={r.id} onClick={e => { e.stopPropagation(); setSelectedRdv(r) }}
@@ -991,34 +995,38 @@ export function ProAgenda({ salon }: { salon: any }) {
             <div style={{display:'flex',borderBottom:'2px solid #111',background:'#fff',position:'sticky',top:0,zIndex:3}}>
               <div style={{width:56,flexShrink:0,borderRight:'1px solid #f3f3f3',background:'#f7f7f7'}}/>
               {staff.map(st => (
-                <div key={st.id} style={{flex:1,minWidth:0,textAlign:'center',padding:'8px 4px',fontSize:'0.78rem',fontWeight:600,color:'#111',overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis'}}>
-                  {st.firstname}
+                <div key={st.id} style={{flex:1,minWidth:0,textAlign:'center',padding:'10px 4px'}}>
+                  <div style={{width:30,height:30,borderRadius:'50%',background:'#111',color:'#fff',
+                    display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700,fontSize:'0.7rem',margin:'0 auto 4px'}}>
+                    {st.firstname[0]}{st.lastname[0]}
+                  </div>
+                  <div style={{fontSize:'0.72rem',fontWeight:600,color:'#111',overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis'}}>{st.firstname}</div>
                 </div>
               ))}
             </div>
           )}
-          {HOURS.map(h => {
-            const hStr = String(h).padStart(2,'0')
-            const dayRdvs = rdvs.filter(r => r.date===iso && r.start_time.startsWith(hStr+':') && r.status!=='cancelled')
-            // RDVs started earlier still covering this hour
+          {ROWS.map(rowStart => {
+            const dayRdvs = rdvs.filter(r => r.date===iso && r.status!=='cancelled' &&
+              tMin(r.start_time) >= rowStart && tMin(r.start_time) < rowStart + 60)
+            // RDVs started earlier still covering this row
             const covering = rdvs.filter(r => r.date===iso && r.status!=='cancelled' &&
-              tMin(r.start_time) < h*60 && tMin(r.start_time) + (r.duration||0) > h*60)
-            const blkd = blocks.some(b => b.date===iso && tMin(b.start_time)<=h*60 && tMin(b.end_time)>h*60)
+              tMin(r.start_time) < rowStart && tMin(r.start_time) + (r.duration||0) > rowStart)
+            const blkd = blocks.some(b => b.date===iso && tMin(b.start_time)<rowStart+60 && tMin(b.end_time)>rowStart)
             const lanes = Math.max(1, staff.length)
             return (
-              <div key={h} style={{display:'flex',borderBottom:'1px solid #f3f3f3',height:ROW_H,flexShrink:0,background:blkd?'#f7f7f7':'#fff'}}>
+              <div key={rowStart} style={{display:'flex',borderBottom:'1px solid #f3f3f3',height:ROW_H,flexShrink:0,background:blkd?'#f7f7f7':'#fff'}}>
                 <div style={{width:56,flexShrink:0,fontSize:'0.75rem',color:'#aaa',fontWeight:500,
                   display:'flex',alignItems:'flex-start',justifyContent:'center',paddingTop:8,
                   borderRight:'1px solid #f3f3f3',background:'#f7f7f7'}}>
-                  {hStr}:00
+                  {minToTime(rowStart)}
                 </div>
                 <div style={{flex:1,position:'relative',cursor:!blkd&&!dayRdvs.length?'pointer':'default'}}
-                  onClick={() => { if(!blkd && !dayRdvs.length) { setAddRdvDate(iso); setAddRdvTime(`${hStr}:00`); setAddRdvStaffId(undefined); setShowAddRdv(true) } }}>
+                  onClick={() => { if(!blkd && !dayRdvs.length) { setAddRdvDate(iso); setAddRdvTime(minToTime(rowStart)); setAddRdvStaffId(undefined); setShowAddRdv(true) } }}>
                   {dayRdvs.map(r => {
                     // One lane per staff member; card height = real duration, so
                     // multi-hour bookings overflow into the rows below
                     const lane = Math.max(0, staff.findIndex(s => s.id === r.staff_id))
-                    const top  = Math.max(0, tMin(r.start_time) - h*60)
+                    const top  = Math.max(0, tMin(r.start_time) - rowStart)
                     const ht   = Math.max(pxForMin(r.duration || 60) - 3, 16)
                     return (
                       <div key={r.id} onClick={e => { e.stopPropagation(); setSelectedRdv(r) }}
@@ -1067,18 +1075,18 @@ export function ProAgenda({ salon }: { salon: any }) {
                 </tr>
               </thead>
               <tbody>
-                {HOURS.map(h => (
-                  <tr key={h}>
+                {ROWS.map(rowStart => (
+                  <tr key={rowStart}>
                     <td style={{border:'1px solid #eee',padding:8,fontSize:'0.72rem',color:'#aaa',textAlign:'center',background:'#f7f7f7',fontWeight:500}}>
-                      {String(h).padStart(2,'0')}:00
+                      {minToTime(rowStart)}
                     </td>
                     {cols.map(d => {
                       const di = toISO(d)
-                      const hStr = String(h).padStart(2,'0')
-                      const dayRdvs = rdvs.filter(r => r.date===di && r.start_time.startsWith(hStr+':') && r.status!=='cancelled')
+                      const dayRdvs = rdvs.filter(r => r.date===di && r.status!=='cancelled' &&
+                        tMin(r.start_time) >= rowStart && tMin(r.start_time) < rowStart + 60)
                       const covering = rdvs.filter(r => r.date===di && r.status!=='cancelled' &&
-                        tMin(r.start_time) < h*60 && tMin(r.start_time) + (r.duration||0) > h*60)
-                      const blkd = blocks.some(b => b.date===di && tMin(b.start_time)<=h*60 && tMin(b.end_time)>h*60)
+                        tMin(r.start_time) < rowStart && tMin(r.start_time) + (r.duration||0) > rowStart)
+                      const blkd = blocks.some(b => b.date===di && tMin(b.start_time)<rowStart+60 && tMin(b.end_time)>rowStart)
                       return (
                         <td key={di} style={{border:'1px solid #eee',padding:4,verticalAlign:'top',minHeight:48,background:blkd?'#f7f7f7':'#fff'}}>
                           {dayRdvs.map(r => (
@@ -1086,7 +1094,12 @@ export function ProAgenda({ salon }: { salon: any }) {
                               style={{background: r.status==='completed'?'#777':r.status==='no-show'?'#C62828':r.status==='cancelled'?'#bbb':'#111',
                                 color:'#fff',borderRadius:6,padding:'3px 6px',fontSize:'0.68rem',marginBottom:2,cursor:'pointer'}}>
                               <div style={{fontWeight:700}}>{r.start_time} {r.service_name?.substring(0,10)}</div>
-                              <div style={{opacity:0.85}}>{r.client_name} · {r.staff_name?.split(' ')[0]}</div>
+                              <div style={{opacity:0.85,display:'flex',alignItems:'center',gap:3}}>
+                                <span style={{display:'inline-flex',width:13,height:13,borderRadius:'50%',background:'rgba(255,255,255,0.28)',alignItems:'center',justifyContent:'center',fontSize:'0.52rem',fontWeight:700,flexShrink:0}}>
+                                  {(r.staff_name||'').split(' ').map((w:string)=>w[0]).join('').substring(0,2)}
+                                </span>
+                                {r.client_name} · {r.staff_name?.split(' ')[0]}
+                              </div>
                             </div>
                           ))}
                           {blkd && !dayRdvs.length && !covering.length && <div style={{color:'#111',padding:2}}><Icon name="lock" size={10}/></div>}
@@ -1128,8 +1141,11 @@ export function ProAgenda({ salon }: { salon: any }) {
                     onClick={()=>{setDate(new Date(di+'T12:00'));setView('day')}}>
                     <div style={{fontSize:'0.85rem',fontWeight:600,marginBottom:4,color:isT?'#111':'#333'}}>{d}</div>
                     {dr.slice(0,2).map(r=>(
-                      <div key={r.id} style={{fontSize:'0.68rem',background:'#111',color:'#fff',borderRadius:4,padding:'2px 4px',marginBottom:2,overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis'}}>
-                        {r.start_time} {r.service_name?.substring(0,8)} · {r.staff_name?.split(' ')[0]}
+                      <div key={r.id} style={{fontSize:'0.68rem',background:'#111',color:'#fff',borderRadius:4,padding:'2px 4px',marginBottom:2,display:'flex',alignItems:'center',gap:3}}>
+                        <span style={{display:'inline-flex',width:12,height:12,borderRadius:'50%',background:'rgba(255,255,255,0.28)',alignItems:'center',justifyContent:'center',fontSize:'0.48rem',fontWeight:700,flexShrink:0}}>
+                          {(r.staff_name||'').split(' ').map((w:string)=>w[0]).join('').substring(0,2)}
+                        </span>
+                        <span style={{overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis'}}>{r.start_time} {r.service_name?.substring(0,8)}</span>
                       </div>
                     ))}
                     {dr.length>2&&<div style={{fontSize:'0.68rem',color:'#aaa'}}>+{dr.length-2}</div>}
