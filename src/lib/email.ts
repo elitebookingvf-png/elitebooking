@@ -3,7 +3,11 @@ import { Resend } from 'resend';
 // Sender must live on the verified domain — resend.dev only delivers to the
 // account owner's email, even after domain verification
 const FROM   = process.env.RESEND_FROM || 'EliteBooking <noreply@elitebooking.ma>';
-const APP    = process.env.NEXT_PUBLIC_APP_URL || 'https://elitebooking-lac.vercel.app';
+// The env var was once pasted as "NEXT_PUBLIC_APP_URL=https://…" (key included)
+// — strip anything before '=' so links can never render broken again
+const rawApp = process.env.NEXT_PUBLIC_APP_URL || '';
+const APP    = rawApp.includes('=') ? rawApp.split('=').slice(1).join('=').trim()
+             : (rawApp || 'https://www.elitebooking.ma');
 const VERIFIED_EMAIL = process.env.RESEND_VERIFIED_EMAIL || 'elitebookingvf@gmail.com';
 
 async function send(to: string, subject: string, html: string) {
