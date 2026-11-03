@@ -1,6 +1,8 @@
 import { Resend } from 'resend';
 
-const FROM   = 'EliteBooking <onboarding@resend.dev>';
+// Sender must live on the verified domain — resend.dev only delivers to the
+// account owner's email, even after domain verification
+const FROM   = process.env.RESEND_FROM || 'EliteBooking <noreply@elitebooking.ma>';
 const APP    = process.env.NEXT_PUBLIC_APP_URL || 'https://elitebooking-lac.vercel.app';
 const VERIFIED_EMAIL = process.env.RESEND_VERIFIED_EMAIL || 'elitebookingvf@gmail.com';
 
