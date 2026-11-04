@@ -1276,6 +1276,19 @@ export function ProSchedule() {
 }
 
 // ─── Mon Salon (settings) ────────────────────────────────────
+// Downscale + re-encode photos to JPEG before upload — keeps every image well
+// under Vercel's ~4.5MB request-body limit and makes uploads fast on mobile
+async function compressImage(file: File): Promise<Blob> {
+  const bmp = await createImageBitmap(file)
+  const max = 1600
+  const scale = Math.min(1, max / Math.max(bmp.width, bmp.height))
+  const canvas = document.createElement('canvas')
+  canvas.width  = Math.round(bmp.width * scale)
+  canvas.height = Math.round(bmp.height * scale)
+  canvas.getContext('2d')!.drawImage(bmp, 0, 0, canvas.width, canvas.height)
+  return new Promise((res, rej) => canvas.toBlob(b => b ? res(b) : rej(new Error('Image illisible')), 'image/jpeg', 0.85))
+}
+
 export function ProSalonSettings({ salon, setSalon }: { salon: any; setSalon: (s:any)=>void }) {
   const [form, setForm] = useState({
     name: salon.name||'', city: salon.city||'', category: salon.category||'',
@@ -1295,9 +1308,15 @@ export function ProSalonSettings({ salon, setSalon }: { salon: any; setSalon: (s
     if (!file) return
     setUploading(true)
     try {
-      const fd = new FormData(); fd.append('file', file)
+      // Compress before upload — Vercel rejects bodies over ~4.5MB and phone
+      // photos blow past that, which surfaced as a JSON parse error
+      const blob = await compressImage(file)
+      const fd = new FormData()
+      fd.append('file', new File([blob], file.name.replace(/\.[^.]+$/,'') + '.jpg', { type:'image/jpeg' }))
       const res = await fetch('/api/upload', { method:'POST', body: fd })
-      const d = await res.json()
+      const text = await res.text()
+      let d: any = {}
+      try { d = JSON.parse(text) } catch { throw new Error('Upload refusé — image trop lourde ou réseau instable') }
       if (!res.ok) throw new Error(d.error || 'Erreur upload')
       await apiFetch(`/api/salons/${salon.id}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ cover_image: d.url }) })
       setSalon({ ...salon, cover_image: d.url })
